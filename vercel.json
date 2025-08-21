@@ -1,12 +1,13 @@
 {
   "version": 2,
+  "buildCommand": "npm run build:all",
   "builds": [
     {
       "src": "frontend/package.json",
       "use": "@vercel/next"
     },
     {
-      "src": "backend/dist/main.js",
+      "src": "backend/package.json",
       "use": "@vercel/node"
     }
   ],
