@@ -4,10 +4,11 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, Mail, Clock, Users } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import BackgroundCurves from '@/components/landing/BackgroundCurves';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
-export default function TeamRequestSubmittedPage() {
+function TeamRequestSubmittedContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [companyName, setCompanyName] = useState('');
@@ -91,5 +92,22 @@ export default function TeamRequestSubmittedPage() {
         </div>
       </div>
     </>
+  );
+}
+
+export default function TeamRequestSubmittedPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-black">
+        <div className="text-center">
+          <LoadingSpinner className="w-8 h-8 mx-auto mb-4" />
+          <p className="text-gray-400">
+            Chargement...
+          </p>
+        </div>
+      </div>
+    }>
+      <TeamRequestSubmittedContent />
+    </Suspense>
   );
 }
