@@ -1,0 +1,602 @@
+import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { createClient } from '@supabase/supabase-js';
+import { ConfigService } from '@nestjs/config';
+import { User, UserRole } from './entities/user.entity';
+import { Company } from '../companies/entities/company.entity';
+import { LoginDto, GoogleAuthDto, SignUpDto, CompanySignUpDto, AcceptInvitationDto, CompleteCompanyGoogleDto } from './dto/login.dto';
+import * as bcrypt from 'bcryptjs';
+import { randomUUID } from 'crypto';
+
+@Injectable()
+export class AuthService {
+  private supabase;
+
+  constructor(
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
+    @InjectRepository(Company)
+    private companyRepository: Repository<Company>,
+    private jwtService: JwtService,
+    private configService: ConfigService,
+  ) {
+    this.supabase = createClient(
+      this.configService.get('SUPABASE_URL'),
+      this.configService.get('SUPABASE_ANON_KEY'),
+    );
+  }
+
+  async signUp(signUpDto: SignUpDto) {
+    const { email, password, name } = signUpDto;
+
+    // Check if user already exists
+    const existingUser = await this.userRepository.findOne({ where: { email } });
+    if (existingUser) {
+      throw new BadRequestException('User already exists with this email');
+    }
+
+    // Sign up with Supabase
+    console.log('🔧 Tentative d\'inscription Supabase pour:', email);
+    const { data, error } = await this.supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          name,
+        },
+        emailRedirectTo: `${this.configService.get('FRONTEND_URL') || 'http://localhost:3000'}/auth/callback`,
+      },
+    });
+
+    console.log('📧 Réponse Supabase signUp:', { 
+      user: data?.user?.id, 
+      session: !!data?.session,
+      error: error?.message 
+    });
+
+    if (error) {
+      console.error('❌ Erreur Supabase signUp:', error);
+      throw new BadRequestException(error.message);
+    }
+
+    // Create user in our database (not verified)
+    const user = this.userRepository.create({
+      email,
+      name,
+      google_id: data.user.id,
+      avatar_url: data.user.user_metadata?.avatar_url,
+      email_verified: data.user.email_confirmed_at ? true : false,
+      is_active: false, // Utilisateur inactif jusqu'à vérification
+    });
+
+    await this.userRepository.save(user);
+
+    return {
+      message: 'User registered successfully. Please check your email for verification.',
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        avatar_url: user.avatar_url,
+        email_verified: user.email_verified,
+      },
+    };
+  }
+
+  async signIn(loginDto: LoginDto) {
+    const { email, password } = loginDto;
+
+    // Sign in with Supabase
+    const { data, error } = await this.supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    // Get user from our database
+    let user = await this.userRepository.findOne({ where: { email } });
+
+    // If user doesn't exist in our DB, create them
+    if (!user) {
+      user = this.userRepository.create({
+        email: data.user.email,
+        name: data.user.user_metadata?.name || data.user.email,
+        google_id: data.user.id,
+        avatar_url: data.user.user_metadata?.avatar_url,
+        email_verified: data.user.email_confirmed_at ? true : false,
+        is_active: data.user.email_confirmed_at ? true : false,
+      });
+      await this.userRepository.save(user);
+    } else {
+      // Mettre à jour l'état de vérification si nécessaire
+      if (data.user.email_confirmed_at && (!user.email_verified || !user.is_active)) {
+        console.log('🔄 Synchronisation état utilisateur après vérification email');
+        user.email_verified = true;
+        user.is_active = true;
+        await this.userRepository.save(user);
+        console.log('✅ Utilisateur activé et email vérifié');
+      }
+    }
+
+    // Vérifier si l'email est vérifié
+    if (!user.email_verified) {
+      throw new UnauthorizedException('Please verify your email before signing in. Check your inbox for verification email.');
+    }
+
+    // Vérifier si l'utilisateur est actif
+    if (!user.is_active) {
+      throw new UnauthorizedException('Your account is not active. Please contact support.');
+    }
+
+    const payload = { sub: user.id, email: user.email };
+    const access_token = this.jwtService.sign(payload);
+
+    return {
+      access_token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        avatar_url: user.avatar_url,
+        email_verified: user.email_verified,
+      },
+    };
+  }
+
+  async googleAuth(googleAuthDto: GoogleAuthDto) {
+    const { access_token } = googleAuthDto;
+
+    try {
+      console.log('🔍 googleAuth appelé avec token:', access_token ? 'Présent' : 'Absent');
+      
+      // Get user info from Supabase
+      const { data: { user: supabaseUser }, error } = await this.supabase.auth.getUser(access_token);
+
+      if (error || !supabaseUser) {
+        console.log('❌ Erreur Supabase getUser:', error);
+        throw new UnauthorizedException('Invalid Google token');
+      }
+
+      console.log('📧 Données Supabase user:', {
+        id: supabaseUser.id,
+        email: supabaseUser.email,
+        email_confirmed_at: supabaseUser.email_confirmed_at,
+        email_confirmed: !!supabaseUser.email_confirmed_at
+      });
+
+      // Check if user exists in our database
+      let user = await this.userRepository.findOne({ 
+        where: { google_id: supabaseUser.id } 
+      });
+
+      console.log('🔍 Utilisateur existant trouvé:', user ? 'OUI' : 'NON');
+
+      // If user doesn't exist, create them
+      if (!user) {
+        console.log('🆕 Création nouvel utilisateur');
+        user = this.userRepository.create({
+          email: supabaseUser.email,
+          name: supabaseUser.user_metadata?.full_name || supabaseUser.email,
+          google_id: supabaseUser.id,
+          avatar_url: supabaseUser.user_metadata?.avatar_url,
+          email_verified: !!supabaseUser.email_confirmed_at,
+          is_active: !!supabaseUser.email_confirmed_at,
+        });
+        await this.userRepository.save(user);
+        console.log('✅ Nouvel utilisateur créé avec email_verified:', !!supabaseUser.email_confirmed_at);
+      } else {
+        console.log('👤 Utilisateur existant - état actuel:', {
+          email_verified: user.email_verified,
+          is_active: user.is_active,
+          supabase_email_confirmed: !!supabaseUser.email_confirmed_at
+        });
+        
+        // Mettre à jour l'état si Supabase confirme l'email
+        if (supabaseUser.email_confirmed_at && (!user.email_verified || !user.is_active)) {
+          console.log('🔄 Mise à jour état utilisateur après vérification email');
+          user.email_verified = true;
+          user.is_active = true;
+          await this.userRepository.save(user);
+          console.log('✅ Utilisateur activé et email vérifié');
+        }
+      }
+
+      const payload = { sub: user.id, email: user.email };
+      const jwt_token = this.jwtService.sign(payload);
+
+      return {
+        access_token: jwt_token,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          avatar_url: user.avatar_url,
+        },
+      };
+    } catch (error) {
+      throw new UnauthorizedException('Failed to authenticate with Google');
+    }
+  }
+
+  async getProfile(userId: string) {
+    const user = await this.userRepository.findOne({ 
+      where: { id: userId },
+      relations: ['company']
+    });
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      avatar_url: user.avatar_url,
+      is_onboarded: user.is_onboarded,
+      company: user.company ? {
+        id: user.company.id,
+        name: user.company.name,
+        domain: user.company.domain,
+      } : null,
+    };
+  }
+
+  async validateUser(payload: any): Promise<any> {
+    const user = await this.userRepository.findOne({ 
+      where: { id: payload.sub },
+      relations: ['company']
+    });
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+    return user;
+  }
+
+  async companySignUp(companySignUpDto: CompanySignUpDto) {
+    const { email, password, name, companyName, companyDomain } = companySignUpDto;
+
+    // Vérifier si l'entreprise existe déjà
+    const existingCompany = await this.companyRepository.findOne({ 
+      where: { domain: companyDomain } 
+    });
+    if (existingCompany) {
+      throw new BadRequestException('Une entreprise avec ce domaine existe déjà');
+    }
+
+    // Vérifier si l'utilisateur existe déjà
+    const existingUser = await this.userRepository.findOne({ where: { email } });
+    if (existingUser) {
+      throw new BadRequestException('Un utilisateur avec cet email existe déjà');
+    }
+
+    // Inscription avec Supabase AVEC validation d'email (même pour les entreprises)
+    console.log('🔧 Tentative d\'inscription Supabase pour:', email);
+    const { data, error } = await this.supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          name,
+        },
+        emailRedirectTo: `${this.configService.get('FRONTEND_URL') || 'http://localhost:3000'}/auth/callback`,
+      },
+    });
+
+    console.log('📧 Réponse Supabase signUp:', { 
+      user: data?.user?.id, 
+      session: !!data?.session,
+      error: error?.message 
+    });
+
+    if (error) {
+      console.error('❌ Erreur Supabase signUp:', error);
+      throw new BadRequestException(error.message);
+    }
+
+    // Créer l'entreprise
+    const company = this.companyRepository.create({
+      name: companyName,
+      domain: companyDomain,
+    });
+    const savedCompany = await this.companyRepository.save(company);
+
+    // Créer l'utilisateur admin (NON ACTIF jusqu'à vérification d'email)
+    const user = this.userRepository.create({
+      email,
+      name,
+      google_id: data.user.id,
+      avatar_url: data.user.user_metadata?.avatar_url,
+      company_id: savedCompany.id,
+      role: UserRole.ADMIN,
+      email_verified: false,
+      is_active: false, // Inactif jusqu'à vérification d'email
+    });
+
+    await this.userRepository.save(user);
+
+    // PAS de token JWT - l'utilisateur doit vérifier son email
+    return {
+      message: 'Entreprise et administrateur créés avec succès. Vérifiez votre email pour confirmer votre compte et accéder au dashboard.',
+      company: {
+        id: savedCompany.id,
+        name: savedCompany.name,
+        domain: savedCompany.domain,
+      },
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        email_verified: user.email_verified,
+      },
+    };
+  }
+
+  async acceptInvitation(acceptInvitationDto: AcceptInvitationDto) {
+    const { invitation_token, password } = acceptInvitationDto;
+
+    try {
+      // Le token reçu est déjà un JWT valide émis par Supabase
+      // Il faut l'utiliser pour extraire les informations utilisateur
+      const { data: { user }, error } = await this.supabase.auth.getUser(invitation_token);
+
+      if (error || !user) {
+        console.error('❌ Erreur récupération utilisateur Supabase:', error);
+        throw new BadRequestException(`Token d'invitation invalide: ${error?.message || 'Utilisateur introuvable'}`);
+      }
+
+      console.log('✅ Utilisateur Supabase récupéré:', {
+        id: user.id,
+        email: user.email,
+        metadata: user.user_metadata
+      });
+
+      // Mettre à jour le mot de passe de l'utilisateur dans Supabase
+      const { error: passwordError } = await this.supabase.auth.admin.updateUserById(
+        user.id,
+        { password: password }
+      );
+
+      if (passwordError) {
+        console.error('❌ Erreur mise à jour mot de passe Supabase:', passwordError);
+        throw new BadRequestException(`Erreur lors de la définition du mot de passe: ${passwordError.message}`);
+      }
+
+      console.log('✅ Mot de passe défini avec succès dans Supabase');
+
+      // Finaliser l'invitation côté application
+      const appUser = await this.finalizeInvitation(user.email, user.id);
+
+      // Générer un token JWT pour connexion automatique
+      const payload = { 
+        id: appUser.user.id, 
+        email: appUser.user.email, 
+        role: appUser.user.role,
+        companyId: appUser.user.company.id 
+      };
+      const access_token = this.jwtService.sign(payload);
+
+      return {
+        access_token,
+        user: appUser.user,
+        message: 'Invitation acceptée avec succès'
+      };
+
+    } catch (error) {
+      console.error('❌ Erreur lors de l\'acceptation d\'invitation:', error);
+      throw new BadRequestException(error.message || 'Erreur lors de l\'acceptation de l\'invitation');
+    }
+  }
+
+  async finalizeInvitation(email: string, supabaseUserId: string) {
+    console.log(`🔍 Recherche utilisateur invité avec email: ${email}`);
+    
+    // Trouver l'utilisateur invité dans notre base de données
+    const user = await this.userRepository.findOne({
+      where: { 
+        email,
+        is_invited: true,
+        is_active: false 
+      },
+      relations: ['company']
+    });
+
+    console.log('🔍 Utilisateur trouvé:', user ? {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      is_invited: user.is_invited,
+      is_active: user.is_active
+    } : 'AUCUN');
+
+    if (!user) {
+      // Cherchons tous les utilisateurs avec cet email pour debug
+      const allUsersWithEmail = await this.userRepository.find({
+        where: { email },
+        relations: ['company']
+      });
+      console.log('🔍 Tous les utilisateurs avec cet email:', allUsersWithEmail.map(u => ({
+        id: u.id,
+        email: u.email,
+        name: u.name,
+        is_invited: u.is_invited,
+        is_active: u.is_active
+      })));
+      
+      throw new BadRequestException(`Invitation introuvable pour l'email ${email}. Vérifiez que l'utilisateur existe et est marqué comme invité.`);
+    }
+
+    // Mettre à jour l'utilisateur pour l'activer
+    user.google_id = supabaseUserId;
+    user.is_invited = false;
+    user.is_active = true;
+
+    await this.userRepository.save(user);
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        company: {
+          id: user.company.id,
+          name: user.company.name,
+          domain: user.company.domain,
+        },
+      },
+    };
+  }
+
+  async completeCompanyGoogle(userId: string, completeCompanyDto: CompleteCompanyGoogleDto) {
+    const { companyName, companyDomain } = completeCompanyDto;
+
+    // Vérifier si l'utilisateur existe
+    const user = await this.userRepository.findOne({ 
+      where: { id: userId },
+      relations: ['company']
+    });
+
+    if (!user) {
+      throw new BadRequestException('Utilisateur introuvable');
+    }
+
+    // Vérifier si l'utilisateur a déjà une entreprise
+    if (user.company_id) {
+      throw new BadRequestException('L\'utilisateur a déjà une entreprise');
+    }
+
+    // Vérifier si le domaine existe déjà
+    const existingCompany = await this.companyRepository.findOne({ 
+      where: { domain: companyDomain } 
+    });
+    if (existingCompany) {
+      throw new BadRequestException('Une entreprise avec ce domaine existe déjà');
+    }
+
+    // Créer l'entreprise
+    const company = this.companyRepository.create({
+      name: companyName,
+      domain: companyDomain,
+    });
+    const savedCompany = await this.companyRepository.save(company);
+
+    // Mettre à jour l'utilisateur pour être admin de cette entreprise
+    user.company_id = savedCompany.id;
+    user.role = UserRole.ADMIN;
+    await this.userRepository.save(user);
+
+    return {
+      message: 'Entreprise créée avec succès',
+      company: {
+        id: savedCompany.id,
+        name: savedCompany.name,
+        domain: savedCompany.domain,
+      },
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      },
+    };
+  }
+
+  async markAsOnboarded(userId: string) {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    user.is_onboarded = true;
+    await this.userRepository.save(user);
+
+    return {
+      message: 'User marked as onboarded successfully',
+    };
+  }
+
+  async verifyEmail(token: string) {
+    // Cette méthode est maintenant gérée par Supabase via callback
+    // Elle peut être utilisée pour des vérifications personnalisées si besoin
+    throw new BadRequestException('Email verification is handled by Supabase callback. Please use the link in your email.');
+  }
+
+  async resendVerificationEmail(email: string) {
+    // Trouver l'utilisateur
+    const user = await this.userRepository.findOne({
+      where: {
+        email,
+        email_verified: false,
+      },
+    });
+
+    if (!user) {
+      throw new BadRequestException('User not found or email already verified');
+    }
+
+    // Renvoyer l'email de vérification via Supabase
+    const { error } = await this.supabase.auth.resend({
+      type: 'signup',
+      email: email,
+      options: {
+        emailRedirectTo: `${this.configService.get('FRONTEND_URL')}/auth/callback`
+      }
+    });
+
+    if (error) {
+      console.error('❌ Erreur renvoi email Supabase:', error);
+      throw new BadRequestException('Failed to resend verification email');
+    }
+
+    return {
+      message: 'Verification email sent successfully. Please check your inbox.',
+    };
+  }
+
+  // Méthode temporaire pour debug - À SUPPRIMER en production
+  async debugUser(email: string) {
+    const user = await this.userRepository.findOne({
+      where: { email },
+      relations: ['company']
+    });
+
+    if (!user) {
+      return { error: 'User not found' };
+    }
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        is_active: user.is_active,
+        is_invited: user.is_invited,
+        is_onboarded: user.is_onboarded,
+        email_verified: user.email_verified,
+        google_id: user.google_id,
+        company: user.company ? {
+          id: user.company.id,
+          name: user.company.name,
+          domain: user.company.domain
+        } : null,
+        created_at: user.created_at,
+        updated_at: user.updated_at
+      },
+      diagnostic: {
+        canLogin: user.email_verified && user.is_active,
+        needsOnboarding: !user.is_onboarded,
+        isAdmin: user.role === 'admin',
+        hasCompany: !!user.company_id
+      }
+    };
+  }
+
+}
