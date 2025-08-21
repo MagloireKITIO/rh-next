@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
-export default function InvitationCallbackPage() {
+function InvitationCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -38,5 +38,22 @@ export default function InvitationCallbackPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function InvitationCallbackPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-950">
+        <div className="text-center">
+          <LoadingSpinner className="w-8 h-8 mx-auto mb-4" />
+          <p className="text-slate-600 dark:text-slate-400">
+            Chargement...
+          </p>
+        </div>
+      </div>
+    }>
+      <InvitationCallbackContent />
+    </Suspense>
   );
 }
