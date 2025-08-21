@@ -1,0 +1,19 @@
+{
+  "name": "rh-next-monorepo",
+  "version": "1.0.0",
+  "description": "Monorepo for RH Next application",
+  "scripts": {
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run start:dev",
+    "build:frontend": "cd frontend && npm run build",
+    "build:backend": "cd backend && npm run build",
+    "build:all": "npm run build:backend && npm run build:frontend",
+    "start": "npm run start:backend",
+    "start:frontend": "cd frontend && npm run start",
+    "start:backend": "cd backend && npm run start:prod"
+  },
+  "workspaces": [
+    "frontend",
+    "backend"
+  ]
+}
