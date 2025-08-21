@@ -11,6 +11,7 @@ import { WebSocketModule } from './websocket/websocket.module';
 import { AuthModule } from './auth/auth.module';
 import { CompaniesModule } from './companies/companies.module';
 import { TeamRequestsModule } from './team-requests/team-requests.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { TeamRequestsModule } from './team-requests/team-requests.module';
     ApiKeysModule,
     WebSocketModule,
     TeamRequestsModule,
+    HealthModule,
   ],
 })
 export class AppModule {}
