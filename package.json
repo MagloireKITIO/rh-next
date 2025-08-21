@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Monorepo for RH Next application",
   "scripts": {
+    "postinstall": "npm install --prefix frontend && npm install --prefix backend",
     "dev:frontend": "cd frontend && npm run dev",
     "dev:backend": "cd backend && npm run start:dev",
     "build:frontend": "cd frontend && npm run build",
