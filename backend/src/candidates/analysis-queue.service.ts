@@ -30,6 +30,12 @@ export class AnalysisQueueService {
   private readonly queues: Map<string, ProjectQueue> = new Map();
   private readonly DELAY_BETWEEN_REQUESTS = 1500; // 1.5 secondes entre les requêtes
   private readonly MAX_PARALLEL_WORKERS = 3; // Nombre max de workers parallèles
+  
+  // Protection mémoire - nettoyage automatique
+  private readonly MAX_QUEUE_AGE_MS = 2 * 60 * 60 * 1000; // 2 heures max
+  private readonly CLEANUP_INTERVAL_MS = 15 * 60 * 1000; // Nettoyage toutes les 15 min
+  private readonly MAX_CONCURRENT_PROJECTS = 50; // Max 50 projets simultanés
+  private cleanupTimer: NodeJS.Timeout | null = null;
 
   constructor(
     @InjectRepository(Candidate)
@@ -38,13 +44,22 @@ export class AnalysisQueueService {
     private webSocketGateway: ProjectWebSocketGateway,
     private analysisService: AnalysisService,
     private apiKeysService: ApiKeysService,
-  ) {}
+  ) {
+    // Démarrer le nettoyage automatique
+    this.startAutomaticCleanup();
+  }
 
   /**
    * Ajoute un candidat à la queue d'analyse pour un projet
    */
   async addToQueue(candidateId: string, candidate: any, project: any): Promise<void> {
     const projectId = project.id;
+    
+    // Protection contre l'accumulation excessive
+    if (this.queues.size >= this.MAX_CONCURRENT_PROJECTS) {
+      this.cleanupOldestQueues(5);
+      this.logger.warn(`🚨 Max concurrent projects reached (${this.queues.size}), cleaned oldest queues`);
+    }
     
     if (!this.queues.has(projectId)) {
       // Déterminer le nombre max de workers basé sur les clés API disponibles
@@ -173,7 +188,15 @@ export class AnalysisQueueService {
       if (queue.activeWorkers === 0) {
         queue.isProcessing = false;
         this.logger.log(`All workers completed for project ${projectId}`);
-        this.emitQueueUpdate(projectId, true);
+        
+        // Nettoyage intelligent : si queue vide ou tous items traités
+        if (queue.items.length === 0 || queue.processedItems >= queue.totalItems) {
+          this.emitQueueUpdate(projectId, true); // Ceci supprime la queue
+        } else {
+          // Queue abandonnée - programmer nettoyage différé
+          this.scheduleQueueCleanup(projectId, 30000); // 30 secondes
+          this.emitQueueUpdate(projectId, false);
+        }
       }
     }
   }
@@ -355,6 +378,102 @@ export class AnalysisQueueService {
       });
 
       this.logger.log(`Cancelled queue for project ${projectId}`);
+    }
+  }
+
+  /**
+   * Démarre le nettoyage automatique en arrière-plan
+   */
+  private startAutomaticCleanup(): void {
+    // Nettoyage toutes les 15 minutes
+    this.cleanupTimer = setInterval(() => {
+      this.cleanupAbandonedQueues();
+      this.logMemoryUsage();
+    }, this.CLEANUP_INTERVAL_MS);
+
+    this.logger.log(`🧹 Automatic cleanup started (every ${this.CLEANUP_INTERVAL_MS / 60000} minutes)`);
+  }
+
+  /**
+   * Nettoie les queues abandonnées ou trop anciennes
+   */
+  private cleanupAbandonedQueues(): void {
+    const now = Date.now();
+    let cleanedCount = 0;
+
+    for (const [projectId, queue] of this.queues.entries()) {
+      const isOld = queue.startTime && (now - queue.startTime.getTime()) > this.MAX_QUEUE_AGE_MS;
+      const isStuck = !queue.isProcessing && queue.items.length === 0 && queue.activeWorkers === 0;
+      
+      if (isOld || isStuck) {
+        this.queues.delete(projectId);
+        cleanedCount++;
+        this.logger.log(`🧹 Cleaned ${isOld ? 'old' : 'stuck'} queue for project ${projectId}`);
+      }
+    }
+
+    if (cleanedCount > 0) {
+      this.logger.log(`🧹 Cleanup completed: ${cleanedCount} queues removed, ${this.queues.size} remaining`);
+    }
+  }
+
+  /**
+   * Nettoie les queues les plus anciennes
+   */
+  private cleanupOldestQueues(count: number): void {
+    const sortedQueues = Array.from(this.queues.entries())
+      .filter(([_, queue]) => !queue.isProcessing) // Ne pas toucher aux queues actives
+      .sort(([_, a], [__, b]) => {
+        const timeA = a.startTime?.getTime() || 0;
+        const timeB = b.startTime?.getTime() || 0;
+        return timeA - timeB; // Plus ancien en premier
+      });
+
+    for (let i = 0; i < Math.min(count, sortedQueues.length); i++) {
+      const [projectId] = sortedQueues[i];
+      this.queues.delete(projectId);
+      this.logger.log(`🧹 Removed oldest queue for project ${projectId}`);
+    }
+  }
+
+  /**
+   * Programme le nettoyage différé d'une queue
+   */
+  private scheduleQueueCleanup(projectId: string, delayMs: number): void {
+    setTimeout(() => {
+      const queue = this.queues.get(projectId);
+      if (queue && !queue.isProcessing && queue.activeWorkers === 0) {
+        this.queues.delete(projectId);
+        this.logger.log(`🧹 Delayed cleanup: removed abandoned queue for project ${projectId}`);
+      }
+    }, delayMs);
+  }
+
+  /**
+   * Log l'utilisation mémoire si élevée
+   */
+  private logMemoryUsage(): void {
+    const usage = process.memoryUsage();
+    const heapMB = Math.round(usage.heapUsed / 1024 / 1024);
+    
+    if (heapMB > 300) { // Alerte à partir de 300MB
+      this.logger.warn(`🚨 Memory usage: ${heapMB}MB heap (${this.queues.size} active queues)`);
+      
+      // Si très élevé, forcer un nettoyage
+      if (heapMB > 450) {
+        this.logger.error(`💥 Critical memory usage: ${heapMB}MB - forcing cleanup`);
+        this.cleanupOldestQueues(10);
+      }
+    }
+  }
+
+  /**
+   * Nettoyage lors de l'arrêt du service
+   */
+  onModuleDestroy(): void {
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+      this.logger.log('🛑 Automatic cleanup stopped');
     }
   }
 }

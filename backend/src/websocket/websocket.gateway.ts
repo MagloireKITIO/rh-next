@@ -20,9 +20,16 @@ export class ProjectWebSocketGateway implements OnGatewayConnection, OnGatewayDi
   @WebSocketServer() server: Server;
   private logger: Logger = new Logger('WebSocketGateway');
   private projectRooms = new Map<string, Set<string>>(); // projectId -> Set of socketIds
+  
+  // Protection mémoire pour WebSocket rooms
+  private readonly MAX_ROOMS = 200; // Max 200 rooms simultanées
+  private cleanupTimer: NodeJS.Timeout | null = null;
 
   handleConnection(client: Socket) {
-    // Client connected silently
+    // Démarrer le nettoyage automatique des rooms au premier client
+    if (!this.cleanupTimer) {
+      this.startRoomCleanup();
+    }
   }
 
   handleDisconnect(client: Socket) {
@@ -35,6 +42,9 @@ export class ProjectWebSocketGateway implements OnGatewayConnection, OnGatewayDi
         }
       }
     }
+    
+    // Nettoyage immédiat après déconnexion
+    this.cleanupEmptyRooms();
   }
 
   @SubscribeMessage('joinProject')
@@ -44,6 +54,11 @@ export class ProjectWebSocketGateway implements OnGatewayConnection, OnGatewayDi
   ) {
     const { projectId } = data;
     
+    // Protection contre l'accumulation excessive de rooms
+    if (this.projectRooms.size >= this.MAX_ROOMS) {
+      this.cleanupOldestRooms(10);
+    }
+    
     // Join the project room
     client.join(`project-${projectId}`);
     
@@ -52,8 +67,6 @@ export class ProjectWebSocketGateway implements OnGatewayConnection, OnGatewayDi
       this.projectRooms.set(projectId, new Set());
     }
     this.projectRooms.get(projectId).add(client.id);
-    
-    // Client joined project room silently
     
     return { status: 'joined', projectId };
   }
@@ -126,5 +139,71 @@ export class ProjectWebSocketGateway implements OnGatewayConnection, OnGatewayDi
   // Generic method to emit any analysis update
   emitAnalysisUpdate(projectId: string, data: any) {
     this.emitToProject(projectId, 'analysisUpdate', data);
+  }
+
+  /**
+   * Démarre le nettoyage automatique des rooms
+   */
+  private startRoomCleanup(): void {
+    this.cleanupTimer = setInterval(() => {
+      this.cleanupEmptyRooms();
+      this.logRoomStats();
+    }, 5 * 60 * 1000); // Nettoyage toutes les 5 minutes
+  }
+
+  /**
+   * Nettoie les rooms vides
+   */
+  private cleanupEmptyRooms(): void {
+    let cleanedCount = 0;
+    
+    for (const [projectId, clients] of this.projectRooms.entries()) {
+      if (clients.size === 0) {
+        this.projectRooms.delete(projectId);
+        cleanedCount++;
+      }
+    }
+    
+    if (cleanedCount > 0) {
+      this.logger.log(`🧹 WebSocket: Cleaned ${cleanedCount} empty rooms, ${this.projectRooms.size} remaining`);
+    }
+  }
+
+  /**
+   * Supprime les rooms les plus anciennes (basé sur projectId comme proxy)
+   */
+  private cleanupOldestRooms(count: number): void {
+    const roomEntries = Array.from(this.projectRooms.entries());
+    const toRemove = roomEntries.slice(0, Math.min(count, roomEntries.length));
+    
+    for (const [projectId] of toRemove) {
+      this.projectRooms.delete(projectId);
+    }
+    
+    if (toRemove.length > 0) {
+      this.logger.warn(`🚨 WebSocket: Removed ${toRemove.length} oldest rooms (max capacity reached)`);
+    }
+  }
+
+  /**
+   * Log les statistiques des rooms si nécessaire
+   */
+  private logRoomStats(): void {
+    const totalClients = Array.from(this.projectRooms.values())
+      .reduce((sum, clients) => sum + clients.size, 0);
+    
+    if (this.projectRooms.size > 50 || totalClients > 100) {
+      this.logger.warn(`📊 WebSocket stats: ${this.projectRooms.size} rooms, ${totalClients} clients`);
+    }
+  }
+
+  /**
+   * Nettoyage lors de l'arrêt du service
+   */
+  onModuleDestroy(): void {
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+      this.logger.log('🛑 WebSocket room cleanup stopped');
+    }
   }
 }
