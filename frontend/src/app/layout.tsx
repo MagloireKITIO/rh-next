@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/contexts/auth-context";
 import { QueryProvider } from "@/providers/QueryProvider";
+import { NavigationProgress } from "@/components/ui/navigation-progress";
 import "./globals.css";
 import "../styles/onboarding.css";
 
@@ -34,6 +35,11 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <QueryProvider>
+          <NavigationProgress 
+            height={3}
+            color="rgb(79 70 229)" // indigo-600 pour matcher le thème
+            showOnFetch={true}
+          />
           <ThemeProvider
             attribute="class"
             defaultTheme="system"
