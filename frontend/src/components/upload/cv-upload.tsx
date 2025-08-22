@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { useCandidates } from "@/hooks/use-api";
+import { useUploadCVs } from "@/hooks/mutations";
 import { 
   Upload, 
   FileText, 
@@ -43,7 +43,7 @@ export function CVUpload({
   const [isUploading, setIsUploading] = useState(false);
   const [currentFileIndex, setCurrentFileIndex] = useState(0);
   const [overallProgress, setOverallProgress] = useState(0);
-  const { uploadCVs } = useCandidates();
+  const uploadCVsMutation = useUploadCVs();
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const newFiles: FileWithStatus[] = acceptedFiles.map(file => ({
@@ -113,9 +113,17 @@ export function CVUpload({
         }, 300);
 
         try {
-          // Upload chunk
+          // Upload chunk using TanStack Query mutation
           const chunkFiles = currentChunk.map(f => f.file);
-          const result = await uploadCVs(projectId, chunkFiles);
+          const result = await new Promise((resolve, reject) => {
+            uploadCVsMutation.mutate(
+              { projectId, files: chunkFiles },
+              {
+                onSuccess: (data) => resolve(data),
+                onError: (error) => reject(error)
+              }
+            );
+          });
           
           clearInterval(progressInterval);
           
@@ -176,12 +184,10 @@ export function CVUpload({
         });
       }
 
-      // Show completion message
-      if (successCount > 0) {
-        toast.success(`${successCount} CV(s) uploaded successfully`);
-      }
-      if (failureCount > 0) {
-        toast.warning(`${failureCount} CV(s) failed to upload`);
+      // Toasts are now handled by the mutation hook
+      // Show summary only if mixed results
+      if (successCount > 0 && failureCount > 0) {
+        toast.info(`Upload complete: ${successCount} successful, ${failureCount} failed`);
       }
 
       // Clear successful files after delay
@@ -367,7 +373,7 @@ export function CVUpload({
           >
             <Button
               onClick={uploadFiles}
-              disabled={isUploading || files.every(f => f.status === "success")}
+              disabled={isUploading || uploadCVsMutation.isPending || files.every(f => f.status === "success")}
               className="w-full gap-2"
             >
               {isUploading ? (

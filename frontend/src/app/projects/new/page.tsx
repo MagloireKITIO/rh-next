@@ -11,14 +11,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { useProjects } from "@/hooks/use-api";
+import { useCreateProject } from "@/hooks/mutations";
 import { ArrowLeft, Briefcase, Save } from "lucide-react";
 import { toast } from "sonner";
 
 export default function NewProjectPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
-  const { createProject } = useProjects();
+  const createProjectMutation = useCreateProject();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -58,7 +58,7 @@ export default function NewProjectPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateForm()) {
@@ -67,21 +67,26 @@ export default function NewProjectPage() {
 
     setIsSubmitting(true);
     
-    try {
-      const project = await createProject({
+    createProjectMutation.mutate(
+      {
         name: formData.name.trim(),
         jobDescription: formData.jobDescription.trim(),
         customPrompt: formData.customPrompt.trim() || undefined
-      });
-      
-      toast.success("Project created successfully!");
-      router.push(`/projects/${project.id}`);
-    } catch (error) {
-      console.error("Error creating project:", error);
-      toast.error("Failed to create project");
-    } finally {
-      setIsSubmitting(false);
-    }
+      },
+      {
+        onSuccess: (project) => {
+          toast.success("Project created successfully!");
+          router.push(`/projects/${project.id}`);
+        },
+        onError: (error) => {
+          console.error("Error creating project:", error);
+          toast.error("Failed to create project");
+        },
+        onSettled: () => {
+          setIsSubmitting(false);
+        }
+      }
+    );
   };
 
   const defaultPrompt = `You are an expert HR recruiter. Analyze the provided CV against the job description and rate the candidate's fit for the position. Consider skills match, experience relevance, education background, and overall profile alignment.
@@ -208,17 +213,17 @@ Be objective and focus on job-relevant criteria.`;
                   type="button"
                   variant="outline"
                   onClick={() => router.push("/")}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || createProjectMutation.isPending}
                   className="flex-1"
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || createProjectMutation.isPending}
                   className="flex-1 gap-2"
                 >
-                  {isSubmitting ? (
+                  {(isSubmitting || createProjectMutation.isPending) ? (
                     <>
                       <LoadingSpinner size="sm" />
                       Creating...

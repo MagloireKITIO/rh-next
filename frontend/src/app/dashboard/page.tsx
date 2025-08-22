@@ -9,8 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { StatsCard, ProjectCard } from "@/components/ui/animated-card";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { useProjects } from "@/hooks/use-api";
-import { useAppStore } from "@/lib/store";
+import { useProjects } from "@/hooks/queries";
 import { WelcomeBanner } from "@/components/onboarding/welcome-banner";
 import { useOnboarding } from "@/hooks/use-onboarding";
 import { 
@@ -25,8 +24,7 @@ import {
 export default function Dashboard() {
   const router = useRouter();
   const { user, loading } = useAuth();
-  const { projects, fetchProjects } = useProjects();
-  const { isLoading } = useAppStore();
+  const { data: projects = [], isLoading, error } = useProjects();
   const { shouldShowOnboarding } = useOnboarding();
   const [stats, setStats] = useState({
     totalProjects: 0,
@@ -41,11 +39,6 @@ export default function Dashboard() {
     }
   }, [user, loading, router]);
 
-  useEffect(() => {
-    if (user) {
-      fetchProjects();
-    }
-  }, [fetchProjects, user]);
 
   useEffect(() => {
     if (projects.length > 0) {
@@ -77,10 +70,25 @@ export default function Dashboard() {
     router.push(`/projects/${projectId}`);
   };
 
-  if (loading || (isLoading && projects.length === 0)) {
+  if (loading || isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <LoadingSpinner size="lg" text="Loading dashboard..." />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-red-600 dark:text-red-400 mb-4">
+            Error loading dashboard: {error.message}
+          </p>
+          <Button onClick={() => window.location.reload()}>
+            Retry
+          </Button>
+        </div>
       </div>
     );
   }

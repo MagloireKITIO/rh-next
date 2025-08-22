@@ -12,7 +12,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { useConfiguration, useApiKeys } from "@/hooks/use-api";
+import { useAIConfiguration } from "@/hooks/queries";
+import { useApiKeys, useApiKeysStats } from "@/hooks/queries";
+import { useSetConfigurationValue } from "@/hooks/mutations";
+import { useCreateApiKey, useToggleApiKey, useDeleteApiKey } from "@/hooks/mutations";
+import { useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Save, Settings, Key, Brain, Plus, Trash2, Eye, EyeOff, ToggleLeft, ToggleRight, Users, UserPlus, Shield, Crown, Mail, RefreshCcw, UserCheck } from "lucide-react";
 import { TeamRequestsModal } from "@/components/modals/team-requests-modal";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -26,8 +30,15 @@ export default function SettingsPage() {
   const isHR = currentUser?.role === 'hr';
   const canManageUsers = isUserAdmin; // Seuls les admins peuvent gérer les utilisateurs
   const canViewUsers = isUserAdmin || isHR; // Admins et HR peuvent voir les utilisateurs
-  const { getAIConfiguration, setConfigurationValue } = useConfiguration();
-  const { fetchApiKeys, addApiKey, toggleApiKey, deleteApiKey, getStats } = useApiKeys();
+  // TanStack Query hooks
+  const { data: aiConfig, isLoading: aiConfigLoading } = useAIConfiguration();
+  const { data: apiKeys = [], isLoading: apiKeysLoading } = useApiKeys();
+  const { data: keyStats = { total: 0, active: 0, inactive: 0, totalRequests: 0 } } = useApiKeysStats();
+  const setConfigMutation = useSetConfigurationValue();
+  const createApiKeyMutation = useCreateApiKey();
+  const toggleApiKeyMutation = useToggleApiKey();
+  const deleteApiKeyMutation = useDeleteApiKey();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!loading && !currentUser) {
@@ -35,32 +46,12 @@ export default function SettingsPage() {
     }
   }, [currentUser, loading, router]);
   
-  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [aiConfig, setAiConfig] = useState<any>(null);
-  
   const [settings, setSettings] = useState({
     togetherAiKeys: "",
     defaultPrompt: ""
   });
 
-  const [apiKeys, setApiKeys] = useState<Array<{
-    id: string;
-    maskedKey: string;
-    isActive: boolean;
-    createdAt: string;
-    lastUsedAt?: string;
-    requestCount: number;
-    name?: string;
-    provider: string;
-  }>>([]);
-
-  const [keyStats, setKeyStats] = useState<{
-    total: number;
-    active: number;
-    inactive: number;
-    totalRequests: number;
-  }>({ total: 0, active: 0, inactive: 0, totalRequests: 0 });
 
   const [newKeyInput, setNewKeyInput] = useState("");
 
@@ -86,9 +77,15 @@ export default function SettingsPage() {
   // Team requests modal state
   const [teamRequestsModalOpen, setTeamRequestsModalOpen] = useState(false);
 
+  // Configuration des settings basée sur les données TanStack Query
   useEffect(() => {
-    loadSettings();
-  }, []);
+    if (aiConfig) {
+      setSettings({
+        togetherAiKeys: "", // Ne pas exposer les clés pour la sécurité
+        defaultPrompt: aiConfig.defaultPrompt || ""
+      });
+    }
+  }, [aiConfig]);
 
   // Écouter l'événement d'ouverture du modal team requests depuis les notifications
   useEffect(() => {
@@ -121,92 +118,101 @@ export default function SettingsPage() {
     }
   }, [currentUser, canViewUsers]);
 
-  const loadSettings = async () => {
-    try {
-      setIsLoading(true);
-      const config = await getAIConfiguration();
-      setAiConfig(config);
-      setSettings({
-        togetherAiKeys: "", // Ne pas exposer les clés pour la sécurité
-        defaultPrompt: config.defaultPrompt || ""
-      });
 
-      // Charger les clés depuis le backend
-      const [keys, stats] = await Promise.all([
-        fetchApiKeys(),
-        getStats()
-      ]);
-      setApiKeys(keys);
-      setKeyStats(stats);
-    } catch (error) {
-      console.error("Error loading settings:", error);
-      toast.error("Error loading settings");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleAddApiKey = async () => {
+  const handleAddApiKey = () => {
     if (!newKeyInput.trim()) {
       toast.error("Please enter a valid API key");
       return;
     }
 
-    try {
-      await addApiKey({ key: newKeyInput.trim() });
-      setNewKeyInput("");
-      await loadSettings(); // Recharger les données
-    } catch (error) {
-      // Erreur déjà gérée dans le hook
+    createApiKeyMutation.mutate(
+      { key: newKeyInput.trim() },
+      {
+        onSuccess: () => {
+          setNewKeyInput("");
+        }
+      }
+    );
+  };
+
+  const handleToggleKeyStatus = (keyId: string) => {
+    toggleApiKeyMutation.mutate(keyId);
+  };
+
+  const handleRemoveApiKey = (keyId: string) => {
+    deleteApiKeyMutation.mutate(keyId);
+  };
+
+  const handleReset = () => {
+    // Invalider toutes les queries pour forcer un refetch
+    queryClient.invalidateQueries({ queryKey: ['configuration'] });
+    queryClient.invalidateQueries({ queryKey: ['api-keys'] });
+    
+    // Reset du form
+    if (aiConfig) {
+      setSettings({
+        togetherAiKeys: "",
+        defaultPrompt: aiConfig.defaultPrompt || ""
+      });
     }
   };
 
-  const handleToggleKeyStatus = async (keyId: string) => {
-    try {
-      await toggleApiKey(keyId);
-      await loadSettings(); // Recharger les données
-    } catch (error) {
-      // Erreur déjà gérée dans le hook
-    }
-  };
-
-  const handleRemoveApiKey = async (keyId: string) => {
-    try {
-      await deleteApiKey(keyId);
-      await loadSettings(); // Recharger les données
-    } catch (error) {
-      // Erreur déjà gérée dans le hook
-    }
-  };
-
-  const handleSave = async () => {
+  const handleSave = () => {
     setIsSaving(true);
-    try {
-      // Sauvegarder les clés AI si fournies
-      if (settings.togetherAiKeys.trim()) {
-        await setConfigurationValue(
-          "TOGETHER_AI_KEYS", 
-          settings.togetherAiKeys.trim(),
-          "Together AI API keys (comma separated)"
-        );
+    let saveCount = 0;
+    let totalSaves = 0;
+    
+    // Compter les sauvegardes nécessaires
+    if (settings.togetherAiKeys.trim()) totalSaves++;
+    if (settings.defaultPrompt.trim()) totalSaves++;
+    
+    const checkCompletion = () => {
+      saveCount++;
+      if (saveCount >= totalSaves) {
+        setIsSaving(false);
+        toast.success("Settings saved successfully!");
       }
+    };
+    
+    // Sauvegarder les clés AI si fournies
+    if (settings.togetherAiKeys.trim()) {
+      setConfigMutation.mutate(
+        {
+          key: "TOGETHER_AI_KEYS",
+          value: settings.togetherAiKeys.trim(),
+          description: "Together AI API keys (comma separated)"
+        },
+        {
+          onSuccess: checkCompletion,
+          onError: () => {
+            setIsSaving(false);
+            toast.error("Error saving AI keys");
+          }
+        }
+      );
+    }
 
-      // Sauvegarder le prompt par défaut
-      if (settings.defaultPrompt.trim()) {
-        await setConfigurationValue(
-          "DEFAULT_AI_PROMPT",
-          settings.defaultPrompt.trim(),
-          "Default prompt for AI analysis of CVs"
-        );
-      }
-
-      toast.success("Settings saved successfully!");
-      await loadSettings(); // Recharger pour actualiser
-    } catch (error) {
-      console.error("Error saving settings:", error);
-      toast.error("Error saving settings");
-    } finally {
+    // Sauvegarder le prompt par défaut
+    if (settings.defaultPrompt.trim()) {
+      setConfigMutation.mutate(
+        {
+          key: "DEFAULT_AI_PROMPT",
+          value: settings.defaultPrompt.trim(),
+          description: "Default prompt for AI analysis of CVs"
+        },
+        {
+          onSuccess: checkCompletion,
+          onError: () => {
+            setIsSaving(false);
+            toast.error("Error saving default prompt");
+          }
+        }
+      );
+    }
+    
+    if (totalSaves === 0) {
       setIsSaving(false);
+      toast.info("No changes to save");
     }
   };
 
@@ -382,7 +388,7 @@ export default function SettingsPage() {
     }
   };
 
-  if (loading || isLoading) {
+  if (loading || aiConfigLoading || apiKeysLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <LoadingSpinner size="lg" text="Loading settings..." />
@@ -610,7 +616,7 @@ export default function SettingsPage() {
                   </Button>
                   <Button
                     variant="outline"
-                    onClick={loadSettings}
+                    onClick={handleReset}
                     disabled={isSaving}
                   >
                     Reset

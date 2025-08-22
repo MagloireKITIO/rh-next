@@ -14,10 +14,13 @@ import { CVUpload } from "@/components/upload/cv-upload";
 import { CandidateRanking, RankingStats } from "@/components/ranking/candidate-ranking";
 import { ProjectSettings } from "@/components/project/project-settings";
 import { SubtleProgress } from "@/components/queue/subtle-progress";
-import { useProjects, useCandidates, useAnalysis } from "@/hooks/use-api";
-import { useAppStore } from "@/lib/store";
-import { useWebSocket } from "@/hooks/use-websocket";
+import { useProject, useProjectStats } from "@/hooks/queries";
+import { useCandidatesByProject, useRankingChanges } from "@/hooks/queries";
+import { useAnalysesByProject } from "@/hooks/queries";
+import { useUpdateProject } from "@/hooks/mutations";
+import { useWebSocketSync } from "@/hooks/useWebSocketSync";
 import { Project, Candidate, projectsApi, apiClient } from "@/lib/api-client";
+import { useQueryClient } from '@tanstack/react-query';
 import { 
   ArrowLeft, 
   Users, 
@@ -40,7 +43,6 @@ export default function ProjectPage() {
   const router = useRouter();
   const projectId = params.id as string;
   
-  const [project, setProject] = useState<Project | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [editedDescription, setEditedDescription] = useState("");
@@ -49,75 +51,33 @@ export default function ProjectPage() {
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   
-  const { isLoading, setCurrentProject } = useAppStore();
-  const { 
-    candidates, 
-    fetchCandidatesByProject, 
-    fetchRankingChanges 
-  } = useCandidates();
-  const { generateReport } = useAnalysis();
-  const { isConnected, on, off } = useWebSocket({ 
-    projectId, 
-    enabled: true 
-  });
+  // TanStack Query hooks
+  const queryClient = useQueryClient();
+  const { data: project, isLoading: projectLoading, error: projectError } = useProject(projectId);
+  const { data: projectStats, isLoading: statsLoading } = useProjectStats(projectId);
+  const { data: candidates = [], isLoading: candidatesLoading } = useCandidatesByProject(projectId);
+  const { data: rankingChanges = [] } = useRankingChanges(projectId);
+  const { data: analyses = [] } = useAnalysesByProject(projectId);
+  const updateProjectMutation = useUpdateProject();
+  const { isConnected } = useWebSocketSync(projectId);
 
-  // Fetch project and candidates
+  // Gestion d'erreur pour project
   useEffect(() => {
-    const fetchProject = async () => {
-      try {
-        const response = await projectsApi.getById(projectId);
-        setProject(response.data);
-        setCurrentProject(response.data);
-      } catch (error) {
-        if (error.response?.status === 404) {
-          toast.error("Project not found");
-        } else if (error.response?.status === 401) {
-          toast.error("Access denied - please login again");
-        } else {
-          toast.error("Error loading project: " + (error.response?.data?.message || error.message));
-        }
-        router.push("/");
+    if (projectError) {
+      if (projectError.response?.status === 404) {
+        toast.error("Project not found");
+      } else if (projectError.response?.status === 401) {
+        toast.error("Access denied - please login again");
+      } else {
+        toast.error("Error loading project: " + (projectError.response?.data?.message || projectError.message));
       }
-    };
-
-    if (projectId) {
-      fetchProject();
+      router.push("/");
     }
-  }, [projectId, setCurrentProject, router]);
+  }, [projectError, router]);
 
-  // Fetch candidates separately
-  useEffect(() => {
-    if (projectId) {
-      fetchCandidatesByProject(projectId);
-    }
-  }, [projectId]);
-
-  // WebSocket listeners for real-time updates
-  useEffect(() => {
-    if (!projectId) return;
-
-    // Handle analysis completed - refresh candidates list
-    on('analysis_completed', (data) => {
-      fetchCandidatesByProject(projectId);
-    });
-
-    // Handle candidate updates
-    on('candidateUpdate', (data) => {
-      fetchCandidatesByProject(projectId);
-    });
-
-    return () => {
-      off('analysis_completed');
-      off('candidateUpdate');
-    };
-  }, [projectId, on, off, fetchCandidatesByProject]);
 
   const handleUploadComplete = (results: any) => {
-    if (results.successful > 0) {
-      // Refresh candidates list - not needed anymore due to WebSocket
-      // fetchCandidatesByProject(projectId);
-      // Toast already shown by useCandidates hook
-    }
+    // Toasts et cache invalidation gérés par le hook mutation
   };
 
   const handleViewCandidate = (candidate: Candidate) => {
@@ -144,9 +104,11 @@ export default function ProjectPage() {
     }
   };
 
-  const handleRefreshData = async () => {
-    await fetchCandidatesByProject(projectId);
-    await fetchRankingChanges(projectId);
+  const handleRefreshData = () => {
+    // Invalider toutes les queries liées à ce projet pour forcer un refetch
+    queryClient.invalidateQueries({ queryKey: ['candidates', 'project', projectId] });
+    queryClient.invalidateQueries({ queryKey: ['candidates', 'project', projectId, 'rankings'] });
+    queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'stats'] });
     toast.success("Data refreshed");
   };
 
@@ -155,19 +117,15 @@ export default function ProjectPage() {
     setIsEditingDescription(true);
   };
 
-  const handleSaveDescription = async () => {
-    try {
-      const response = await projectsApi.update(projectId, {
-        jobDescription: editedDescription,
-      });
-      
-      setProject(response.data);
-      setIsEditingDescription(false);
-      toast.success("Job description updated successfully");
-    } catch (error) {
-      console.error("Error updating job description:", error);
-      toast.error("Error updating job description");
-    }
+  const handleSaveDescription = () => {
+    updateProjectMutation.mutate(
+      { id: projectId, data: { jobDescription: editedDescription } },
+      {
+        onSuccess: () => {
+          setIsEditingDescription(false);
+        }
+      }
+    );
   };
 
   const handleCancelEdit = () => {
@@ -183,8 +141,8 @@ export default function ProjectPage() {
 
       await Promise.all(deletePromises);
       
-      // Refresh candidates list
-      fetchCandidatesByProject(projectId);
+      // Refresh candidates list avec TanStack Query
+      queryClient.invalidateQueries({ queryKey: ['candidates', 'project', projectId] });
       toast.success(`${candidateIds.length} candidate${candidateIds.length > 1 ? 's' : ''} deleted successfully`);
     } catch (error) {
       console.error("Error deleting candidates:", error);
@@ -193,8 +151,8 @@ export default function ProjectPage() {
   };
 
   const handleProjectUpdate = (updatedProject: Project) => {
-    setProject(updatedProject);
-    setCurrentProject(updatedProject);
+    // Les données sont maintenant mises à jour automatiquement par TanStack Query
+    // La mutation useUpdateProject invalide déjà le cache du projet
   };
 
   const handleProjectDelete = () => {
@@ -245,10 +203,20 @@ export default function ProjectPage() {
     }
   };
 
-  if (isLoading || !project) {
+  if (projectLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <LoadingSpinner size="lg" text="Loading project..." />
+      </div>
+    );
+  }
+
+  if (!project) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-muted-foreground">Project not found</p>
+        </div>
       </div>
     );
   }
@@ -615,7 +583,7 @@ export default function ProjectPage() {
           onClose={() => setShowSettings(false)}
           onProjectUpdate={handleProjectUpdate}
           onProjectDelete={handleProjectDelete}
-          onCandidatesRefresh={() => fetchCandidatesByProject(projectId)}
+          onCandidatesRefresh={() => queryClient.invalidateQueries({ queryKey: ['candidates', 'project', projectId] })}
         />
       )}
 

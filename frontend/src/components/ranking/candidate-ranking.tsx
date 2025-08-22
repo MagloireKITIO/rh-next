@@ -10,8 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Candidate, RankingChange } from "@/lib/api-client";
-import { useCandidates } from "@/hooks/use-api";
-import { useWebSocket } from "@/hooks/use-websocket";
+import { useCandidatesByProject, useRankingChanges } from "@/hooks/queries";
+import { useDeleteCandidate } from "@/hooks/mutations";
+import { useWebSocketSync } from "@/hooks/useWebSocketSync";
+import { useQueryClient } from '@tanstack/react-query';
 import { TrendingUp, TrendingDown, RefreshCw, Eye, FileText, Wifi, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -32,115 +34,31 @@ export function CandidateRanking({
   autoRefresh = true,
   refreshInterval = 10000 // 10 seconds
 }: CandidateRankingProps) {
-  const [candidates, setCandidates] = useState<Candidate[]>(initialCandidates);
-  const [rankingChanges, setRankingChanges] = useState<RankingChange[]>([]);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  // Utiliser les données des queries au lieu de l'état local
+  const { data: candidates = initialCandidates, isLoading: candidatesLoading } = useCandidatesByProject(projectId);
+  const { data: rankingChanges = [], isLoading: rankingLoading } = useRankingChanges(projectId);
+  const deleteCandidateMutation = useDeleteCandidate();
+  const queryClient = useQueryClient();
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [selectedCandidates, setSelectedCandidates] = useState<Set<string>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   
-  const { fetchCandidatesByProject, fetchRankingChanges } = useCandidates();
-  const { isConnected, on, off } = useWebSocket({ 
-    projectId, 
-    enabled: autoRefresh 
-  });
+  const { isConnected } = useWebSocketSync(projectId);
 
-  const refreshData = async () => {
-    if (isRefreshing) return;
-    
-    setIsRefreshing(true);
-    try {
-      // Fetch updated candidates
-      await fetchCandidatesByProject(projectId);
-      
-      // Fetch ranking changes
-      const changes = await fetchRankingChanges(projectId);
-      if (changes) {
-        setRankingChanges(changes);
-      }
-      
-      setLastUpdate(new Date());
-    } catch (error) {
-      console.error("Error refreshing ranking data:", error);
-    } finally {
-      setIsRefreshing(false);
-    }
+  const refreshData = () => {
+    // Invalider les queries pour forcer un refetch
+    queryClient.invalidateQueries({ queryKey: ['candidates', 'project', projectId] });
+    queryClient.invalidateQueries({ queryKey: ['candidates', 'project', projectId, 'rankings'] });
+    setLastUpdate(new Date());
   };
 
-  // WebSocket event handlers
+  // WebSocket sync géré par useWebSocketSync, plus besoin de logique manuelle
   useEffect(() => {
-    if (!autoRefresh) return;
+    // Mettre à jour lastUpdate quand les données changent
+    setLastUpdate(new Date());
+  }, [candidates, rankingChanges]);
 
-    // Handle candidate updates
-    on('candidateUpdate', (data) => {
-      console.log('Received candidate update:', data);
-      setCandidates(prevCandidates => {
-        const updatedCandidates = [...prevCandidates];
-        const index = updatedCandidates.findIndex(c => c.id === data.candidate.id);
-        if (index !== -1) {
-          updatedCandidates[index] = { ...updatedCandidates[index], ...data.candidate };
-        }
-        return updatedCandidates;
-      });
-      setLastUpdate(new Date());
-    });
-
-    // Handle analysis updates
-    on('analysisUpdate', (data) => {
-      console.log('Received analysis update:', data);
-      
-      if (data.type === 'analysis_started') {
-        // Update candidate status to pending
-        setCandidates(prevCandidates => 
-          prevCandidates.map(c => 
-            c.id === data.candidateId 
-              ? { ...c, status: 'pending' }
-              : c
-          )
-        );
-      } else if (data.type === 'analysis_completed') {
-        // Update candidate with completed analysis
-        setCandidates(prevCandidates => {
-          const updatedCandidates = [...prevCandidates];
-          const index = updatedCandidates.findIndex(c => c.id === data.candidate.id);
-          if (index !== -1) {
-            updatedCandidates[index] = { ...updatedCandidates[index], ...data.candidate };
-          }
-          return updatedCandidates;
-        });
-      } else if (data.type === 'analysis_error') {
-        // Update candidate status to error
-        setCandidates(prevCandidates => 
-          prevCandidates.map(c => 
-            c.id === data.candidateId 
-              ? { ...c, status: 'error', summary: 'Analysis failed - please retry' }
-              : c
-          )
-        );
-      }
-      
-      setLastUpdate(new Date());
-    });
-
-    return () => {
-      off('candidateUpdate');
-      off('analysisUpdate');
-    };
-  }, [autoRefresh, on, off]);
-
-  // Fallback polling when WebSocket is not connected
-  useEffect(() => {
-    if (!autoRefresh || isConnected) return;
-
-    const interval = setInterval(refreshData, refreshInterval);
-    return () => clearInterval(interval);
-  }, [autoRefresh, isConnected, refreshInterval]);
-
-  // Update candidates when prop changes
-  useEffect(() => {
-    setCandidates(initialCandidates);
-  }, [initialCandidates]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -176,11 +94,21 @@ export function CandidateRanking({
   };
 
   const handleDeleteSelected = async () => {
-    if (!onDeleteCandidates || selectedCandidates.size === 0) return;
+    if (selectedCandidates.size === 0) return;
     
     setIsDeleting(true);
     try {
-      await onDeleteCandidates(Array.from(selectedCandidates));
+      // Utiliser la mutation pour chaque candidat
+      const deletePromises = Array.from(selectedCandidates).map(candidateId =>
+        new Promise((resolve, reject) => {
+          deleteCandidateMutation.mutate(candidateId, {
+            onSuccess: resolve,
+            onError: reject
+          });
+        })
+      );
+      
+      await Promise.all(deletePromises);
       setSelectedCandidates(new Set());
       setShowDeleteDialog(false);
     } catch (error) {
@@ -228,10 +156,10 @@ export function CandidateRanking({
                 variant="outline"
                 size="sm"
                 onClick={refreshData}
-                disabled={isRefreshing}
+                disabled={candidatesLoading || rankingLoading}
                 className="gap-2"
               >
-                <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+                <RefreshCw className={cn("h-4 w-4", (candidatesLoading || rankingLoading) && "animate-spin")} />
                 Refresh
               </Button>
             )}

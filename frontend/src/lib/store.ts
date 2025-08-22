@@ -1,78 +1,48 @@
 import { create } from 'zustand';
-import { Project, Candidate, Analysis, RankingChange } from './api-client';
 
-interface AppState {
-  // Projects
-  projects: Project[];
-  currentProject: Project | null;
+interface UIState {
+  // Navigation & UI
+  sidebarOpen: boolean;
+  currentTab: string;
   
-  // Candidates
-  candidates: Candidate[];
-  rankingChanges: RankingChange[];
+  // Modals
+  showProjectSettings: boolean;
+  showCreateProject: boolean;
+  showTeamRequests: boolean;
   
-  // Analysis
-  analyses: Analysis[];
+  // Theme & Preferences
+  theme: 'light' | 'dark' | 'system';
   
-  // UI State
-  isLoading: boolean;
-  error: string | null;
+  // Loading states (pour les opérations qui ne sont pas gérées par TanStack Query)
+  isGlobalLoading: boolean;
   
   // Actions
-  setProjects: (projects: Project[]) => void;
-  setCurrentProject: (project: Project | null) => void;
-  setCandidates: (candidates: Candidate[]) => void;
-  setRankingChanges: (changes: RankingChange[]) => void;
-  setAnalyses: (analyses: Analysis[]) => void;
-  setLoading: (loading: boolean) => void;
-  setError: (error: string | null) => void;
-  
-  // Update individual items
-  updateCandidate: (candidate: Candidate) => void;
-  updateProject: (project: Project) => void;
-  addCandidates: (newCandidates: Candidate[]) => void;
+  setSidebarOpen: (open: boolean) => void;
+  setCurrentTab: (tab: string) => void;
+  setShowProjectSettings: (show: boolean) => void;
+  setShowCreateProject: (show: boolean) => void;
+  setShowTeamRequests: (show: boolean) => void;
+  setTheme: (theme: 'light' | 'dark' | 'system') => void;
+  setGlobalLoading: (loading: boolean) => void;
 }
 
-export const useAppStore = create<AppState>((set, get) => ({
-  // Initial state
-  projects: [],
-  currentProject: null,
-  candidates: [],
-  rankingChanges: [],
-  analyses: [],
-  isLoading: false,
-  error: null,
+export const useUIStore = create<UIState>((set) => ({
+  sidebarOpen: true,
+  currentTab: 'overview',
+  showProjectSettings: false,
+  showCreateProject: false,
+  showTeamRequests: false,
+  theme: 'system',
+  isGlobalLoading: false,
   
-  // Actions
-  setProjects: (projects) => set({ projects }),
-  setCurrentProject: (project) => set({ currentProject: project }),
-  setCandidates: (candidates) => set({ candidates }),
-  setRankingChanges: (changes) => set({ rankingChanges: changes }),
-  setAnalyses: (analyses) => set({ analyses }),
-  setLoading: (loading) => set({ isLoading: loading }),
-  setError: (error) => set({ error }),
-  
-  // Update actions
-  updateCandidate: (updatedCandidate) => {
-    const { candidates } = get();
-    const updatedCandidates = candidates.map(candidate => 
-      candidate.id === updatedCandidate.id ? updatedCandidate : candidate
-    );
-    set({ candidates: updatedCandidates });
-  },
-  
-  updateProject: (updatedProject) => {
-    const { projects, currentProject } = get();
-    const updatedProjects = projects.map(project => 
-      project.id === updatedProject.id ? updatedProject : project
-    );
-    set({ 
-      projects: updatedProjects,
-      currentProject: currentProject?.id === updatedProject.id ? updatedProject : currentProject
-    });
-  },
-  
-  addCandidates: (newCandidates) => {
-    const { candidates } = get();
-    set({ candidates: [...candidates, ...newCandidates] });
-  },
+  setSidebarOpen: (open) => set({ sidebarOpen: open }),
+  setCurrentTab: (tab) => set({ currentTab: tab }),
+  setShowProjectSettings: (show) => set({ showProjectSettings: show }),
+  setShowCreateProject: (show) => set({ showCreateProject: show }),
+  setShowTeamRequests: (show) => set({ showTeamRequests: show }),
+  setTheme: (theme) => set({ theme }),
+  setGlobalLoading: (loading) => set({ isGlobalLoading: loading }),
 }));
+
+// Export de l'ancien hook pour compatibilité (peut être supprimé plus tard)
+export const useAppStore = useUIStore;
