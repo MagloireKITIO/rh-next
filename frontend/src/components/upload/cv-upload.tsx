@@ -81,7 +81,7 @@ export function CVUpload({
     setCurrentFileIndex(0);
     setOverallProgress(0);
     
-    const CHUNK_SIZE = 8; // Upload 8 files at a time
+    const CHUNK_SIZE = 2; // Upload 2 files at a time (reduced for memory efficiency)
     let successCount = 0;
     let failureCount = 0;
     const allResults = [];
@@ -169,9 +169,9 @@ export function CVUpload({
         const progress = (chunkEnd / files.length) * 100;
         setOverallProgress(progress);
         
-        // Small delay between chunks to avoid overwhelming the server
+        // Increased delay between chunks for better stability
         if (chunkEnd < files.length) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, 2000)); // 2 secondes entre batches
         }
       }
 
@@ -356,8 +356,8 @@ export function CVUpload({
           >
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">
-                Processing batch {Math.floor(currentFileIndex / 8) + 1} of {Math.ceil(files.length / 8)} 
-                ({Math.min(currentFileIndex + 8, files.length)} files)
+                Processing batch {Math.floor(currentFileIndex / 2) + 1} of {Math.ceil(files.length / 2)} 
+                ({Math.min(currentFileIndex + 2, files.length)} files)
               </span>
               <span className="font-medium">{Math.round(overallProgress)}%</span>
             </div>
@@ -379,7 +379,7 @@ export function CVUpload({
               {isUploading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Uploading batch {Math.floor(currentFileIndex / 8) + 1}/{Math.ceil(files.length / 8)}...
+                  Uploading batch {Math.floor(currentFileIndex / 2) + 1}/{Math.ceil(files.length / 2)}...
                 </>
               ) : (
                 <>
