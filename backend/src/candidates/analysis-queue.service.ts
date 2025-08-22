@@ -88,7 +88,7 @@ export class AnalysisQueueService {
     });
     queue.totalItems++;
 
-    this.logger.log(`Added candidate ${candidateId} to queue for project ${projectId}. Queue size: ${queue.items.length}`);
+    // Logs removed for memory efficiency
 
     // Envoyer mise à jour de la queue
     this.emitQueueUpdate(projectId);
@@ -157,7 +157,7 @@ export class AnalysisQueueService {
           // Envoyer mise à jour de progression
           this.emitQueueUpdate(projectId);
 
-          this.logger.log(`Worker ${workerId} processed candidate ${item.candidateId}. Progress: ${queue.processedItems}/${queue.totalItems}`);
+          // Progress logs removed for memory efficiency
 
         } catch (error) {
           this.logger.error(`Worker ${workerId} failed to process candidate ${item.candidateId}:`, error);
@@ -182,7 +182,7 @@ export class AnalysisQueueService {
     } finally {
       // Worker terminé
       queue.activeWorkers--;
-      this.logger.log(`Worker ${workerId} finished for project ${projectId}. Remaining workers: ${queue.activeWorkers}`);
+      // Worker completion logs removed for memory efficiency
 
       // Si c'est le dernier worker, marquer la queue comme terminée
       if (queue.activeWorkers === 0) {

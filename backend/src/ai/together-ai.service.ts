@@ -29,7 +29,7 @@ export class TogetherAIService {
         requestCount: 0,
         maxRequests: 1000, // Limite par défaut
       }));
-      this.logger.log(`Initialized ${this.accounts.length} Together AI accounts from database`);
+      // Logs removed for memory efficiency - initialized ${this.accounts.length} accounts
     } catch (error) {
       this.logger.warn('Failed to load API keys from database, falling back to environment variables');
       const apiKeys = process.env.TOGETHER_AI_KEYS?.split(',') || [];
@@ -39,7 +39,7 @@ export class TogetherAIService {
         requestCount: 0,
         maxRequests: 1000,
       }));
-      this.logger.log(`Initialized ${this.accounts.length} Together AI accounts from env`);
+      // Logs removed for memory efficiency
     }
   }
 
@@ -165,8 +165,7 @@ Analysez ce CV et fournissez une réponse JSON avec la structure suivante :
 
     try {
       // Log pour diagnostiquer
-      this.logger.debug(`Making request to Together AI with model: ${selectedModel}`);
-      this.logger.debug(`Prompt length: ${fullPrompt.length} characters`);
+      // Debug logs removed for memory efficiency
       
       const response = await axios.post(
         'https://api.together.xyz/v1/chat/completions',
@@ -210,7 +209,7 @@ Analysez ce CV et fournissez une réponse JSON avec la structure suivante :
       
       const aiResponse = response.data.choices?.[0]?.message?.content || response.data.output?.choices?.[0]?.text;
       
-      this.logger.debug(`AI Response received: ${aiResponse?.substring(0, 200)}...`);
+      // Debug logs removed for memory efficiency
       
       try {
         // Nettoyer la réponse et extraire le JSON
@@ -239,7 +238,7 @@ Analysez ce CV et fournissez une réponse JSON avec la structure suivante :
         return parsedResponse;
       } catch (parseError) {
         this.logger.warn('Failed to parse AI response as JSON, returning raw response');
-        this.logger.debug('Original response:', aiResponse);
+        // Debug logs removed for memory efficiency
         
         // Si le CV est vide ou contient un message d'erreur, score = 0
         const isEmptyCV = cvText.includes('[PDF extraction failed]') || 
@@ -374,7 +373,7 @@ Analysez ce CV et fournissez une réponse JSON avec la structure suivante :
         
         return parsedResponse;
       } catch (parseError) {
-        this.logger.warn('Failed to parse fallback AI response as JSON');
+        // Warn logs removed for memory efficiency;
         
         // Si le CV est vide ou contient un message d'erreur, score = 0
         const isEmptyCV = cvText.includes('[PDF extraction failed]') || 
