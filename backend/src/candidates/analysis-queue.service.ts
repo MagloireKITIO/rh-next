@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { TogetherAIService } from '../ai/together-ai.service';
 import { ProjectWebSocketGateway } from '../websocket/websocket.gateway';
 import { AnalysisService } from '../analysis/analysis.service';
+import { ApiKeysService } from '../api-keys/api-keys.service';
 import { Candidate } from './entities/candidate.entity';
 
 interface QueueItem {
@@ -36,6 +37,7 @@ export class AnalysisQueueService {
     private togetherAIService: TogetherAIService,
     private webSocketGateway: ProjectWebSocketGateway,
     private analysisService: AnalysisService,
+    private apiKeysService: ApiKeysService,
   ) {}
 
   /**
@@ -45,6 +47,10 @@ export class AnalysisQueueService {
     const projectId = project.id;
     
     if (!this.queues.has(projectId)) {
+      // Déterminer le nombre max de workers basé sur les clés API disponibles
+      const activeKeys = await this.apiKeysService.findActive();
+      const maxWorkers = Math.max(1, activeKeys.length); // Au minimum 1 worker
+      
       this.queues.set(projectId, {
         items: [],
         isProcessing: false,
@@ -52,8 +58,10 @@ export class AnalysisQueueService {
         processedItems: 0,
         startTime: null,
         activeWorkers: 0,
-        maxWorkers: this.MAX_PARALLEL_WORKERS,
+        maxWorkers: maxWorkers,
       });
+      
+      this.logger.log(`Queue created for project ${projectId} with ${maxWorkers} max workers (based on ${activeKeys.length} active API keys)`);
     }
 
     const queue = this.queues.get(projectId)!;
@@ -95,7 +103,7 @@ export class AnalysisQueueService {
     if (queue.activeWorkers === 0) {
       queue.isProcessing = true;
       queue.startTime = new Date();
-      this.logger.log(`Starting parallel queue processing for project ${projectId} with ${queue.items.length} items`);
+      this.logger.log(`Starting parallel queue processing for project ${projectId} with ${queue.items.length} items using ${queue.maxWorkers} parallel workers`);
       this.emitQueueUpdate(projectId);
     }
 

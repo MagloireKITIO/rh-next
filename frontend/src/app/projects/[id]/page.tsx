@@ -445,7 +445,7 @@ export default function ProjectPage() {
               <CVUpload
                 projectId={projectId}
                 onUploadComplete={handleUploadComplete}
-                maxFiles={20}
+                maxFiles={500}
               />
             </div>
           </TabsContent>

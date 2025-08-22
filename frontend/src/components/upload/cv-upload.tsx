@@ -36,11 +36,13 @@ interface CVUploadProps {
 export function CVUpload({ 
   projectId, 
   onUploadComplete, 
-  maxFiles = 20, 
+  maxFiles = 500, 
   className 
 }: CVUploadProps) {
   const [files, setFiles] = useState<FileWithStatus[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [currentFileIndex, setCurrentFileIndex] = useState(0);
+  const [overallProgress, setOverallProgress] = useState(0);
   const { uploadCVs } = useCandidates();
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -50,22 +52,18 @@ export function CVUpload({
       progress: 0
     }));
 
-    setFiles(prev => {
-      const combined = [...prev, ...newFiles];
-      if (combined.length > maxFiles) {
-        toast.error(`Maximum ${maxFiles} files allowed`);
-        return combined.slice(0, maxFiles);
-      }
-      return combined;
-    });
-  }, [maxFiles]);
+    setFiles(prev => [...prev, ...newFiles]);
+    
+    if (acceptedFiles.length > 0) {
+      toast.success(`${acceptedFiles.length} file(s) added to queue`);
+    }
+  }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
       'application/pdf': ['.pdf']
     },
-    maxFiles,
     disabled: isUploading
   });
 
@@ -80,43 +78,110 @@ export function CVUpload({
     }
 
     setIsUploading(true);
+    setCurrentFileIndex(0);
+    setOverallProgress(0);
+    
+    const CHUNK_SIZE = 8; // Upload 8 files at a time
+    let successCount = 0;
+    let failureCount = 0;
+    const allResults = [];
     
     try {
-      // Simulate individual file progress
-      const fileArray = files.map(f => f.file);
-      
-      // Update status to uploading
-      setFiles(prev => prev.map(f => ({ ...f, status: "uploading" as const, progress: 0 })));
-      
-      // Simulate progress for each file
-      const progressInterval = setInterval(() => {
-        setFiles(prev => prev.map(f => {
-          if (f.status === "uploading" && f.progress < 90) {
-            return { ...f, progress: f.progress + Math.random() * 20 };
+      // Process files in chunks
+      for (let chunkStart = 0; chunkStart < files.length; chunkStart += CHUNK_SIZE) {
+        const chunkEnd = Math.min(chunkStart + CHUNK_SIZE, files.length);
+        const currentChunk = files.slice(chunkStart, chunkEnd);
+        
+        setCurrentFileIndex(chunkStart);
+        
+        // Update chunk files status to uploading
+        setFiles(prev => prev.map((f, idx) => {
+          if (idx >= chunkStart && idx < chunkEnd) {
+            return { ...f, status: "uploading" as const, progress: 0 };
           }
           return f;
         }));
-      }, 500);
 
-      // Upload files
-      const result = await uploadCVs(projectId, fileArray);
-      
-      clearInterval(progressInterval);
-      
-      // Update file statuses based on results
-      setFiles(prev => prev.map((f, index) => {
-        const wasSuccessful = index < result.successful;
-        return {
-          ...f,
-          status: wasSuccessful ? "success" : "error",
-          progress: 100,
-          error: wasSuccessful ? undefined : "Upload failed"
-        };
-      }));
+        // Simulate progress for current chunk
+        const progressInterval = setInterval(() => {
+          setFiles(prev => prev.map((f, idx) => {
+            if (idx >= chunkStart && idx < chunkEnd && f.status === "uploading" && f.progress < 90) {
+              return { ...f, progress: f.progress + Math.random() * 10 };
+            }
+            return f;
+          }));
+        }, 300);
 
-      // Call completion callback
+        try {
+          // Upload chunk
+          const chunkFiles = currentChunk.map(f => f.file);
+          const result = await uploadCVs(projectId, chunkFiles);
+          
+          clearInterval(progressInterval);
+          
+          // Update chunk files status based on results
+          setFiles(prev => prev.map((f, idx) => {
+            if (idx >= chunkStart && idx < chunkEnd) {
+              const chunkIndex = idx - chunkStart;
+              const wasSuccessful = chunkIndex < (result.successful || 0);
+              return {
+                ...f,
+                status: wasSuccessful ? "success" as const : "error" as const,
+                progress: 100,
+                error: wasSuccessful ? undefined : "Upload failed"
+              };
+            }
+            return f;
+          }));
+          
+          successCount += result.successful || 0;
+          failureCount += result.failed || 0;
+          allResults.push(result);
+          
+        } catch (error: any) {
+          clearInterval(progressInterval);
+          
+          // Update chunk files status to error
+          setFiles(prev => prev.map((f, idx) => {
+            if (idx >= chunkStart && idx < chunkEnd) {
+              return { 
+                ...f, 
+                status: "error" as const, 
+                progress: 0,
+                error: error.message || "Upload failed" 
+              };
+            }
+            return f;
+          }));
+          
+          failureCount += currentChunk.length;
+        }
+        
+        // Update overall progress
+        const progress = (chunkEnd / files.length) * 100;
+        setOverallProgress(progress);
+        
+        // Small delay between chunks to avoid overwhelming the server
+        if (chunkEnd < files.length) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+
+      // Call completion callback with aggregated results
       if (onUploadComplete) {
-        onUploadComplete(result);
+        onUploadComplete({
+          successful: successCount,
+          failed: failureCount,
+          candidates: allResults.flatMap(r => r.candidates || [])
+        });
+      }
+
+      // Show completion message
+      if (successCount > 0) {
+        toast.success(`${successCount} CV(s) uploaded successfully`);
+      }
+      if (failureCount > 0) {
+        toast.warning(`${failureCount} CV(s) failed to upload`);
       }
 
       // Clear successful files after delay
@@ -125,14 +190,11 @@ export function CVUpload({
       }, 3000);
 
     } catch (error: any) {
-      setFiles(prev => prev.map(f => ({ 
-        ...f, 
-        status: "error" as const, 
-        progress: 0,
-        error: error.message || "Upload failed" 
-      })));
+      toast.error(error.message || "Upload process failed");
     } finally {
       setIsUploading(false);
+      setCurrentFileIndex(0);
+      setOverallProgress(0);
     }
   };
 
@@ -200,7 +262,7 @@ export function CVUpload({
               <>
                 <p className="font-medium">Drop PDF files here or click to browse</p>
                 <p className="text-sm text-muted-foreground">
-                  Upload up to {maxFiles} CV files (PDF only)
+                  Upload CV files (PDF only) - No limit, processed one by one
                 </p>
               </>
             )}
@@ -279,6 +341,24 @@ export function CVUpload({
           )}
         </AnimatePresence>
 
+        {/* Overall Progress Bar */}
+        {isUploading && files.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-2"
+          >
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">
+                Processing batch {Math.floor(currentFileIndex / 8) + 1} of {Math.ceil(files.length / 8)} 
+                ({Math.min(currentFileIndex + 8, files.length)} files)
+              </span>
+              <span className="font-medium">{Math.round(overallProgress)}%</span>
+            </div>
+            <Progress value={overallProgress} className="h-2" />
+          </motion.div>
+        )}
+
         {/* Upload Button */}
         {files.length > 0 && (
           <motion.div
@@ -293,7 +373,7 @@ export function CVUpload({
               {isUploading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Uploading...
+                  Uploading batch {Math.floor(currentFileIndex / 8) + 1}/{Math.ceil(files.length / 8)}...
                 </>
               ) : (
                 <>
