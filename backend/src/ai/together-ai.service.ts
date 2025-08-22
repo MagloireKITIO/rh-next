@@ -124,20 +124,34 @@ ${jobDescription}
 CV CONTENT:
 ${cvText}
 
-Analyze this CV and provide a JSON response with the following structure:
+Analysez ce CV et fournissez une réponse JSON avec la structure suivante :
 {
   "score": number (0-100),
-  "summary": "Brief summary of the candidate",
-  "strengths": ["list", "of", "strengths"],
-  "weaknesses": ["list", "of", "weaknesses"],
-  "recommendations": ["list", "of", "recommendations"],
+  "summary": "Résumé succinct du candidat",
+  "strengths": ["liste", "des", "points forts"],
+  "weaknesses": ["liste", "des", "faiblesses"], 
+  "recommendations": ["liste", "des", "recommandations"],
+  "hrDecision": {
+    "recommendation": "RECRUTER|ENTRETIEN|REJETER",
+    "confidence": number (0-100),
+    "reasoning": "Justification de la décision",
+    "priority": "HIGH|MEDIUM|LOW"
+  },
+  "skillsMatch": {
+    "technical": number (0-100),
+    "experience": number (0-100), 
+    "cultural": number (0-100),
+    "overall": number (0-100)
+  },
+  "risks": ["liste", "des", "risques identifiés"],
   "extractedData": {
-    "name": "candidate name",
-    "email": "email if found",
-    "phone": "phone if found",
-    "experience": "years of experience",
-    "skills": ["list", "of", "skills"],
-    "education": "education background"
+    "name": "nom du candidat",
+    "email": "email si trouvé", 
+    "phone": "téléphone si trouvé",
+    "experience": "années d'expérience",
+    "skills": ["liste", "des", "compétences"],
+    "education": "parcours éducatif",
+    "seniority": "JUNIOR|MIDDLE|SENIOR|LEAD"
   }
 }`;
 
@@ -234,7 +248,7 @@ Analyze this CV and provide a JSON response with the following structure:
         
         return {
           score: isEmptyCV ? 0 : 25, // Score minimal pour parsing échoué mais CV valide
-          summary: isEmptyCV ? 'Cannot analyze: PDF extraction failed' : 'Analysis completed but response format needs review',
+          summary: isEmptyCV ? 'Impossible d\'analyser : échec de l\'extraction PDF' : 'Analyse terminée mais format de réponse à revoir',
           aiResponse,
           extractedData: {}
         };
@@ -278,20 +292,34 @@ ${jobDescription}
 CV CONTENT:
 ${cvText}
 
-Analyze this CV and provide a JSON response with the following structure:
+Analysez ce CV et fournissez une réponse JSON avec la structure suivante :
 {
   "score": number (0-100),
-  "summary": "Brief summary of the candidate",
-  "strengths": ["list", "of", "strengths"],
-  "weaknesses": ["list", "of", "weaknesses"],
-  "recommendations": ["list", "of", "recommendations"],
+  "summary": "Résumé succinct du candidat",
+  "strengths": ["liste", "des", "points forts"],
+  "weaknesses": ["liste", "des", "faiblesses"], 
+  "recommendations": ["liste", "des", "recommandations"],
+  "hrDecision": {
+    "recommendation": "RECRUTER|ENTRETIEN|REJETER",
+    "confidence": number (0-100),
+    "reasoning": "Justification de la décision",
+    "priority": "HIGH|MEDIUM|LOW"
+  },
+  "skillsMatch": {
+    "technical": number (0-100),
+    "experience": number (0-100), 
+    "cultural": number (0-100),
+    "overall": number (0-100)
+  },
+  "risks": ["liste", "des", "risques identifiés"],
   "extractedData": {
-    "name": "candidate name",
-    "email": "email if found",
-    "phone": "phone if found",
-    "experience": "years of experience",
-    "skills": ["list", "of", "skills"],
-    "education": "education background"
+    "name": "nom du candidat",
+    "email": "email si trouvé", 
+    "phone": "téléphone si trouvé",
+    "experience": "années d'expérience",
+    "skills": ["liste", "des", "compétences"],
+    "education": "parcours éducatif",
+    "seniority": "JUNIOR|MIDDLE|SENIOR|LEAD"
   }
 }`;
 
@@ -355,7 +383,7 @@ Analyze this CV and provide a JSON response with the following structure:
         
         return {
           score: isEmptyCV ? 0 : 25,
-          summary: isEmptyCV ? 'Cannot analyze: PDF extraction failed' : 'Analysis completed but response format needs review',
+          summary: isEmptyCV ? 'Impossible d\'analyser : échec de l\'extraction PDF' : 'Analyse terminée mais format de réponse à revoir',
           aiResponse,
           extractedData: {}
         };
@@ -388,16 +416,21 @@ Analyze this CV and provide a JSON response with the following structure:
   }
 
   private getDefaultPrompt(): string {
-    return `You are an expert HR recruiter. Analyze the provided CV against the job description and rate the candidate's fit for the position. Consider skills match, experience relevance, education background, and overall profile alignment.
+    return `Vous êtes un expert recruteur RH senior. Analysez ce CV par rapport à la description de poste et fournissez une évaluation complète pour la prise de décision de recrutement.
 
-Provide a detailed analysis including:
-- Overall score (0-100)
-- Brief summary of the candidate
-- Key strengths related to the position
-- Potential weaknesses or gaps
-- Recommendations for the recruiter
+ANALYSEZ CES DIMENSIONS CLÉS :
+1. Adéquation technique au poste (compétences, technologies)
+2. Niveau d'expérience vs requis (années, séniorité)
+3. Compatibilité culturelle et soft skills
+4. Potentiel d'évolution et d'apprentissage
+5. Risques identifiés (sur/sous-qualification, stabilité)
 
-Be objective and focus on job-relevant criteria.`;
+FOURNISSEZ UNE RECOMMANDATION CLAIRE :
+- RECRUTER : Candidat idéal, forte adéquation
+- ENTRETIEN : Potentiel intéressant, à approfondir  
+- REJETER : Inadéquation majeure, critères non remplis
+
+Soyez factuel, précis et orienté décision RH.`;
   }
 
   getAccountsStatus() {

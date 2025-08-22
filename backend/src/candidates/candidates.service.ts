@@ -258,6 +258,9 @@ export class CandidatesService {
         strengths: aiAnalysis.strengths,
         weaknesses: aiAnalysis.weaknesses,
         recommendations: aiAnalysis.recommendations,
+        hrDecision: aiAnalysis.hrDecision,
+        skillsMatch: aiAnalysis.skillsMatch,
+        risks: aiAnalysis.risks,
       });
 
       // Recalculer les rankings
@@ -265,6 +268,8 @@ export class CandidatesService {
 
       // Récupérer le candidat mis à jour avec toutes les relations
       const updatedCandidate = await this.findOne(candidateId, companyId);
+      
+      this.logger.log(`Candidate ${candidate.name} ranking updated to: ${updatedCandidate.ranking}`);
       
       // Émettre l'événement de fin d'analyse
       this.webSocketGateway.emitAnalysisCompleted(project.id, updatedCandidate);

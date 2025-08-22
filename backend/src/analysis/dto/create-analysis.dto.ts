@@ -27,6 +27,26 @@ export class CreateAnalysisDto {
   @IsOptional()
   recommendations?: string[];
 
+  @IsOptional()
+  hrDecision?: {
+    recommendation: 'RECRUTER' | 'ENTRETIEN' | 'REJETER';
+    confidence: number;
+    reasoning: string;
+    priority: 'HIGH' | 'MEDIUM' | 'LOW';
+  };
+
+  @IsOptional()
+  skillsMatch?: {
+    technical: number;
+    experience: number;
+    cultural: number;
+    overall: number;
+  };
+
+  @IsArray()
+  @IsOptional()
+  risks?: string[];
+
   @IsUUID()
   @IsNotEmpty()
   projectId: string;

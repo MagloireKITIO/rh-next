@@ -474,25 +474,24 @@ export default function ProjectPage() {
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Score Distribution</CardTitle>
+                  <CardTitle className="text-lg">Recommandations IA</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     {[
-                      { label: "Excellent (80+)", count: candidates.filter(c => Number(c.score) >= 80).length, color: "bg-green-500" },
-                      { label: "Good (60-79)", count: candidates.filter(c => Number(c.score) >= 60 && Number(c.score) < 80).length, color: "bg-blue-500" },
-                      { label: "Average (40-59)", count: candidates.filter(c => Number(c.score) >= 40 && Number(c.score) < 60).length, color: "bg-yellow-500" },
-                      { label: "Poor (<40)", count: candidates.filter(c => Number(c.score) < 40).length, color: "bg-red-500" }
-                    ].map((range) => (
-                      <div key={range.label} className="flex items-center justify-between">
+                      { type: "RECRUTER", count: analyzedCandidates.filter(c => c.analyses?.[0]?.analysisData?.hrDecision?.recommendation === "RECRUTER").length, color: "bg-green-500", label: "À recruter" },
+                      { type: "ENTRETIEN", count: analyzedCandidates.filter(c => c.analyses?.[0]?.analysisData?.hrDecision?.recommendation === "ENTRETIEN").length, color: "bg-blue-500", label: "Entretien" },
+                      { type: "REJETER", count: analyzedCandidates.filter(c => c.analyses?.[0]?.analysisData?.hrDecision?.recommendation === "REJETER").length, color: "bg-red-500", label: "Rejeter" }
+                    ].map((rec) => (
+                      <div key={rec.type} className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <div className={`w-3 h-3 rounded-full ${range.color}`} />
-                          <span className="text-sm">{range.label}</span>
+                          <div className={`w-3 h-3 rounded-full ${rec.color}`} />
+                          <span className="text-sm">{rec.label}</span>
                         </div>
-                        <span className="font-medium">{range.count}</span>
+                        <span className="font-medium">{rec.count}</span>
                       </div>
                     ))}
                   </div>
@@ -501,53 +500,128 @@ export default function ProjectPage() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Top Performers</CardTitle>
+                  <CardTitle className="text-lg">Priorités Recrutement</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {candidates
-                      .filter(c => c.status === "analyzed")
-                      .sort((a, b) => Number(b.score) - Number(a.score))
-                      .slice(0, 5)
-                      .map((candidate, index) => (
-                        <div key={candidate.id} className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline">#{index + 1}</Badge>
-                            <span className="text-sm font-medium truncate">
-                              {candidate.name}
-                            </span>
-                          </div>
-                          <span className="font-medium">{Number(candidate.score).toFixed(1)}</span>
+                    {[
+                      { priority: "HIGH", count: analyzedCandidates.filter(c => c.analyses?.[0]?.analysisData?.hrDecision?.priority === "HIGH").length, color: "bg-red-500", label: "Haute" },
+                      { priority: "MEDIUM", count: analyzedCandidates.filter(c => c.analyses?.[0]?.analysisData?.hrDecision?.priority === "MEDIUM").length, color: "bg-yellow-500", label: "Moyenne" },
+                      { priority: "LOW", count: analyzedCandidates.filter(c => c.analyses?.[0]?.analysisData?.hrDecision?.priority === "LOW").length, color: "bg-gray-500", label: "Faible" }
+                    ].map((prio) => (
+                      <div key={prio.priority} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-3 h-3 rounded-full ${prio.color}`} />
+                          <span className="text-sm">{prio.label}</span>
                         </div>
-                      ))
-                    }
+                        <span className="font-medium">{prio.count}</span>
+                      </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Analysis Status</CardTitle>
+                  <CardTitle className="text-lg">Adéquation Technique</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="text-2xl font-bold text-center">
+                      {analyzedCandidates.length > 0 
+                        ? Math.round(analyzedCandidates.reduce((sum, c) => sum + (c.analyses?.[0]?.analysisData?.skillsMatch?.technical || 0), 0) / analyzedCandidates.length)
+                        : 0}/100
+                    </div>
+                    <p className="text-xs text-muted-foreground text-center">Score moyen technique</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Risques Identifiés</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-orange-600">
+                      {analyzedCandidates.filter(c => c.analyses?.[0]?.analysisData?.risks?.length > 0).length}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Candidats avec risques</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Candidats Prioritaires</CardTitle>
+                  <CardDescription>Recommandés pour recrutement immédiat</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {[
-                      { status: "analyzed", label: "Analyzed", color: "bg-green-100 text-green-800" },
-                      { status: "pending", label: "Pending", color: "bg-yellow-100 text-yellow-800" },
-                      { status: "error", label: "Error", color: "bg-red-100 text-red-800" }
-                    ].map((statusInfo) => {
-                      const count = candidates.filter(c => c.status === statusInfo.status).length;
-                      return (
-                        <div key={statusInfo.status} className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Badge className={statusInfo.color}>
-                              {statusInfo.label}
-                            </Badge>
+                    {analyzedCandidates
+                      .filter(c => c.analyses?.[0]?.analysisData?.hrDecision?.recommendation === "RECRUTER")
+                      .sort((a, b) => (b.analyses?.[0]?.analysisData?.hrDecision?.confidence || 0) - (a.analyses?.[0]?.analysisData?.hrDecision?.confidence || 0))
+                      .slice(0, 5)
+                      .map((candidate) => (
+                        <div key={candidate.id} className="flex items-center justify-between p-3 bg-muted rounded-lg hover:bg-muted/80 cursor-pointer transition-colors" onClick={() => handleViewCandidate(candidate)}>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                              <span className="text-xs font-medium text-green-600">#{candidate.ranking}</span>
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm">{candidate.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {candidate.analyses?.[0]?.analysisData?.hrDecision?.confidence}% confiance • Score: {Number(candidate.score).toFixed(1)}
+                              </p>
+                            </div>
                           </div>
-                          <span className="font-medium">{count}</span>
+                          <Badge className="bg-green-100 text-green-800">
+                            {candidate.analyses?.[0]?.analysisData?.hrDecision?.recommendation}
+                          </Badge>
                         </div>
-                      );
-                    })}
+                      ))
+                    }
+                    {analyzedCandidates.filter(c => c.analyses?.[0]?.analysisData?.hrDecision?.recommendation === "RECRUTER").length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-8">Aucun candidat recommandé pour recrutement</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Alertes Recrutement</CardTitle>
+                  <CardDescription>Points d'attention identifiés</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {analyzedCandidates
+                      .filter(c => c.analyses?.[0]?.analysisData?.risks?.length > 0)
+                      .slice(0, 5)
+                      .map((candidate) => (
+                        <div key={candidate.id} className="flex items-center justify-between p-3 bg-muted rounded-lg hover:bg-muted/80 cursor-pointer transition-colors" onClick={() => handleViewCandidate(candidate)}>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center">
+                              <span className="text-xs font-medium text-orange-600">⚠</span>
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm">{candidate.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {candidate.analyses?.[0]?.analysisData?.risks?.length} point(s) d'attention
+                              </p>
+                            </div>
+                          </div>
+                          <Badge variant="outline" className="bg-orange-100 text-orange-800">
+                            Risques
+                          </Badge>
+                        </div>
+                      ))
+                    }
+                    {analyzedCandidates.filter(c => c.analyses?.[0]?.analysisData?.risks?.length > 0).length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-8">Aucun risque majeur identifié</p>
+                    )}
                   </div>
                 </CardContent>
               </Card>

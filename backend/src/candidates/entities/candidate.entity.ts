@@ -26,7 +26,15 @@ export class Candidate {
   fileUrl: string;
 
   @Column('jsonb', { nullable: true })
-  extractedData?: any;
+  extractedData?: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    experience?: string;
+    skills?: string[];
+    education?: string;
+    seniority?: 'JUNIOR' | 'MIDDLE' | 'SENIOR' | 'LEAD';
+  };
 
   @Column('decimal', { precision: 5, scale: 2, default: 0 })
   score: number;

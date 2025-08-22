@@ -108,13 +108,13 @@ export default function CandidateDetailPage() {
       <div className="container mx-auto p-6 max-w-4xl">
         <div className="text-center">
           <AlertCircle className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-          <h2 className="text-2xl font-bold mb-2">Candidate not found</h2>
+          <h2 className="text-2xl font-bold mb-2">Candidat introuvable</h2>
           <p className="text-muted-foreground mb-4">
-            The candidate you're looking for doesn't exist or has been removed.
+            Le candidat que vous recherchez n'existe pas ou a été supprimé.
           </p>
           <Button onClick={() => router.push(`/projects/${projectId}`)}>
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Project
+            Retour au Projet
           </Button>
         </div>
       </div>
@@ -143,7 +143,7 @@ export default function CandidateDetailPage() {
         <div className="flex-1">
           <h1 className="text-3xl font-bold tracking-tight">{candidate.name}</h1>
           <p className="text-muted-foreground">
-            Candidate Details • Ranking #{candidate.ranking}
+            Détails du Candidat • Classement #{candidate.ranking}
           </p>
         </div>
         <Badge 
@@ -167,7 +167,7 @@ export default function CandidateDetailPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <TrendingUp className="h-5 w-5" />
-                  Analysis Score
+                  Score d'Analyse
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -177,7 +177,7 @@ export default function CandidateDetailPage() {
                     <p className="text-2xl font-bold">{candidate.score}/100</p>
                     {candidate.previousScore && (
                       <p className="text-sm text-muted-foreground">
-                        Previous: {candidate.previousScore}
+                        Précédent: {candidate.previousScore}
                       </p>
                     )}
                   </div>
@@ -191,8 +191,8 @@ export default function CandidateDetailPage() {
             </Card>
           </motion.div>
 
-          {/* Analysis Details */}
-          {latestAnalysis && (
+          {/* HR Decision */}
+          {latestAnalysis?.analysisData?.hrDecision && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -200,15 +200,122 @@ export default function CandidateDetailPage() {
             >
               <Card>
                 <CardHeader>
-                  <CardTitle>Detailed Analysis</CardTitle>
+                  <CardTitle>Décision RH Recommandée</CardTitle>
                   <CardDescription>
-                    Latest analysis from {new Date(latestAnalysis.createdAt).toLocaleDateString()}
+                    Analyse automatique basée sur les critères du poste
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-4 mb-4">
+                    <Badge 
+                      className={
+                        latestAnalysis.analysisData.hrDecision.recommendation === 'RECRUTER' ? 'bg-green-100 text-green-800' :
+                        latestAnalysis.analysisData.hrDecision.recommendation === 'ENTRETIEN' ? 'bg-blue-100 text-blue-800' :
+                        'bg-red-100 text-red-800'
+                      }
+                    >
+                      {latestAnalysis.analysisData.hrDecision.recommendation}
+                    </Badge>
+                    <Badge variant="outline">
+                      Confiance: {latestAnalysis.analysisData.hrDecision.confidence}%
+                    </Badge>
+                    <Badge variant="outline">
+                      Priorité: {latestAnalysis.analysisData.hrDecision.priority}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {latestAnalysis.analysisData.hrDecision.reasoning}
+                  </p>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* Skills Match */}
+          {latestAnalysis?.analysisData?.skillsMatch && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25 }}
+            >
+              <Card>
+                <CardHeader>
+                  <CardTitle>Adéquation Compétences</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm">Technique</span>
+                        <span className="text-sm font-medium">{latestAnalysis.analysisData.skillsMatch.technical}/100</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-blue-600 h-2 rounded-full" 
+                          style={{width: `${latestAnalysis.analysisData.skillsMatch.technical}%`}}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm">Expérience</span>
+                        <span className="text-sm font-medium">{latestAnalysis.analysisData.skillsMatch.experience}/100</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-green-600 h-2 rounded-full" 
+                          style={{width: `${latestAnalysis.analysisData.skillsMatch.experience}%`}}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm">Culturel</span>
+                        <span className="text-sm font-medium">{latestAnalysis.analysisData.skillsMatch.cultural}/100</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-purple-600 h-2 rounded-full" 
+                          style={{width: `${latestAnalysis.analysisData.skillsMatch.cultural}%`}}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-medium">Global</span>
+                        <span className="text-sm font-bold">{latestAnalysis.analysisData.skillsMatch.overall}/100</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-orange-600 h-2 rounded-full" 
+                          style={{width: `${latestAnalysis.analysisData.skillsMatch.overall}%`}}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* Analysis Details */}
+          {latestAnalysis && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <Card>
+                <CardHeader>
+                  <CardTitle>Analyse Détaillée</CardTitle>
+                  <CardDescription>
+                    Dernière analyse du {new Date(latestAnalysis.createdAt).toLocaleDateString()}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {latestAnalysis.analysisData?.strengths && (
                     <div>
-                      <h4 className="font-medium text-green-600 mb-2">Strengths</h4>
+                      <h4 className="font-medium text-green-600 mb-2">Points Forts</h4>
                       <ul className="list-disc list-inside space-y-1 text-sm">
                         {latestAnalysis.analysisData.strengths.map((strength: string, index: number) => (
                           <li key={index}>{strength}</li>
@@ -219,7 +326,7 @@ export default function CandidateDetailPage() {
                   
                   {latestAnalysis.analysisData?.weaknesses && (
                     <div>
-                      <h4 className="font-medium text-orange-600 mb-2">Areas for Improvement</h4>
+                      <h4 className="font-medium text-orange-600 mb-2">Améliorations Nécessaires</h4>
                       <ul className="list-disc list-inside space-y-1 text-sm">
                         {latestAnalysis.analysisData.weaknesses.map((weakness: string, index: number) => (
                           <li key={index}>{weakness}</li>
@@ -230,10 +337,21 @@ export default function CandidateDetailPage() {
 
                   {latestAnalysis.analysisData?.recommendations && (
                     <div>
-                      <h4 className="font-medium text-blue-600 mb-2">Recommendations</h4>
+                      <h4 className="font-medium text-blue-600 mb-2">Recommandations</h4>
                       <ul className="list-disc list-inside space-y-1 text-sm">
                         {latestAnalysis.analysisData.recommendations.map((rec: string, index: number) => (
                           <li key={index}>{rec}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {latestAnalysis.analysisData?.risks && latestAnalysis.analysisData.risks.length > 0 && (
+                    <div>
+                      <h4 className="font-medium text-red-600 mb-2">Risques Identifiés</h4>
+                      <ul className="list-disc list-inside space-y-1 text-sm">
+                        {latestAnalysis.analysisData.risks.map((risk: string, index: number) => (
+                          <li key={index}>{risk}</li>
                         ))}
                       </ul>
                     </div>
@@ -253,7 +371,7 @@ export default function CandidateDetailPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="h-5 w-5" />
-                  CV Content
+                  Contenu du CV
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -279,7 +397,7 @@ export default function CandidateDetailPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <User className="h-5 w-5" />
-                  Contact Information
+                  Informations de Contact
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -305,7 +423,7 @@ export default function CandidateDetailPage() {
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm">
-                    Added {new Date(candidate.createdAt).toLocaleDateString()}
+                    Ajouté le {new Date(candidate.createdAt).toLocaleDateString()}
                   </span>
                 </div>
               </CardContent>
@@ -329,7 +447,7 @@ export default function CandidateDetailPage() {
                   variant="outline"
                 >
                   <Download className="h-4 w-4" />
-                  Download CV
+                  Télécharger le CV
                 </Button>
                 
                 <Button 
@@ -338,7 +456,7 @@ export default function CandidateDetailPage() {
                   variant="outline"
                 >
                   <FileText className="h-4 w-4" />
-                  View PDF
+                  Voir le PDF
                 </Button>
               </CardContent>
             </Card>
@@ -352,21 +470,21 @@ export default function CandidateDetailPage() {
           >
             <Card>
               <CardHeader>
-                <CardTitle>File Information</CardTitle>
+                <CardTitle>Informations du Fichier</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 <div>
-                  <p className="text-sm font-medium">Original filename</p>
+                  <p className="text-sm font-medium">Nom du fichier original</p>
                   <p className="text-sm text-muted-foreground">{candidate.fileName}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium">Upload date</p>
+                  <p className="text-sm font-medium">Date d'upload</p>
                   <p className="text-sm text-muted-foreground">
                     {new Date(candidate.createdAt).toLocaleString()}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium">Last updated</p>
+                  <p className="text-sm font-medium">Dernière mise à jour</p>
                   <p className="text-sm text-muted-foreground">
                     {new Date(candidate.updatedAt).toLocaleString()}
                   </p>

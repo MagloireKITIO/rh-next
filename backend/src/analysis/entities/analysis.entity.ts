@@ -28,6 +28,25 @@ export class Analysis {
   @Column('jsonb', { nullable: true })
   recommendations?: string[];
 
+  @Column('jsonb', { nullable: true })
+  hrDecision?: {
+    recommendation: 'RECRUTER' | 'ENTRETIEN' | 'REJETER';
+    confidence: number;
+    reasoning: string;
+    priority: 'HIGH' | 'MEDIUM' | 'LOW';
+  };
+
+  @Column('jsonb', { nullable: true })
+  skillsMatch?: {
+    technical: number;
+    experience: number;
+    cultural: number;
+    overall: number;
+  };
+
+  @Column('jsonb', { nullable: true })
+  risks?: string[];
+
   @ManyToOne(() => Project, project => project.analyses)
   @JoinColumn({ name: 'projectId' })
   project: Project;
