@@ -39,32 +39,15 @@ export class ProjectsService {
   }
 
   async findOne(id: string, companyId: string): Promise<Project> {
-    console.log('🔍 [PROJECTS SERVICE] findOne called:', {
-      projectId: id,
-      companyId: companyId
-    });
-
     const project = await this.projectRepository.findOne({
       where: { id, company_id: companyId },
       relations: ['candidates', 'analyses'],
     });
 
-    console.log('🔍 [PROJECTS SERVICE] Database query result:', {
-      found: project ? 'YES' : 'NO',
-      projectId: project?.id,
-      projectName: project?.name,
-      projectCompanyId: project?.company_id
-    });
-
     if (!project) {
-      console.error('❌ [PROJECTS SERVICE] Project not found:', {
-        searchedId: id,
-        searchedCompanyId: companyId
-      });
       throw new NotFoundException(`Project with ID ${id} not found in your company`);
     }
 
-    console.log('✅ [PROJECTS SERVICE] Project found and returned');
     return project;
   }
 

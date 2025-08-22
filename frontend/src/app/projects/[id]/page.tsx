@@ -64,29 +64,11 @@ export default function ProjectPage() {
   // Fetch project and candidates
   useEffect(() => {
     const fetchProject = async () => {
-      console.log("🔍 [PROJECT PAGE] Fetching project with ID:", projectId);
-      console.log("🔍 [PROJECT PAGE] Token in localStorage:", localStorage.getItem('token') ? 'EXISTS' : 'MISSING');
-      
       try {
-        console.log("🔍 [PROJECT PAGE] Making API call to projectsApi.getById...");
         const response = await projectsApi.getById(projectId);
-        
-        console.log("✅ [PROJECT PAGE] API call successful, response:", response);
-        console.log("✅ [PROJECT PAGE] Project data:", response.data);
-        
         setProject(response.data);
         setCurrentProject(response.data);
-        
-        console.log("✅ [PROJECT PAGE] Project state updated successfully");
       } catch (error) {
-        console.error("❌ [PROJECT PAGE] Error fetching project:", error);
-        console.error("❌ [PROJECT PAGE] Error details:", {
-          status: error.response?.status,
-          statusText: error.response?.statusText,
-          data: error.response?.data,
-          message: error.message
-        });
-        
         if (error.response?.status === 404) {
           toast.error("Project not found");
         } else if (error.response?.status === 401) {
@@ -99,10 +81,7 @@ export default function ProjectPage() {
     };
 
     if (projectId) {
-      console.log("🚀 [PROJECT PAGE] Starting project fetch for ID:", projectId);
       fetchProject();
-    } else {
-      console.log("❌ [PROJECT PAGE] No projectId provided");
     }
   }, [projectId, setCurrentProject, router]);
 
@@ -119,13 +98,11 @@ export default function ProjectPage() {
 
     // Handle analysis completed - refresh candidates list
     on('analysis_completed', (data) => {
-      console.log('📊 [PROJECT PAGE] Analysis completed, refreshing candidates...');
       fetchCandidatesByProject(projectId);
     });
 
     // Handle candidate updates
     on('candidateUpdate', (data) => {
-      console.log('👤 [PROJECT PAGE] Candidate updated, refreshing candidates...');
       fetchCandidatesByProject(projectId);
     });
 

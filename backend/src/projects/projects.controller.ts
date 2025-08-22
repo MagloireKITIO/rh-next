@@ -32,10 +32,6 @@ export class ProjectsController {
 
   @Get(':id')
   findOne(@Param('id') id: string, @CurrentCompany() companyId: string) {
-    console.log('🎯 [PROJECTS CONTROLLER] findOne called:', {
-      projectId: id,
-      companyId: companyId
-    });
     return this.projectsService.findOne(id, companyId);
   }
 

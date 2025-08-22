@@ -12,21 +12,14 @@ export const apiClient = axios.create({
 // Intercepteur pour ajouter automatiquement le token JWT aux requêtes
 apiClient.interceptors.request.use(
   (config) => {
-    console.log("🔑 [API CLIENT] Making request to:", config.method?.toUpperCase(), config.url);
-    
     const token = localStorage.getItem('token');
     if (token) {
-      console.log("🔑 [API CLIENT] Token found, adding to headers");
       config.headers.Authorization = `Bearer ${token}`;
-    } else {
-      console.log("❌ [API CLIENT] No token found in localStorage");
     }
-    
-    console.log("🔑 [API CLIENT] Final headers:", config.headers);
     return config;
   },
   (error) => {
-    console.error("❌ [API CLIENT] Request interceptor error:", error);
+    console.error("❌ [API CLIENT] Request error:", error);
     return Promise.reject(error);
   }
 );
@@ -34,20 +27,10 @@ apiClient.interceptors.request.use(
 // Intercepteur pour gérer les erreurs d'authentification
 apiClient.interceptors.response.use(
   (response) => {
-    console.log("✅ [API CLIENT] Response received:", response.status, response.config.url);
     return response;
   },
   (error) => {
-    console.error("❌ [API CLIENT] Response error:", {
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      url: error.config?.url,
-      data: error.response?.data
-    });
-    
     if (error.response?.status === 401) {
-      console.log("🚪 [API CLIENT] 401 Unauthorized - removing token and redirecting to login");
-      // Token expiré ou invalide, rediriger vers la page de connexion
       localStorage.removeItem('token');
       if (typeof window !== 'undefined') {
         window.location.href = '/auth/login';

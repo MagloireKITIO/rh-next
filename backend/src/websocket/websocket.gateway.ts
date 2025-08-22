@@ -22,12 +22,10 @@ export class ProjectWebSocketGateway implements OnGatewayConnection, OnGatewayDi
   private projectRooms = new Map<string, Set<string>>(); // projectId -> Set of socketIds
 
   handleConnection(client: Socket) {
-    this.logger.log(`Client connected: ${client.id}`);
+    // Client connected silently
   }
 
   handleDisconnect(client: Socket) {
-    this.logger.log(`Client disconnected: ${client.id}`);
-    
     // Remove client from all project rooms
     for (const [projectId, clients] of this.projectRooms.entries()) {
       if (clients.has(client.id)) {
@@ -35,7 +33,6 @@ export class ProjectWebSocketGateway implements OnGatewayConnection, OnGatewayDi
         if (clients.size === 0) {
           this.projectRooms.delete(projectId);
         }
-        this.logger.log(`Client ${client.id} left project room: ${projectId}`);
       }
     }
   }
@@ -56,7 +53,7 @@ export class ProjectWebSocketGateway implements OnGatewayConnection, OnGatewayDi
     }
     this.projectRooms.get(projectId).add(client.id);
     
-    this.logger.log(`Client ${client.id} joined project room: ${projectId}`);
+    // Client joined project room silently
     
     return { status: 'joined', projectId };
   }
@@ -79,7 +76,7 @@ export class ProjectWebSocketGateway implements OnGatewayConnection, OnGatewayDi
       }
     }
     
-    this.logger.log(`Client ${client.id} left project room: ${projectId}`);
+    // Client left project room silently
     
     return { status: 'left', projectId };
   }
@@ -87,7 +84,6 @@ export class ProjectWebSocketGateway implements OnGatewayConnection, OnGatewayDi
   // Methods to emit events to specific project rooms
   emitToProject(projectId: string, event: string, data: any) {
     this.server.to(`project-${projectId}`).emit(event, data);
-    this.logger.log(`Emitted ${event} to project ${projectId}:`, data);
   }
 
   emitCandidateUpdate(projectId: string, candidate: any) {
