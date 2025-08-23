@@ -1,7 +1,10 @@
-import { Controller, Post, Get, Body, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Body, UseGuards, Request, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthService } from './auth.service';
-import { LoginDto, GoogleAuthDto, SignUpDto, CompanySignUpDto, AcceptInvitationDto, CompleteCompanyGoogleDto } from './dto/login.dto';
+import { LoginDto, GoogleAuthDto, SignUpDto, CompanySignUpDto, AcceptInvitationDto, CompleteCompanyGoogleDto, UpdateProfileDto, ChangePasswordDto, DeleteAccountDto } from './dto/login.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
 
 @Controller('auth')
 export class AuthController {
@@ -75,5 +78,56 @@ export class AuthController {
   @Post('debug-user')
   async debugUser(@Body() body: { email: string }) {
     return this.authService.debugUser(body.email);
+  }
+
+  @Put('profile')
+  @UseGuards(JwtAuthGuard)
+  async updateProfile(@Request() req, @Body() updateProfileDto: UpdateProfileDto) {
+    console.log('🔄 PUT /auth/profile called for user:', req.user.id);
+    return this.authService.updateProfile(req.user.id, updateProfileDto);
+  }
+
+  @Post('change-password')
+  @UseGuards(JwtAuthGuard)
+  async changePassword(@Request() req, @Body() changePasswordDto: ChangePasswordDto) {
+    console.log('🔐 POST /auth/change-password called for user:', req.user.id);
+    return this.authService.changePassword(req.user.id, changePasswordDto);
+  }
+
+  @Delete('delete-account')
+  @UseGuards(JwtAuthGuard)
+  async deleteAccount(@Request() req, @Body() deleteAccountDto: DeleteAccountDto) {
+    console.log('🗑️ DELETE /auth/delete-account called for user:', req.user.id);
+    return this.authService.deleteAccount(req.user.id, deleteAccountDto);
+  }
+
+  @Post('avatar')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor('avatar', {
+    storage: diskStorage({
+      destination: './uploads/avatars',
+      filename: (req, file, cb) => {
+        const userId = (req as any).user.id;
+        const fileExtension = extname(file.originalname);
+        const filename = `${userId}-${Date.now()}${fileExtension}`;
+        cb(null, filename);
+      },
+    }),
+    limits: {
+      fileSize: 5 * 1024 * 1024, // 5MB
+    },
+    fileFilter: (req, file, cb) => {
+      if (!file.mimetype.match(/\/(jpg|jpeg|png|gif)$/)) {
+        return cb(new BadRequestException('Seuls les fichiers image sont autorisés'), false);
+      }
+      cb(null, true);
+    },
+  }))
+  async uploadAvatar(@Request() req, @UploadedFile() file: Express.Multer.File) {
+    console.log('📸 POST /auth/avatar called for user:', req.user.id);
+    if (!file) {
+      throw new BadRequestException('Aucun fichier fourni');
+    }
+    return this.authService.uploadAvatar(req.user.id, file);
   }
 }

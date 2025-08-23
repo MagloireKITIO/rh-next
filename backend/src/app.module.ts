@@ -12,6 +12,7 @@ import { AuthModule } from './auth/auth.module';
 import { CompaniesModule } from './companies/companies.module';
 import { TeamRequestsModule } from './team-requests/team-requests.module';
 import { HealthModule } from './health/health.module';
+import { StaticController } from './common/static.controller';
 
 @Module({
   imports: [
@@ -39,5 +40,6 @@ import { HealthModule } from './health/health.module';
     TeamRequestsModule,
     HealthModule,
   ],
+  controllers: [StaticController],
 })
 export class AppModule {}

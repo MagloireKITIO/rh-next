@@ -404,7 +404,7 @@ export default function SettingsPage() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       <NavBar />
       
-      <div className="container mx-auto p-6 max-w-4xl">
+      <div className="container mx-auto p-6 pt-24 max-w-4xl">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}

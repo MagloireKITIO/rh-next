@@ -40,11 +40,11 @@ export function UserMenu({ showMobileMenu = false, onMobileMenuToggle }: UserMen
   };
 
   const handleProfile = () => {
-    router.push("/settings");
+    router.push("/profile?tab=profile");
   };
 
   const handleSettings = () => {
-    router.push("/settings");
+    router.push("/profile?tab=settings");
   };
 
   const getInitials = (name: string) => {
