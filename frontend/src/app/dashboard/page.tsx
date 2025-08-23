@@ -101,7 +101,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       <NavBar />
       
-      <div className="container mx-auto p-6 space-y-8">
+      <div className="container mx-auto p-6 pt-24 space-y-8">
         {/* Welcome Banner for new users */}
         <WelcomeBanner />
 
@@ -122,7 +122,7 @@ export default function Dashboard() {
           <Button 
             id="create-project-btn"
             onClick={handleCreateProject} 
-            className="gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700"
+            className="gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 active:scale-95 transition-all duration-200"
           >
             <Plus className="h-4 w-4" />
             Nouveau Projet
@@ -188,7 +188,7 @@ export default function Dashboard() {
                 <CardDescription className="mb-6">
                   Create your first recruitment project to start analyzing CVs with AI
                 </CardDescription>
-                <Button onClick={handleCreateProject} className="gap-2">
+                <Button onClick={handleCreateProject} className="gap-2 active:scale-95 transition-all duration-200">
                   <Plus className="h-4 w-4" />
                   Create Your First Project
                 </Button>

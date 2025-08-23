@@ -67,21 +67,35 @@ export function UserMenu({ showMobileMenu = false, onMobileMenuToggle }: UserMen
   if (!user) {
     return (
       <div className="flex items-center gap-3">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => router.push("/auth/login")}
-          className="text-slate-700 dark:text-slate-300"
-        >
-          Se connecter
-        </Button>
-        <Button
-          size="sm"
-          onClick={() => router.push("/auth/signup")}
-          className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white"
-        >
-          S'inscrire
-        </Button>
+        {/* Mobile menu toggle for guests */}
+        {onMobileMenuToggle && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onMobileMenuToggle}
+            className="md:hidden text-white hover:text-indigo-400 hover:bg-white/10"
+          >
+            {showMobileMenu ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </Button>
+        )}
+        
+        <div className="hidden md:flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push("/auth/login")}
+            className="text-white hover:text-indigo-400 hover:bg-white/10"
+          >
+            Se connecter
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => router.push("/auth/signup")}
+            className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white"
+          >
+            S'inscrire
+          </Button>
+        </div>
       </div>
     );
   }

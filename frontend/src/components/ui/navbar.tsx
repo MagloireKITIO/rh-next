@@ -55,7 +55,10 @@ export function NavBar({
 
   return (
     <nav className={cn(
-      "sticky top-0 z-50 w-full border-b bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-slate-200 dark:border-slate-800",
+      "fixed top-0 z-50 w-full",
+      variant === "landing" 
+        ? "py-8 bg-gradient-to-b from-black/60 via-black/40 to-transparent backdrop-blur-sm border-b-0" 
+        : "py-4 border-b bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-slate-200 dark:border-slate-800",
       className
     )}>
       <div className="container mx-auto px-4">
@@ -68,7 +71,12 @@ export function NavBar({
             <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">RH</span>
             </div>
-            <span className="font-bold text-lg bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+            <span className={cn(
+              "font-bold text-lg",
+              variant === "landing" 
+                ? "text-white" 
+                : "bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent"
+            )}>
               {title}
             </span>
           </Link>
@@ -83,10 +91,18 @@ export function NavBar({
                   href={item.href}
                   id={item.id}
                   className={cn(
-                    "text-sm font-medium transition-colors hover:text-indigo-600 dark:hover:text-indigo-400",
-                    isActive
-                      ? "text-indigo-600 dark:text-indigo-400"
-                      : "text-slate-700 dark:text-slate-300"
+                    "text-sm font-medium transition-colors",
+                    variant === "landing"
+                      ? cn(
+                          "hover:text-indigo-400",
+                          isActive ? "text-indigo-400" : "text-white"
+                        )
+                      : cn(
+                          "hover:text-indigo-600 dark:hover:text-indigo-400",
+                          isActive
+                            ? "text-indigo-600 dark:text-indigo-400"
+                            : "text-slate-700 dark:text-slate-300"
+                        )
                   )}
                 >
                   {item.label}
@@ -113,7 +129,12 @@ export function NavBar({
 
         {/* Mobile Navigation */}
         {showMobileMenu && (
-          <div className="md:hidden py-4 border-t border-slate-200 dark:border-slate-800">
+          <div className={cn(
+            "md:hidden py-4 border-t",
+            variant === "landing" 
+              ? "border-gray-600/50 bg-black/90 backdrop-blur-md" 
+              : "border-slate-200 dark:border-slate-800"
+          )}>
             <div className="space-y-2">
               {finalNavItems.map((item) => {
                 const isActive = pathname === item.href || item.active;
@@ -124,9 +145,17 @@ export function NavBar({
                     onClick={() => setShowMobileMenu(false)}
                     className={cn(
                       "block px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                      isActive
-                        ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400"
-                        : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      variant === "landing"
+                        ? cn(
+                            isActive
+                              ? "bg-indigo-500/20 text-indigo-400"
+                              : "text-white hover:bg-white/10"
+                          )
+                        : cn(
+                            isActive
+                              ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400"
+                              : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                          )
                     )}
                   >
                     {item.label}
@@ -137,7 +166,10 @@ export function NavBar({
               {/* Mobile Notification Bell */}
               {variant === "dashboard" && user && (
                 <div className="px-3 py-2 flex items-center justify-between">
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Notifications</span>
+                  <span className={cn(
+                    "text-sm font-medium",
+                    variant === "landing" ? "text-white" : "text-slate-700 dark:text-slate-300"
+                  )}>Notifications</span>
                   <NotificationBell count={notificationsCount} />
                 </div>
               )}
