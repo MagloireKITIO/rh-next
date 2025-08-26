@@ -20,7 +20,11 @@ build/
 .env.*
 !.env.example
 
-.uploads/
+# Uploads (keep structure but not content)
+uploads/*
+!uploads/.gitkeep
+!uploads/*/.gitkeep
+
 # IDE / Editor
 .idea/
 .vscode/

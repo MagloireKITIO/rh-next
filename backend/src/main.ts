@@ -15,8 +15,12 @@ async function bootstrap() {
   }));
 
   // CORS pour le frontend
+  const corsOrigins = process.env.CORS_ORIGINS 
+    ? process.env.CORS_ORIGINS.split(',')
+    : [process.env.FRONTEND_URL || 'http://localhost:3000'];
+    
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: corsOrigins,
     credentials: true,
   });
 
@@ -31,6 +35,8 @@ async function bootstrap() {
   const port = process.env.PORT || 3001;
   await app.listen(port, '0.0.0.0');
   console.log(`🚀 Backend running on port ${port}`);
+  console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🗄️ Storage: ${process.env.AZURE_STORAGE_CONNECTION_STRING ? 'Azure Blob' : 'Supabase'}`);
 }
 
 bootstrap();

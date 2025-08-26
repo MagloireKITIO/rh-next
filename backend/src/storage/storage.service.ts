@@ -1,12 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { AzureStorageService } from './azure-storage.service';
 
 @Injectable()
 export class StorageService {
   private readonly logger = new Logger(StorageService.name);
   private supabase: SupabaseClient;
 
-  constructor() {
+  constructor(private readonly azureStorageService: AzureStorageService) {
     const supabaseUrl = process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_ANON_KEY;
 
@@ -28,8 +29,14 @@ export class StorageService {
   }
 
   async uploadFile(file: Buffer, fileName: string, mimeType: string): Promise<string> {
+    // Prioriser Azure Storage si configuré
+    if (this.azureStorageService.isAzureStorageConfigured()) {
+      return this.azureStorageService.uploadFile(file, fileName, mimeType);
+    }
+
+    // Fallback vers Supabase
     if (!this.supabase) {
-      throw new Error('Supabase not configured');
+      throw new Error('No storage service configured');
     }
 
     try {
@@ -61,8 +68,14 @@ export class StorageService {
   }
 
   async deleteFile(filePath: string): Promise<void> {
+    // Prioriser Azure Storage si configuré
+    if (this.azureStorageService.isAzureStorageConfigured()) {
+      return this.azureStorageService.deleteFile(filePath);
+    }
+
+    // Fallback vers Supabase
     if (!this.supabase) {
-      throw new Error('Supabase not configured');
+      throw new Error('No storage service configured');
     }
 
     try {

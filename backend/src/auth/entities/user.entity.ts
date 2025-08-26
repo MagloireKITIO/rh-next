@@ -21,6 +21,12 @@ export class User {
   @Column({ nullable: true })
   avatar_url: string;
 
+  @Column({ nullable: true })
+  password_hash: string;
+
+  @Column({ unique: true, nullable: true })
+  supabase_user_id: string;
+
   @Column({ unique: true, nullable: true })
   google_id: string;
 

@@ -1,23 +1,34 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { UserMenu } from "@/components/ui/user-menu";
 
 const Header = ({ children }: { children?: React.ReactNode }) => {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   const handleClick = useCallback((e: React.MouseEvent<HTMLInputElement>) => {
     const target = e.target as HTMLInputElement;
+    setShowMobileMenu(target.checked);
     if (target.checked) {
       // Play sound effect if available
       console.log("Menu opened");
     }
   }, []);
 
+  const toggleMobileMenu = () => {
+    setShowMobileMenu(!showMobileMenu);
+    if (inputRef.current) {
+      inputRef.current.checked = !showMobileMenu;
+    }
+  };
+
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === "Escape" && inputRef.current?.checked) {
       inputRef.current.checked = false;
+      setShowMobileMenu(false);
     }
   }, []);
 
@@ -40,7 +51,13 @@ const Header = ({ children }: { children?: React.ReactNode }) => {
             <span className="text-white font-semibold text-lg">RH Analytics</span>
           </div>
         </Link>
-        <div className="outer-menu relative flex items-center gap-8 z-[1]">
+        <div className="outer-menu relative flex items-center gap-4 z-[1]">
+          {/* User menu with login/signup options */}
+          <UserMenu 
+            showMobileMenu={showMobileMenu}
+            onMobileMenuToggle={toggleMobileMenu}
+          />
+          
           <input
             ref={inputRef}
             aria-labelledby="menu"

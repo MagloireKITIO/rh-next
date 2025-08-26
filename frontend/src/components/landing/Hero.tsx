@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { useRouter } from "next/navigation";
 import { gsap } from "gsap";
+import { useAuth } from "@/contexts/auth-context";
 import FloatingImage from "./FloatingImage";
 
 const TYPED_STRINGS = [
@@ -14,6 +15,7 @@ const TYPED_STRINGS = [
 
 const Hero = () => {
   const router = useRouter();
+  const { user } = useAuth();
   const sectionRef = useRef<HTMLDivElement>(null);
   const typedElementRef = useRef<HTMLSpanElement>(null);
   const [currentStringIndex, setCurrentStringIndex] = useState(0);
@@ -61,11 +63,22 @@ const Hero = () => {
   }, [displayText, isDeleting, currentStringIndex]);
 
   const handleGetStarted = () => {
-    router.push("/auth/signup");
+    console.log("Button clicked, user:", user); // Debug
+    if (user) {
+      console.log("Redirecting to dashboard"); // Debug  
+      router.push("/dashboard");
+    } else {
+      console.log("Redirecting to signup"); // Debug
+      router.push("/auth/signup");
+    }
   };
 
   const handleLogin = () => {
-    router.push("/auth/login");
+    if (user) {
+      router.push("/dashboard");
+    } else {
+      router.push("/auth/login");
+    }
   };
 
   return (
@@ -75,12 +88,8 @@ const Hero = () => {
       className="w-full flex md:items-center py-8 2xl:container mx-auto xl:px-20 md:px-12 px-4 min-h-screen relative mb-24"
       style={{ opacity: 0 }}
     >
-      <div className="flex flex-col pt-40 md:pt-0 select-none w-full">
-        <h5 className="font-mono font-medium text-indigo-light staggered-reveal text-lg">
-          Plateforme RH Intelligente
-        </h5>
-        
-        <h1 className="text-white text-6xl md:text-8xl font-bold mt-4">
+      <div className="flex flex-col pt-32 md:pt-20 select-none w-full">
+        <h1 className="text-white text-6xl md:text-8xl font-bold">
           <span className="relative staggered-reveal text-gradient">
             RH Analytics
           </span>
@@ -106,17 +115,19 @@ const Hero = () => {
         <div className="staggered-reveal flex flex-col sm:flex-row gap-4 mt-12">
           <button
             onClick={handleGetStarted}
-            className="px-8 py-4 bg-gradient-to-r from-indigo-light to-indigo-dark text-white rounded-lg font-semibold hover:scale-105 transition-all duration-300 hover:shadow-lg hover:shadow-indigo-dark/25"
+            className="px-8 py-4 bg-gradient-to-r from-indigo-light to-indigo-dark text-white rounded-lg font-semibold hover:scale-105 active:scale-95 transition-all duration-300 hover:shadow-lg hover:shadow-indigo-dark/25 active:shadow-md cursor-pointer"
           >
-            Commencer maintenant
+            {user ? "Accéder au Dashboard" : "Commencer maintenant"}
           </button>
           
-          <button
-            onClick={handleLogin}
-            className="px-8 py-4 border-2 border-indigo-light text-indigo-light rounded-lg font-semibold hover:bg-indigo-light hover:text-white transition-all duration-300"
-          >
-            Se connecter
-          </button>
+          {!user && (
+            <button
+              onClick={handleLogin}
+              className="px-8 py-4 border-2 border-indigo-light text-indigo-light rounded-lg font-semibold hover:bg-indigo-light hover:text-white active:scale-95 transition-all duration-300 cursor-pointer"
+            >
+              Se connecter
+            </button>
+          )}
         </div>
 
         <div className="staggered-reveal mt-12 flex items-center gap-8 text-gray-300">

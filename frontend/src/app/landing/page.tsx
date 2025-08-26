@@ -86,12 +86,14 @@ export default function Landing() {
       {/* Background curves */}
       <BackgroundCurves />
       
-      {/* Conditional Navigation */}
-      {user && <NavBar variant="landing" />}
-      
-      <Header>
-        <Menu />
-      </Header>
+      {/* Navigation - Use NavBar for authenticated users, Header for guests */}
+      {user ? (
+        <NavBar variant="landing" />
+      ) : (
+        <Header>
+          <Menu />
+        </Header>
+      )}
       <ProgressIndicator />
       
       <main className="flex flex-col relative z-10">

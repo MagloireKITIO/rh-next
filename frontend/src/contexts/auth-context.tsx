@@ -31,6 +31,7 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  updateProfile: (data: { name: string; email: string }) => Promise<void>;
   hasRole: (role: string | string[]) => boolean;
   isAdmin: () => boolean;
   isHR: () => boolean;
@@ -300,6 +301,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const updateProfile = async (data: { name: string; email: string }) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    try {
+      const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+      const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to update profile');
+      }
+
+      const result = await response.json();
+      setUser(prev => prev ? { ...prev, ...result.user } : null);
+      
+      return result;
+    } catch (error: any) {
+      throw new Error(error.message || 'Failed to update profile');
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -310,6 +342,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signInWithGoogle,
     signOut,
     refreshProfile,
+    updateProfile,
     hasRole,
     isAdmin,
     isHR,

@@ -6,9 +6,13 @@ import { createClient } from '@supabase/supabase-js';
 import { ConfigService } from '@nestjs/config';
 import { User, UserRole } from './entities/user.entity';
 import { Company } from '../companies/entities/company.entity';
-import { LoginDto, GoogleAuthDto, SignUpDto, CompanySignUpDto, AcceptInvitationDto, CompleteCompanyGoogleDto } from './dto/login.dto';
+import { Project } from '../projects/entities/project.entity';
+import { Candidate } from '../candidates/entities/candidate.entity';
+import { LoginDto, GoogleAuthDto, SignUpDto, CompanySignUpDto, AcceptInvitationDto, CompleteCompanyGoogleDto, UpdateProfileDto, ChangePasswordDto, DeleteAccountDto } from './dto/login.dto';
 import * as bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class AuthService {
@@ -19,6 +23,10 @@ export class AuthService {
     private userRepository: Repository<User>,
     @InjectRepository(Company)
     private companyRepository: Repository<Company>,
+    @InjectRepository(Project)
+    private projectRepository: Repository<Project>,
+    @InjectRepository(Candidate)
+    private candidateRepository: Repository<Candidate>,
     private jwtService: JwtService,
     private configService: ConfigService,
   ) {
@@ -596,6 +604,200 @@ export class AuthService {
         isAdmin: user.role === 'admin',
         hasCompany: !!user.company_id
       }
+    };
+  }
+
+  async updateProfile(userId: string, updateProfileDto: UpdateProfileDto) {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    // Check if email is already taken by another user
+    if (updateProfileDto.email !== user.email) {
+      const existingUser = await this.userRepository.findOne({ 
+        where: { email: updateProfileDto.email } 
+      });
+      if (existingUser && existingUser.id !== userId) {
+        throw new BadRequestException('Email already in use by another user');
+      }
+
+      // Update email in Supabase if changed
+      const { error } = await this.supabase.auth.admin.updateUserById(
+        user.supabase_user_id,
+        { email: updateProfileDto.email }
+      );
+
+      if (error) {
+        console.error('Error updating email in Supabase:', error);
+        throw new BadRequestException('Failed to update email in authentication system');
+      }
+    }
+
+    // Update user in database
+    user.name = updateProfileDto.name;
+    user.email = updateProfileDto.email;
+    user.updated_at = new Date();
+
+    await this.userRepository.save(user);
+
+    return {
+      message: 'Profile updated successfully',
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        updated_at: user.updated_at,
+      },
+    };
+  }
+
+  async changePassword(userId: string, changePasswordDto: ChangePasswordDto) {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    // Verify current password
+    const isCurrentPasswordValid = await bcrypt.compare(
+      changePasswordDto.currentPassword,
+      user.password_hash
+    );
+
+    if (!isCurrentPasswordValid) {
+      throw new BadRequestException('Current password is incorrect');
+    }
+
+    // Update password in Supabase
+    const { error } = await this.supabase.auth.admin.updateUserById(
+      user.supabase_user_id,
+      { password: changePasswordDto.newPassword }
+    );
+
+    if (error) {
+      console.error('Error updating password in Supabase:', error);
+      throw new BadRequestException('Failed to update password in authentication system');
+    }
+
+    // Update password hash in database
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(changePasswordDto.newPassword, salt);
+    
+    user.password_hash = hashedPassword;
+    user.updated_at = new Date();
+
+    await this.userRepository.save(user);
+
+    return {
+      message: 'Password changed successfully',
+    };
+  }
+
+  async deleteAccount(userId: string, deleteAccountDto: DeleteAccountDto) {
+    const user = await this.userRepository.findOne({ 
+      where: { id: userId },
+      relations: ['company']
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    // Verify password before deletion
+    const isPasswordValid = await bcrypt.compare(
+      deleteAccountDto.password,
+      user.password_hash
+    );
+
+    if (!isPasswordValid) {
+      throw new BadRequestException('Password is incorrect');
+    }
+
+    // Check if user is the only admin of their company
+    if (user.role === UserRole.ADMIN && user.company) {
+      const adminCount = await this.userRepository.count({
+        where: { 
+          company: { id: user.company.id },
+          role: UserRole.ADMIN 
+        }
+      });
+
+      if (adminCount === 1) {
+        throw new BadRequestException('Cannot delete account: you are the only administrator of your company');
+      }
+    }
+
+    try {
+      // Delete user's projects and candidates
+      const userProjects = await this.projectRepository.find({ 
+        where: { createdBy: { id: userId } }
+      });
+
+      for (const project of userProjects) {
+        // Delete candidates associated with the project
+        await this.candidateRepository.delete({ project: { id: project.id } });
+        // Delete the project
+        await this.projectRepository.delete({ id: project.id });
+      }
+
+      // Delete user's avatar if exists
+      if (user.avatar_url) {
+        const avatarPath = path.join('./uploads/avatars', path.basename(user.avatar_url));
+        if (fs.existsSync(avatarPath)) {
+          fs.unlinkSync(avatarPath);
+        }
+      }
+
+      // Delete user from Supabase
+      const { error } = await this.supabase.auth.admin.deleteUser(user.supabase_user_id);
+      if (error) {
+        console.error('Error deleting user from Supabase:', error);
+        // Continue with deletion even if Supabase deletion fails
+      }
+
+      // Delete user from database
+      await this.userRepository.delete({ id: userId });
+
+      console.log(`🗑️ User account deleted: ${user.email} (reason: ${deleteAccountDto.reason || 'No reason provided'})`);
+
+      return {
+        message: 'Account deleted successfully',
+      };
+
+    } catch (error) {
+      console.error('Error during account deletion:', error);
+      throw new BadRequestException('Failed to delete account. Please try again or contact support.');
+    }
+  }
+
+  async uploadAvatar(userId: string, file: Express.Multer.File) {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    // Delete old avatar if exists
+    if (user.avatar_url) {
+      const oldAvatarPath = path.join('./uploads/avatars', path.basename(user.avatar_url));
+      if (fs.existsSync(oldAvatarPath)) {
+        fs.unlinkSync(oldAvatarPath);
+      }
+    }
+
+    // Create avatar URL
+    const baseUrl = this.configService.get('BACKEND_URL') || 'http://localhost:3001';
+    const avatarUrl = `${baseUrl}/uploads/avatars/${file.filename}`;
+
+    // Update user with new avatar URL
+    user.avatar_url = avatarUrl;
+    user.updated_at = new Date();
+
+    await this.userRepository.save(user);
+
+    return {
+      message: 'Avatar uploaded successfully',
+      avatar_url: avatarUrl,
     };
   }
 

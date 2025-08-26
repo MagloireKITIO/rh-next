@@ -51,7 +51,7 @@ const Menu = () => {
           <div className="mt-16">
             <button
               onClick={() => router.push(user ? "/dashboard" : "/auth/signup")}
-              className="px-8 py-4 bg-gradient-to-r from-indigo-light to-indigo-dark text-white rounded-lg font-semibold hover:scale-105 transition-transform duration-300"
+              className="px-8 py-4 bg-gradient-to-r from-indigo-light to-indigo-dark text-white rounded-lg font-semibold hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer"
             >
               {user ? "Accéder au Dashboard" : "Commencer maintenant"}
             </button>
