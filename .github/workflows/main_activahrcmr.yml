@@ -30,14 +30,14 @@ jobs:
         uses: actions/cache@v3
         with:
           path: backend/node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('backend/package-lock.json') }}
+          key: ${{ runner.os }}-node-${{ hashFiles('backend/package.json') }}
           restore-keys: |
             ${{ runner.os }}-node-
 
       - name: npm install, build, and test backend
         run: |
           cd backend
-          npm ci
+          npm install
           npm run build
           npm run test --if-present
 
