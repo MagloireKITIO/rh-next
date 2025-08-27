@@ -572,58 +572,166 @@ export default function SharedProjectPage() {
                   }
 
                   return (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Detailed Analysis</CardTitle>
-                        <CardDescription>
-                          Latest analysis from {new Date(latestAnalysis.createdAt).toLocaleDateString()}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        {analysisData?.strengths && analysisData.strengths.length > 0 && (
-                          <div>
-                            <h4 className="font-medium text-green-600 mb-2">Strengths</h4>
-                            <ul className="list-disc list-inside space-y-1 text-sm">
-                              {analysisData.strengths.map((strength, index) => (
-                                <li key={index}>{strength}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                        
-                        {analysisData?.weaknesses && analysisData.weaknesses.length > 0 && (
-                          <div>
-                            <h4 className="font-medium text-orange-600 mb-2">Areas for Improvement</h4>
-                            <ul className="list-disc list-inside space-y-1 text-sm">
-                              {analysisData.weaknesses.map((weakness, index) => (
-                                <li key={index}>{weakness}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-
-                        {analysisData?.recommendations && analysisData.recommendations.length > 0 && (
-                          <div>
-                            <h4 className="font-medium text-blue-600 mb-2">Recommendations</h4>
-                            <ul className="list-disc list-inside space-y-1 text-sm">
-                              {analysisData.recommendations.map((rec, index) => (
-                                <li key={index}>{rec}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-
-                        {/* Si aucune donnée structurée, afficher la réponse brute */}
-                        {!analysisData?.strengths && !analysisData?.weaknesses && !analysisData?.recommendations && latestAnalysis.aiResponse && (
-                          <div>
-                            <h4 className="font-medium mb-2">Complete Analysis</h4>
-                            <div className="p-4 bg-muted rounded-lg text-sm whitespace-pre-wrap">
-                              {latestAnalysis.aiResponse}
+                    <div className="space-y-6">
+                      {/* HR Decision */}
+                      {analysisData?.hrDecision && (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>Décision RH Recommandée</CardTitle>
+                            <CardDescription>
+                              Analyse automatique basée sur les critères du poste
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="flex items-center gap-4 mb-4">
+                              <Badge 
+                                className={
+                                  analysisData.hrDecision.recommendation === 'RECRUTER' ? 'bg-green-100 text-green-800' :
+                                  analysisData.hrDecision.recommendation === 'ENTRETIEN' ? 'bg-blue-100 text-blue-800' :
+                                  'bg-red-100 text-red-800'
+                                }
+                              >
+                                {analysisData.hrDecision.recommendation}
+                              </Badge>
+                              <Badge variant="outline">
+                                Confiance: {analysisData.hrDecision.confidence}%
+                              </Badge>
+                              <Badge variant="outline">
+                                Priorité: {analysisData.hrDecision.priority}
+                              </Badge>
                             </div>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
+                            <p className="text-sm text-muted-foreground">
+                              {analysisData.hrDecision.reasoning}
+                            </p>
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      {/* Skills Match */}
+                      {analysisData?.skillsMatch && (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>Adéquation Compétences</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-sm">Technique</span>
+                                  <span className="text-sm font-medium">{analysisData.skillsMatch.technical}/100</span>
+                                </div>
+                                <div className="w-full bg-gray-200 rounded-full h-2">
+                                  <div 
+                                    className="bg-blue-600 h-2 rounded-full" 
+                                    style={{width: `${analysisData.skillsMatch.technical}%`}}
+                                  />
+                                </div>
+                              </div>
+                              <div>
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-sm">Expérience</span>
+                                  <span className="text-sm font-medium">{analysisData.skillsMatch.experience}/100</span>
+                                </div>
+                                <div className="w-full bg-gray-200 rounded-full h-2">
+                                  <div 
+                                    className="bg-green-600 h-2 rounded-full" 
+                                    style={{width: `${analysisData.skillsMatch.experience}%`}}
+                                  />
+                                </div>
+                              </div>
+                              <div>
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-sm">Culturel</span>
+                                  <span className="text-sm font-medium">{analysisData.skillsMatch.cultural}/100</span>
+                                </div>
+                                <div className="w-full bg-gray-200 rounded-full h-2">
+                                  <div 
+                                    className="bg-purple-600 h-2 rounded-full" 
+                                    style={{width: `${analysisData.skillsMatch.cultural}%`}}
+                                  />
+                                </div>
+                              </div>
+                              <div>
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-sm font-medium">Global</span>
+                                  <span className="text-sm font-bold">{analysisData.skillsMatch.overall}/100</span>
+                                </div>
+                                <div className="w-full bg-gray-200 rounded-full h-2">
+                                  <div 
+                                    className="bg-orange-600 h-2 rounded-full" 
+                                    style={{width: `${analysisData.skillsMatch.overall}%`}}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Analyse Détaillée</CardTitle>
+                          <CardDescription>
+                            Dernière analyse du {new Date(latestAnalysis.createdAt).toLocaleDateString()}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          {analysisData?.strengths && analysisData.strengths.length > 0 && (
+                            <div>
+                              <h4 className="font-medium text-green-600 mb-2">Points Forts</h4>
+                              <ul className="list-disc list-inside space-y-1 text-sm">
+                                {analysisData.strengths.map((strength, index) => (
+                                  <li key={index}>{strength}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          
+                          {analysisData?.weaknesses && analysisData.weaknesses.length > 0 && (
+                            <div>
+                              <h4 className="font-medium text-orange-600 mb-2">Améliorations Nécessaires</h4>
+                              <ul className="list-disc list-inside space-y-1 text-sm">
+                                {analysisData.weaknesses.map((weakness, index) => (
+                                  <li key={index}>{weakness}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {analysisData?.recommendations && analysisData.recommendations.length > 0 && (
+                            <div>
+                              <h4 className="font-medium text-blue-600 mb-2">Recommandations</h4>
+                              <ul className="list-disc list-inside space-y-1 text-sm">
+                                {analysisData.recommendations.map((rec, index) => (
+                                  <li key={index}>{rec}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {analysisData?.risks && analysisData.risks.length > 0 && (
+                            <div>
+                              <h4 className="font-medium text-red-600 mb-2">Risques Identifiés</h4>
+                              <ul className="list-disc list-inside space-y-1 text-sm">
+                                {analysisData.risks.map((risk, index) => (
+                                  <li key={index}>{risk}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {/* Si aucune donnée structurée, afficher la réponse brute */}
+                          {!analysisData?.strengths && !analysisData?.weaknesses && !analysisData?.recommendations && latestAnalysis.aiResponse && (
+                            <div>
+                              <h4 className="font-medium mb-2">Analyse Complète</h4>
+                              <div className="p-4 bg-muted rounded-lg text-sm whitespace-pre-wrap">
+                                {latestAnalysis.aiResponse}
+                              </div>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </div>
                   );
                 })()}
               </div>
