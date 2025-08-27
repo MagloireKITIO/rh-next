@@ -30,6 +30,21 @@ export class Project {
   @Column({ nullable: true })
   public_share_expires_at: Date;
 
+  @Column('timestamp', { nullable: true })
+  startDate?: Date;
+
+  @Column('timestamp', { nullable: true })
+  endDate?: Date;
+
+  @Column('text', { nullable: true })
+  offerDescription?: string;
+
+  @Column({ nullable: true })
+  offerDocumentUrl?: string;
+
+  @Column({ nullable: true })
+  offerDocumentFileName?: string;
+
   @ManyToOne(() => Company, company => company.projects)
   @JoinColumn({ name: 'company_id' })
   company: Company;

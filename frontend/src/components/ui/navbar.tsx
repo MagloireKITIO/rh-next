@@ -39,11 +39,13 @@ export function NavBar({
   const defaultNavItems = variant === "dashboard" && user ? [
     { href: "/dashboard", label: "Dashboard" },
     { href: "/projects", label: "Projets" },
+    { href: "/jobs", label: "Offres d'emploi" },
     { href: "/settings", label: "Paramètres", id: "settings-link" },
   ] : variant === "landing" ? [
     { href: "#home", label: "Accueil" },
     { href: "#services", label: "Services" },
     { href: "#features", label: "Fonctionnalités" },
+    { href: "/jobs", label: "Offres d'emploi" },
     { href: "#contact", label: "Contact" },
   ] : [];
 

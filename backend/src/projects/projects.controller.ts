@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ProjectsService } from './projects.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
@@ -75,6 +76,18 @@ export class ProjectsController {
   revokeShare(@Param('id') id: string, @CurrentCompany() companyId: string) {
     return this.projectsService.revokeShare(id, companyId);
   }
+
+  @Post(':id/offer-document')
+  @Roles(UserRole.ADMIN, UserRole.HR)
+  @UseGuards(RolesGuard)
+  @UseInterceptors(FileInterceptor('document'))
+  async uploadOfferDocument(
+    @Param('id') id: string,
+    @CurrentCompany() companyId: string,
+    @UploadedFile() file: Express.Multer.File
+  ) {
+    return this.projectsService.uploadOfferDocument(id, companyId, file);
+  }
 }
 
 // Contrôleur séparé pour l'accès public
@@ -85,5 +98,31 @@ export class PublicProjectsController {
   @Get('shared/:token')
   getSharedProject(@Param('token') token: string) {
     return this.projectsService.getSharedProject(token);
+  }
+}
+
+// Contrôleur pour les offres d'emploi publiques
+@Controller('public/job-offers')
+export class PublicJobOffersController {
+  constructor(private readonly projectsService: ProjectsService) {}
+
+  @Get()
+  getActiveJobOffers(@Query('company') companyId?: string) {
+    return this.projectsService.getActiveJobOffers(companyId);
+  }
+
+  @Get(':id')
+  getJobOffer(@Param('id') id: string) {
+    return this.projectsService.getJobOffer(id);
+  }
+
+  @Post(':id/apply')
+  @UseInterceptors(FileInterceptor('cv'))
+  applyToJobOffer(
+    @Param('id') id: string, 
+    @UploadedFile() file: Express.Multer.File,
+    @Body() applicationData: any
+  ) {
+    return this.projectsService.applyToJobOffer(id, file, applicationData);
   }
 }
