@@ -43,6 +43,35 @@ export class TogetherAIService {
     }
   }
 
+  private async getAccountsForCompany(companyId?: string): Promise<TogetherAIAccount[]> {
+    try {
+      let apiKeys: string[] = [];
+      
+      if (companyId) {
+        // D'abord essayer les clés spécifiques à l'entreprise
+        apiKeys = await this.apiKeysService.findActiveByCompany(companyId);
+        
+        // Si aucune clé spécifique, utiliser les clés globales
+        if (apiKeys.length === 0) {
+          apiKeys = await this.apiKeysService.findActiveGlobal();
+        }
+      } else {
+        // Pas d'entreprise spécifiée, utiliser toutes les clés actives
+        apiKeys = await this.apiKeysService.findActive();
+      }
+
+      return apiKeys.map(key => ({
+        apiKey: key,
+        isActive: true,
+        requestCount: 0,
+        maxRequests: 1000,
+      }));
+    } catch (error) {
+      this.logger.warn('Failed to load API keys, using default accounts');
+      return this.accounts;
+    }
+  }
+
   private getNextAvailableAccount(): TogetherAIAccount | null {
     const startIndex = this.currentAccountIndex;
     
@@ -102,12 +131,16 @@ export class TogetherAIService {
     });
   }
 
-  async analyzeCV(cvText: string, jobDescription: string, customPrompt?: string): Promise<any> {
-    // Recharger les clés depuis la base de données pour les nouvelles clés
-    await this.initializeAccounts();
-    this.resetAccountLimits();
+  async analyzeCV(cvText: string, jobDescription: string, customPrompt?: string, companyId?: string): Promise<any> {
+    // Utiliser les clés spécifiques à l'entreprise
+    const companyAccounts = await this.getAccountsForCompany(companyId);
     
-    const account = this.getNextAvailableAccount();
+    if (companyAccounts.length === 0) {
+      throw new Error('Aucune clé API disponible pour cette entreprise. Contactez votre administrateur.');
+    }
+
+    // Utiliser la première clé disponible pour cette entreprise
+    const account = companyAccounts[0];
     if (!account) {
       throw new Error('No available Together AI accounts');
     }

@@ -208,11 +208,12 @@ export class AnalysisQueueService {
     const { candidateId, candidate, project } = item;
 
     try {
-      // Analyser avec Together AI
+      // Analyser avec Together AI en utilisant les clés de l'entreprise
       const aiAnalysis = await this.togetherAIService.analyzeCV(
         candidate.extractedText,
         project.jobDescription,
-        project.customPrompt
+        project.customPrompt,
+        project.company_id
       );
 
       // Sauvegarder l'analyse

@@ -11,6 +11,7 @@ import { WebSocketModule } from './websocket/websocket.module';
 import { AuthModule } from './auth/auth.module';
 import { CompaniesModule } from './companies/companies.module';
 import { TeamRequestsModule } from './team-requests/team-requests.module';
+import { AdminModule } from './admin/admin.module';
 import { HealthModule } from './health/health.module';
 import { StaticController } from './common/static.controller';
 
@@ -38,6 +39,7 @@ import { StaticController } from './common/static.controller';
     ApiKeysModule,
     WebSocketModule,
     TeamRequestsModule,
+    AdminModule,
     HealthModule,
   ],
   controllers: [StaticController],

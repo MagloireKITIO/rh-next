@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Company } from '../../companies/entities/company.entity';
 
 @Entity('api_keys')
 export class ApiKey {
@@ -22,6 +23,13 @@ export class ApiKey {
 
   @Column({ length: 50, default: 'together_ai' })
   provider: string;
+
+  @ManyToOne(() => Company, { nullable: true })
+  @JoinColumn({ name: 'company_id' })
+  company?: Company;
+
+  @Column('uuid', { nullable: true })
+  company_id?: string;
 
   @CreateDateColumn()
   createdAt: Date;

@@ -47,6 +47,32 @@ export class ApiKeysService {
     return activeKeys.map(k => k.key);
   }
 
+  async findActiveByCompany(companyId: string): Promise<string[]> {
+    const activeKeys = await this.apiKeyRepository.find({
+      where: { 
+        isActive: true,
+        company_id: companyId 
+      },
+      select: ['key'],
+      order: { requestCount: 'ASC' }, // Rotation: utiliser la clé la moins utilisée
+    });
+    
+    return activeKeys.map(k => k.key);
+  }
+
+  async findActiveGlobal(): Promise<string[]> {
+    const activeKeys = await this.apiKeyRepository.find({
+      where: { 
+        isActive: true,
+        company_id: null // Clés globales non assignées à une entreprise
+      },
+      select: ['key'],
+      order: { requestCount: 'ASC' },
+    });
+    
+    return activeKeys.map(k => k.key);
+  }
+
   async findOne(id: string): Promise<Omit<ApiKey, 'key'>> {
     const apiKey = await this.apiKeyRepository.findOne({ 
       where: { id } 

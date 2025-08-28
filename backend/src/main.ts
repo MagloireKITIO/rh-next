@@ -14,14 +14,19 @@ async function bootstrap() {
     transform: true,
   }));
 
-  // CORS pour le frontend
+  // CORS pour le frontend et l'admin
   const corsOrigins = process.env.CORS_ORIGINS 
     ? process.env.CORS_ORIGINS.split(',')
-    : [process.env.FRONTEND_URL || 'http://localhost:3000'];
+    : [
+        process.env.FRONTEND_URL || 'http://localhost:3000',
+        'http://localhost:3002', // Frontend Admin
+      ];
     
   app.enableCors({
     origin: corsOrigins,
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
   });
 
   // Servir les fichiers statiques pour /uploads

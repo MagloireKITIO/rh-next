@@ -228,11 +228,12 @@ export class CandidatesService {
       // Émettre l'événement de début d'analyse
       this.webSocketGateway.emitAnalysisStarted(project.id, candidateId);
 
-      // Analyser avec Together AI
+      // Analyser avec Together AI en utilisant les clés de l'entreprise
       const aiAnalysis = await this.togetherAIService.analyzeCV(
         candidate.extractedText,
         project.jobDescription,
-        project.customPrompt
+        project.customPrompt,
+        project.company_id
       );
 
       // Mettre à jour le candidat avec les résultats
