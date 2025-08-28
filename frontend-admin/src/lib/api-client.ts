@@ -157,6 +157,29 @@ export interface ApiKeyStats {
   }[];
 }
 
+export interface MailConfiguration {
+  id?: string;
+  provider_type: 'smtp' | 'sendgrid' | 'mailgun' | 'aws_ses' | 'supabase';
+  company_id?: string;
+  // Configuration SMTP
+  smtp_host?: string;
+  smtp_port?: number;
+  smtp_user?: string;
+  smtp_password?: string;
+  smtp_secure?: boolean;
+  smtp_require_tls?: boolean;
+  // Configuration services tiers
+  api_key?: string;
+  api_secret?: string;
+  // Configuration générale
+  from_email: string;
+  from_name: string;
+  is_active: boolean;
+  is_default: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
 // Admin API Functions
 export const adminApi = {
   // Dashboard & Stats
@@ -165,6 +188,7 @@ export const adminApi = {
   
   // Companies Management
   getAllCompanies: () => apiClient.get<Company[]>('/admin/companies'),
+  getCompanies: () => apiClient.get<Company[]>('/admin/companies'),
   getCompanyById: (id: string) => apiClient.get<Company>(`/admin/companies/${id}`),
   createCompany: (data: { name: string; domain: string; description?: string }) =>
     apiClient.post<Company>('/admin/companies', data),
@@ -214,6 +238,23 @@ export const adminApi = {
   // System Settings
   getSystemSettings: () => apiClient.get('/admin/settings'),
   updateSystemSettings: (data: any) => apiClient.patch('/admin/settings', data),
+
+  // Mail Configuration
+  getMailConfiguration: () => apiClient.get<MailConfiguration>('/admin/mail-config'),
+  getAllMailConfigurations: () => apiClient.get('/admin/mail-configs'),
+  createMailConfiguration: (data: MailConfiguration) => 
+    apiClient.post<MailConfiguration>('/admin/mail-configs', data),
+  updateMailConfiguration: (id: string, data: MailConfiguration) =>
+    apiClient.put<MailConfiguration>(`/admin/mail-configs/${id}`, data),
+  deleteMailConfiguration: (id: string) =>
+    apiClient.delete(`/admin/mail-configs/${id}`),
+  toggleMailConfiguration: (id: string, is_active: boolean) =>
+    apiClient.patch(`/admin/mail-configs/${id}/toggle`, { is_active }),
+  saveMailConfiguration: (data: MailConfiguration) => 
+    apiClient.post<MailConfiguration>('/admin/mail-config', data),
+  testMailConfiguration: (testEmail: string, companyId?: string) =>
+    apiClient.post('/admin/mail-config/test', { email: testEmail, company_id: companyId }),
+  getMailConfigurationStatus: () => apiClient.get('/admin/mail-config/status'),
 };
 
 // Auth API for admin

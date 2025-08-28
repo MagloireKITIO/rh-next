@@ -36,7 +36,7 @@ interface CVUploadProps {
 export function CVUpload({ 
   projectId, 
   onUploadComplete, 
-  maxFiles = 500, 
+  maxFiles = 50, // RÉDUIT DE 500 à 50 pour éviter l'overflow mémoire
   className 
 }: CVUploadProps) {
   const stateKey = `cv-upload-${projectId}`;
@@ -103,6 +103,12 @@ export function CVUpload({
   }, [isUploading, currentFileIndex, overallProgress, stateKey]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
+    // Vérifier la limite de fichiers
+    if (files.length + acceptedFiles.length > maxFiles) {
+      toast.error(`Limite dépassée: maximum ${maxFiles} fichiers autorisés. Actuellement ${files.length} fichiers.`);
+      return;
+    }
+
     const newFiles: FileWithStatus[] = acceptedFiles.map(file => ({
       file,
       status: "pending",
@@ -114,7 +120,7 @@ export function CVUpload({
     if (acceptedFiles.length > 0) {
       toast.success(`${acceptedFiles.length} file(s) added to queue`);
     }
-  }, []);
+  }, [files.length, maxFiles]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -326,7 +332,7 @@ export function CVUpload({
           whileHover={{ scale: 1.01 }}
           whileTap={{ scale: 0.99 }}
         >
-          <input {...getInputProps()} />
+          <input {...getInputProps()} value="" />
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -342,7 +348,7 @@ export function CVUpload({
               <>
                 <p className="font-medium">Drop PDF files here or click to browse</p>
                 <p className="text-sm text-muted-foreground">
-                  Upload CV files (PDF only) - No limit, processed one by one
+                  Upload CV files (PDF only) - Maximum {maxFiles} files, processed by batch of 2
                 </p>
               </>
             )}

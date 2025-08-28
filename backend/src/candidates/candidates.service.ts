@@ -176,6 +176,12 @@ export class CandidatesService {
         throw new Error('Only PDF files are supported');
       }
 
+      // Limite critique de taille : 10MB max
+      const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+      if (file.buffer.length > MAX_FILE_SIZE) {
+        throw new Error(`File too large. Maximum size is ${MAX_FILE_SIZE / 1024 / 1024}MB, got ${Math.round(file.buffer.length / 1024 / 1024 * 10) / 10}MB`);
+      }
+
       // Extraire le texte du PDF
       let extractedText = '';
       let candidateName = 'Candidat Inconnu';
@@ -183,6 +189,12 @@ export class CandidatesService {
       try {
         const pdfData = await pdf(file.buffer);
         extractedText = pdfData.text?.trim() || '';
+        
+        // Forcer le nettoyage de la mémoire après traitement PDF
+        delete pdfData.text;
+        if (global.gc) {
+          global.gc();
+        }
         
         // Vérifier si l'extraction a réussi
         if (!extractedText || extractedText.length < 10) {
