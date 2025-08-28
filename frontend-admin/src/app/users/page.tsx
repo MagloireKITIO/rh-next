@@ -22,7 +22,9 @@ export default function UsersPage() {
   const [selectedCompany, setSelectedCompany] = useState<string>('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [newUser, setNewUser] = useState({
     email: '',
     name: '',
@@ -406,7 +408,10 @@ export default function UsersPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => deleteUserMutation.mutate(user.id)}
+                            onClick={() => {
+                              setUserToDelete(user);
+                              setIsDeleteDialogOpen(true);
+                            }}
                             disabled={deleteUserMutation.isPending}
                             title="Supprimer l'utilisateur"
                             className="text-red-600 hover:text-red-800"
@@ -470,14 +475,14 @@ export default function UsersPage() {
                   <div>
                     <Label htmlFor="edit-company">Entreprise</Label>
                     <Select 
-                      value={selectedUser.company_id || ''} 
-                      onValueChange={(value) => setSelectedUser({ ...selectedUser, company_id: value })}
+                      value={selectedUser.company_id || 'none'} 
+                      onValueChange={(value) => setSelectedUser({ ...selectedUser, company_id: value === 'none' ? null : value })}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Sélectionner une entreprise" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Aucune entreprise</SelectItem>
+                        <SelectItem value="none">Aucune entreprise</SelectItem>
                         {companies?.data?.map((company: Company) => (
                           <SelectItem key={company.id} value={company.id}>
                             {company.name}
@@ -498,6 +503,38 @@ export default function UsersPage() {
                 >
                   {updateUserMutation.isPending ? <LoadingSpinner className="w-4 h-4 mr-2" /> : null}
                   Sauvegarder
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Delete User Dialog */}
+          <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Supprimer l'utilisateur</DialogTitle>
+                <DialogDescription>
+                  Êtes-vous sûr de vouloir supprimer l'utilisateur <strong>{userToDelete?.name}</strong> ({userToDelete?.email}) ?
+                  Cette action est irréversible.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+                  Annuler
+                </Button>
+                <Button 
+                  variant="destructive"
+                  onClick={() => {
+                    if (userToDelete) {
+                      deleteUserMutation.mutate(userToDelete.id);
+                      setIsDeleteDialogOpen(false);
+                      setUserToDelete(null);
+                    }
+                  }}
+                  disabled={deleteUserMutation.isPending}
+                >
+                  {deleteUserMutation.isPending ? <LoadingSpinner className="w-4 h-4 mr-2" /> : null}
+                  Supprimer
                 </Button>
               </DialogFooter>
             </DialogContent>
