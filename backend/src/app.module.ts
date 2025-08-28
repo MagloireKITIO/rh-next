@@ -13,6 +13,7 @@ import { CompaniesModule } from './companies/companies.module';
 import { TeamRequestsModule } from './team-requests/team-requests.module';
 import { AdminModule } from './admin/admin.module';
 import { HealthModule } from './health/health.module';
+import { CommonModule } from './common/common.module';
 import { StaticController } from './common/static.controller';
 
 @Module({
@@ -24,11 +25,15 @@ import { StaticController } from './common/static.controller';
       type: 'postgres',
       url: process.env.DATABASE_URL,
       autoLoadEntities: true,
-      synchronize: true, // À désactiver en production
+      synchronize: process.env.NODE_ENV === 'development', // Seulement en développement
+      migrationsRun: process.env.NODE_ENV !== 'development', // Migrations en production
+      migrations: ['dist/migrations/*.js'],
       ssl: {
         rejectUnauthorized: false,
       },
+      logging: process.env.NODE_ENV === 'development' ? true : ['error'], // Logs conditionnels
     }),
+    CommonModule,
     AuthModule,
     CompaniesModule,
     ProjectsModule,

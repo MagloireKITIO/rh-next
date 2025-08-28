@@ -31,11 +31,19 @@ export class CandidatesController {
   ) {}
 
   @Get()
-  findAll(@CurrentCompany() companyId: string, @Query('projectId') projectId?: string) {
+  findAll(
+    @CurrentCompany() companyId: string, 
+    @Query('projectId') projectId?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string
+  ) {
+    const pageNumber = page ? parseInt(page, 10) : 1;
+    const pageLimit = limit ? parseInt(limit, 10) : 50;
+    
     if (projectId) {
-      return this.candidatesService.findByProject(projectId, companyId);
+      return this.candidatesService.findByProject(projectId, companyId, pageNumber, pageLimit);
     }
-    return this.candidatesService.findAll(companyId);
+    return this.candidatesService.findAll(companyId, pageNumber, pageLimit);
   }
 
   @Get(':id')

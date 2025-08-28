@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { Candidate } from './entities/candidate.entity';
 import { CreateCandidateDto } from './dto/create-candidate.dto';
 import { TogetherAIService } from '../ai/together-ai.service';
@@ -11,6 +11,16 @@ import { AnalysisQueueService } from './analysis-queue.service';
 import * as pdf from 'pdf-parse';
 import * as fs from 'fs';
 
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+}
+
 @Injectable()
 export class CandidatesService {
   private readonly logger = new Logger(CandidatesService.name);
@@ -18,6 +28,8 @@ export class CandidatesService {
   constructor(
     @InjectRepository(Candidate)
     private candidateRepository: Repository<Candidate>,
+    @InjectDataSource()
+    private dataSource: DataSource,
     private togetherAIService: TogetherAIService,
     private analysisService: AnalysisService,
     private storageService: StorageService,
@@ -65,20 +77,61 @@ export class CandidatesService {
     return await this.candidateRepository.save(candidate);
   }
 
-  async findAll(companyId: string): Promise<Candidate[]> {
-    return await this.candidateRepository.find({
+  async findAll(companyId: string, page: number = 1, limit: number = 50): Promise<PaginatedResponse<Candidate>> {
+    const skip = (page - 1) * limit;
+    
+    const [data, total] = await this.candidateRepository.findAndCount({
       relations: ['project'],
       where: { project: { company_id: companyId } },
       order: { score: 'DESC' },
+      skip,
+      take: limit,
     });
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages,
+      hasNext: page < totalPages,
+      hasPrevious: page > 1,
+    };
   }
 
-  async findByProject(projectId: string, companyId: string): Promise<Candidate[]> {
+  // Méthode pour récupérer tous les candidats d'un projet (pour usage interne)
+  async findAllByProject(projectId: string, companyId: string): Promise<Candidate[]> {
     return await this.candidateRepository.find({
       where: { projectId, project: { company_id: companyId } },
       relations: ['project', 'analyses'],
       order: { score: 'DESC' },
     });
+  }
+
+  async findByProject(projectId: string, companyId: string, page: number = 1, limit: number = 50): Promise<PaginatedResponse<Candidate>> {
+    const skip = (page - 1) * limit;
+    
+    const [data, total] = await this.candidateRepository.findAndCount({
+      where: { projectId, project: { company_id: companyId } },
+      relations: ['project', 'analyses'],
+      order: { score: 'DESC' },
+      skip,
+      take: limit,
+    });
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages,
+      hasNext: page < totalPages,
+      hasPrevious: page > 1,
+    };
   }
 
   async findOne(id: string, companyId: string): Promise<Candidate> {
@@ -289,7 +342,7 @@ export class CandidatesService {
   }
 
   async updateRankings(projectId: string, companyId: string): Promise<void> {
-    const candidates = await this.findByProject(projectId, companyId);
+    const candidates = await this.findAllByProject(projectId, companyId);
     
     // Trier par score décroissant
     candidates.sort((a, b) => Number(b.score) - Number(a.score));
@@ -303,7 +356,7 @@ export class CandidatesService {
   }
 
   async getRankingChanges(projectId: string, companyId: string) {
-    const candidates = await this.findByProject(projectId, companyId);
+    const candidates = await this.findAllByProject(projectId, companyId);
     
     return candidates.map(candidate => {
       const currentScore = Number(candidate.score);
@@ -327,25 +380,104 @@ export class CandidatesService {
   }
 
   async remove(id: string): Promise<void> {
-    // Vérifier que le candidat existe
-    const candidate = await this.candidateRepository.findOne({
-      where: { id },
-      relations: ['analyses']
+    // Transaction atomique pour supprimer candidat + analyses
+    return await this.dataSource.transaction(async manager => {
+      
+      // 1. Vérifier que le candidat existe
+      const candidate = await manager.findOne(Candidate, {
+        where: { id },
+        select: ['id', 'name', 'projectId'] // Optimiser la requête
+      });
+
+      if (!candidate) {
+        throw new NotFoundException(`Candidate with ID ${id} not found`);
+      }
+
+      this.logger.log(`Starting transactional deletion of candidate ${candidate.name} (${id})`);
+
+      // 2. Compter les analyses à supprimer
+      const analysisCount = await manager.count('Analysis', { where: { candidateId: id } });
+      
+      if (analysisCount > 0) {
+        this.logger.log(`Found ${analysisCount} analyses to delete`);
+        
+        // 3. Supprimer les analyses en premier (dépendance)
+        await manager.delete('Analysis', { candidateId: id });
+        this.logger.log(`✅ Deleted ${analysisCount} analyses atomically`);
+      }
+
+      // 4. Supprimer le candidat
+      const result = await manager.delete(Candidate, { id });
+      if (result.affected === 0) {
+        throw new NotFoundException(`Candidate with ID ${id} not found during deletion`);
+      }
+
+      this.logger.log(`✅ Successfully deleted candidate ${candidate.name} and all analyses atomically`);
+      
+      // 🎯 Notifier via WebSocket du changement (après commit)
+      // On utilisera un hook post-transaction pour cela
+      setImmediate(() => {
+        this.webSocketGateway.emitToProject(candidate.projectId, 'candidate:deleted', {
+          candidateId: id,
+          projectId: candidate.projectId
+        });
+      });
     });
+  }
 
-    if (!candidate) {
-      throw new NotFoundException(`Candidate with ID ${id} not found`);
+  /**
+   * Suppression en lot avec transaction (pour les opérations de nettoyage)
+   */
+  async removeBulk(candidateIds: string[], companyId?: string): Promise<{ deleted: number; errors: string[] }> {
+    if (!candidateIds || candidateIds.length === 0) {
+      return { deleted: 0, errors: [] };
     }
 
-    // Supprimer toutes les analyses liées d'abord
-    if (candidate.analyses && candidate.analyses.length > 0) {
-      await this.analysisService.removeByCandidate(id);
-    }
+    return await this.dataSource.transaction(async manager => {
+      const results = { deleted: 0, errors: [] };
+      
+      // 1. Vérifier que tous les candidats existent et appartiennent à l'entreprise
+      const whereCondition: any = { id: candidateIds };
+      if (companyId) {
+        // Join avec project pour vérifier company_id si nécessaire
+        const candidates = await manager
+          .createQueryBuilder(Candidate, 'candidate')
+          .innerJoin('candidate.project', 'project')
+          .where('candidate.id IN (:...ids)', { ids: candidateIds })
+          .andWhere('project.company_id = :companyId', { companyId })
+          .select(['candidate.id', 'candidate.name'])
+          .getMany();
+          
+        if (candidates.length !== candidateIds.length) {
+          const foundIds = candidates.map(c => c.id);
+          const missingIds = candidateIds.filter(id => !foundIds.includes(id));
+          results.errors.push(...missingIds.map(id => `Candidate ${id} not found or access denied`));
+        }
+        
+        const validIds = candidates.map(c => c.id);
+        if (validIds.length === 0) {
+          return results;
+        }
+        whereCondition.id = validIds;
+      }
 
-    // Maintenant supprimer le candidat
-    const result = await this.candidateRepository.delete(id);
-    if (result.affected === 0) {
-      throw new NotFoundException(`Candidate with ID ${id} not found`);
-    }
+      try {
+        // 2. Supprimer toutes les analyses en lot
+        const analysisResult = await manager.delete('Analysis', { candidateId: whereCondition.id });
+        this.logger.log(`✅ Deleted ${analysisResult.affected} analyses in bulk`);
+
+        // 3. Supprimer tous les candidats en lot  
+        const candidateResult = await manager.delete(Candidate, whereCondition);
+        results.deleted = candidateResult.affected || 0;
+        
+        this.logger.log(`✅ Successfully deleted ${results.deleted} candidates and their analyses atomically`);
+        
+      } catch (error) {
+        this.logger.error('Error during bulk deletion:', error);
+        results.errors.push(`Bulk deletion failed: ${error.message}`);
+      }
+      
+      return results;
+    });
   }
 }

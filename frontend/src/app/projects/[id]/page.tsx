@@ -15,7 +15,7 @@ import { CandidateRanking, RankingStats } from "@/components/ranking/candidate-r
 import { ProjectSettings } from "@/components/project/project-settings";
 import { SubtleProgress } from "@/components/queue/subtle-progress";
 import { useProject, useProjectStats } from "@/hooks/queries";
-import { useCandidatesByProject, useRankingChanges } from "@/hooks/queries";
+import { useCandidatesByProject, useCandidatesByProjectLegacy, useRankingChanges } from "@/hooks/queries";
 import { useAnalysesByProject } from "@/hooks/queries";
 import { useUpdateProject } from "@/hooks/mutations";
 import { useWebSocketSync } from "@/hooks/useWebSocketSync";
@@ -55,7 +55,7 @@ export default function ProjectPage() {
   const queryClient = useQueryClient();
   const { data: project, isLoading: projectLoading, error: projectError } = useProject(projectId);
   const { data: projectStats, isLoading: statsLoading } = useProjectStats(projectId);
-  const { data: candidates = [], isLoading: candidatesLoading } = useCandidatesByProject(projectId);
+  const { data: candidates = [], isLoading: candidatesLoading } = useCandidatesByProjectLegacy(projectId);
   const { data: rankingChanges = [] } = useRankingChanges(projectId);
   const { data: analyses = [] } = useAnalysesByProject(projectId);
   const updateProjectMutation = useUpdateProject();
@@ -388,10 +388,11 @@ export default function ProjectPage() {
                 <SubtleProgress projectId={projectId} />
                 <CandidateRanking
                   projectId={projectId}
-                  candidates={candidates}
                   onViewCandidate={handleViewCandidate}
                   onDeleteCandidates={handleDeleteCandidates}
                   autoRefresh={false}
+                  enablePagination={true}
+                  pageSize={10}
                 />
               </div>
             </div>
@@ -401,10 +402,11 @@ export default function ProjectPage() {
             <SubtleProgress projectId={projectId} />
             <CandidateRanking
               projectId={projectId}
-              candidates={candidates}
               onViewCandidate={handleViewCandidate}
               onDeleteCandidates={handleDeleteCandidates}
               autoRefresh={true}
+              enablePagination={true}
+              pageSize={20}
             />
           </TabsContent>
 

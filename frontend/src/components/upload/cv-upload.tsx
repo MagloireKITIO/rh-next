@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDropzone } from "react-dropzone";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,11 +39,68 @@ export function CVUpload({
   maxFiles = 500, 
   className 
 }: CVUploadProps) {
-  const [files, setFiles] = useState<FileWithStatus[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
-  const [currentFileIndex, setCurrentFileIndex] = useState(0);
-  const [overallProgress, setOverallProgress] = useState(0);
+  const stateKey = `cv-upload-${projectId}`;
+  const getInitialFiles = () => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem(stateKey);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          return parsed.map((item: any) => ({
+            ...item,
+            file: new File([], item.fileName, { type: 'application/pdf' })
+          }));
+        } catch {
+          return [];
+        }
+      }
+    }
+    return [];
+  };
+
+  const getInitialUploadState = () => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem(`${stateKey}-upload`);
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {
+          return { isUploading: false, currentFileIndex: 0, overallProgress: 0 };
+        }
+      }
+    }
+    return { isUploading: false, currentFileIndex: 0, overallProgress: 0 };
+  };
+
+  const [files, setFiles] = useState<FileWithStatus[]>(getInitialFiles);
+  const [isUploading, setIsUploading] = useState(getInitialUploadState().isUploading);
+  const [currentFileIndex, setCurrentFileIndex] = useState(getInitialUploadState().currentFileIndex);
+  const [overallProgress, setOverallProgress] = useState(getInitialUploadState().overallProgress);
   const uploadCVsMutation = useUploadCVs();
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && files.length > 0) {
+      const dataToSave = files.map(f => ({
+        fileName: f.file.name,
+        size: f.file.size,
+        status: f.status,
+        progress: f.progress,
+        error: f.error
+      }));
+      sessionStorage.setItem(stateKey, JSON.stringify(dataToSave));
+    }
+  }, [files, stateKey]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const uploadState = {
+        isUploading,
+        currentFileIndex,
+        overallProgress
+      };
+      sessionStorage.setItem(`${stateKey}-upload`, JSON.stringify(uploadState));
+    }
+  }, [isUploading, currentFileIndex, overallProgress, stateKey]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const newFiles: FileWithStatus[] = acceptedFiles.map(file => ({
@@ -68,7 +125,14 @@ export function CVUpload({
   });
 
   const removeFile = (index: number) => {
-    setFiles(prev => prev.filter((_, i) => i !== index));
+    setFiles(prev => {
+      const newFiles = prev.filter((_, i) => i !== index);
+      if (newFiles.length === 0 && typeof window !== 'undefined') {
+        sessionStorage.removeItem(stateKey);
+        sessionStorage.removeItem(`${stateKey}-upload`);
+      }
+      return newFiles;
+    });
   };
 
   const uploadFiles = async () => {
@@ -192,7 +256,14 @@ export function CVUpload({
 
       // Clear successful files after delay
       setTimeout(() => {
-        setFiles(prev => prev.filter(f => f.status === "error"));
+        setFiles(prev => {
+          const remainingFiles = prev.filter(f => f.status === "error");
+          if (remainingFiles.length === 0 && typeof window !== 'undefined') {
+            sessionStorage.removeItem(stateKey);
+            sessionStorage.removeItem(`${stateKey}-upload`);
+          }
+          return remainingFiles;
+        });
       }, 3000);
 
     } catch (error: any) {
@@ -201,6 +272,9 @@ export function CVUpload({
       setIsUploading(false);
       setCurrentFileIndex(0);
       setOverallProgress(0);
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem(`${stateKey}-upload`);
+      }
     }
   };
 

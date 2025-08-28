@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,8 +9,9 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Candidate, RankingChange } from "@/lib/api-client";
-import { useCandidatesByProject, useRankingChanges } from "@/hooks/queries";
+import { Pagination } from "@/components/ui/pagination";
+import { Candidate, RankingChange, PaginatedResponse } from "@/lib/api-client";
+import { useCandidatesByProject, useCandidatesByProjectLegacy, useRankingChanges } from "@/hooks/queries";
 import { useDeleteCandidate } from "@/hooks/mutations";
 import { useWebSocketSync } from "@/hooks/useWebSocketSync";
 import { useQueryClient } from '@tanstack/react-query';
@@ -19,11 +20,13 @@ import { cn } from "@/lib/utils";
 
 interface CandidateRankingProps {
   projectId: string;
-  candidates: Candidate[];
+  candidates?: Candidate[]; // Maintenant optionnel
   onViewCandidate?: (candidate: Candidate) => void;
   onDeleteCandidates?: (candidateIds: string[]) => Promise<void>;
   autoRefresh?: boolean;
   refreshInterval?: number;
+  enablePagination?: boolean;
+  pageSize?: number;
 }
 
 export function CandidateRanking({
@@ -32,10 +35,32 @@ export function CandidateRanking({
   onViewCandidate,
   onDeleteCandidates,
   autoRefresh = true,
-  refreshInterval = 10000 // 10 seconds
+  refreshInterval = 10000, // 10 seconds
+  enablePagination = false,
+  pageSize = 20
 }: CandidateRankingProps) {
-  // Utiliser les données des queries au lieu de l'état local
-  const { data: candidates = initialCandidates, isLoading: candidatesLoading } = useCandidatesByProject(projectId);
+  // États pour la pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  
+  // Choisir le hook approprié selon si la pagination est activée
+  const legacyQuery = useCandidatesByProjectLegacy(projectId);
+  const paginatedQuery = useCandidatesByProject(projectId, enablePagination ? { page: currentPage, limit: pageSize } : undefined);
+  
+  const queryToUse = enablePagination ? paginatedQuery : legacyQuery;
+  
+  // Extraire les données selon le type de réponse avec useMemo pour stabiliser
+  const candidates = useMemo(() => {
+    if (enablePagination) {
+      return (queryToUse.data as PaginatedResponse<Candidate>)?.data || [];
+    } else {
+      return (queryToUse.data as Candidate[]) || initialCandidates || [];
+    }
+  }, [queryToUse.data, enablePagination, initialCandidates]);
+    
+  const paginationInfo = useMemo(() => {
+    return enablePagination ? (queryToUse.data as PaginatedResponse<Candidate>) : null;
+  }, [queryToUse.data, enablePagination]);
+  
   const { data: rankingChanges = [], isLoading: rankingLoading } = useRankingChanges(projectId);
   const deleteCandidateMutation = useDeleteCandidate();
   const queryClient = useQueryClient();
@@ -45,19 +70,17 @@ export function CandidateRanking({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   
   const { isConnected } = useWebSocketSync(projectId);
+  
+  const candidatesLoading = queryToUse.isLoading;
 
-  const refreshData = () => {
+  const refreshData = useCallback(() => {
     // Invalider les queries pour forcer un refetch
     queryClient.invalidateQueries({ queryKey: ['candidates', 'project', projectId] });
     queryClient.invalidateQueries({ queryKey: ['candidates', 'project', projectId, 'rankings'] });
     setLastUpdate(new Date());
-  };
+  }, [queryClient, projectId]);
 
-  // WebSocket sync géré par useWebSocketSync, plus besoin de logique manuelle
-  useEffect(() => {
-    // Mettre à jour lastUpdate quand les données changent
-    setLastUpdate(new Date());
-  }, [candidates, rankingChanges]);
+  // Pas besoin de useEffect pour lastUpdate, on l'initialise une fois
 
 
   const getStatusColor = (status: string) => {
@@ -69,11 +92,11 @@ export function CandidateRanking({
     }
   };
 
-  const getTrendInfo = (candidateId: string) => {
+  const getTrendInfo = useCallback((candidateId: string) => {
     return rankingChanges.find(change => change.id === candidateId);
-  };
+  }, [rankingChanges]);
 
-  const handleSelectCandidate = (candidateId: string, checked: boolean) => {
+  const handleSelectCandidate = useCallback((candidateId: string, checked: boolean) => {
     setSelectedCandidates(prev => {
       const newSet = new Set(prev);
       if (checked) {
@@ -83,15 +106,15 @@ export function CandidateRanking({
       }
       return newSet;
     });
-  };
+  }, []);
 
-  const handleSelectAll = (checked: boolean) => {
+  const handleSelectAll = useCallback((checked: boolean) => {
     if (checked) {
       setSelectedCandidates(new Set(candidates.map(c => c.id)));
     } else {
       setSelectedCandidates(new Set());
     }
-  };
+  }, [candidates]);
 
   const handleDeleteSelected = async () => {
     if (selectedCandidates.size === 0) return;
@@ -361,6 +384,20 @@ export function CandidateRanking({
             </div>
           )}
         </div>
+        
+        {/* Pagination */}
+        {enablePagination && paginationInfo && paginationInfo.totalPages > 1 && (
+          <div className="mt-6 border-t pt-6">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={paginationInfo.totalPages}
+              onPageChange={setCurrentPage}
+              showInfo={true}
+              totalItems={paginationInfo.total}
+              itemsPerPage={paginationInfo.limit}
+            />
+          </div>
+        )}
       </CardContent>
     </Card>
   );

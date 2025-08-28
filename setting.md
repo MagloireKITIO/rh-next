@@ -13,10 +13,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useAIConfiguration } from "@/hooks/queries";
+import { useApiKeys, useApiKeysStats } from "@/hooks/queries";
 import { useSetConfigurationValue } from "@/hooks/mutations";
+import { useCreateApiKey, useToggleApiKey, useDeleteApiKey } from "@/hooks/mutations";
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Save, Settings, Brain, Users, UserPlus, Shield, Crown, Mail, RefreshCcw, UserCheck, ToggleLeft, ToggleRight, Trash2 } from "lucide-react";
-import { Pagination } from "@/components/ui/pagination";
+import { ArrowLeft, Save, Settings, Key, Brain, Plus, Trash2, Eye, EyeOff, ToggleLeft, ToggleRight, Users, UserPlus, Shield, Crown, Mail, RefreshCcw, UserCheck } from "lucide-react";
 import { TeamRequestsModal } from "@/components/modals/team-requests-modal";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
@@ -31,7 +32,12 @@ export default function SettingsPage() {
   const canViewUsers = isUserAdmin || isHR; // Admins et HR peuvent voir les utilisateurs
   // TanStack Query hooks
   const { data: aiConfig, isLoading: aiConfigLoading } = useAIConfiguration();
+  const { data: apiKeys = [], isLoading: apiKeysLoading } = useApiKeys();
+  const { data: keyStats = { total: 0, active: 0, inactive: 0, totalRequests: 0 } } = useApiKeysStats();
   const setConfigMutation = useSetConfigurationValue();
+  const createApiKeyMutation = useCreateApiKey();
+  const toggleApiKeyMutation = useToggleApiKey();
+  const deleteApiKeyMutation = useDeleteApiKey();
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -42,8 +48,12 @@ export default function SettingsPage() {
   
   const [isSaving, setIsSaving] = useState(false);
   const [settings, setSettings] = useState({
+    togetherAiKeys: "",
     defaultPrompt: ""
   });
+
+
+  const [newKeyInput, setNewKeyInput] = useState("");
 
   // User management states
   const [users, setUsers] = useState<Array<{
@@ -55,12 +65,6 @@ export default function SettingsPage() {
     is_invited: boolean;
     created_at: string;
   }>>([]);
-  
-  // Pagination state
-  const [currentUserPage, setCurrentUserPage] = useState(1);
-  const [usersPerPage] = useState(20);
-  const [totalUsers, setTotalUsers] = useState(0);
-  const [totalUserPages, setTotalUserPages] = useState(0);
   
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [inviteForm, setInviteForm] = useState({
@@ -77,6 +81,7 @@ export default function SettingsPage() {
   useEffect(() => {
     if (aiConfig) {
       setSettings({
+        togetherAiKeys: "", // Ne pas exposer les clés pour la sécurité
         defaultPrompt: aiConfig.defaultPrompt || ""
       });
     }
@@ -113,13 +118,40 @@ export default function SettingsPage() {
     }
   }, [currentUser, canViewUsers]);
 
+
+  const handleAddApiKey = () => {
+    if (!newKeyInput.trim()) {
+      toast.error("Please enter a valid API key");
+      return;
+    }
+
+    createApiKeyMutation.mutate(
+      { key: newKeyInput.trim() },
+      {
+        onSuccess: () => {
+          setNewKeyInput("");
+        }
+      }
+    );
+  };
+
+  const handleToggleKeyStatus = (keyId: string) => {
+    toggleApiKeyMutation.mutate(keyId);
+  };
+
+  const handleRemoveApiKey = (keyId: string) => {
+    deleteApiKeyMutation.mutate(keyId);
+  };
+
   const handleReset = () => {
     // Invalider toutes les queries pour forcer un refetch
     queryClient.invalidateQueries({ queryKey: ['configuration'] });
+    queryClient.invalidateQueries({ queryKey: ['api-keys'] });
     
     // Reset du form
     if (aiConfig) {
       setSettings({
+        togetherAiKeys: "",
         defaultPrompt: aiConfig.defaultPrompt || ""
       });
     }
@@ -131,6 +163,7 @@ export default function SettingsPage() {
     let totalSaves = 0;
     
     // Compter les sauvegardes nécessaires
+    if (settings.togetherAiKeys.trim()) totalSaves++;
     if (settings.defaultPrompt.trim()) totalSaves++;
     
     const checkCompletion = () => {
@@ -140,6 +173,24 @@ export default function SettingsPage() {
         toast.success("Settings saved successfully!");
       }
     };
+    
+    // Sauvegarder les clés AI si fournies
+    if (settings.togetherAiKeys.trim()) {
+      setConfigMutation.mutate(
+        {
+          key: "TOGETHER_AI_KEYS",
+          value: settings.togetherAiKeys.trim(),
+          description: "Together AI API keys (comma separated)"
+        },
+        {
+          onSuccess: checkCompletion,
+          onError: () => {
+            setIsSaving(false);
+            toast.error("Error saving AI keys");
+          }
+        }
+      );
+    }
 
     // Sauvegarder le prompt par défaut
     if (settings.defaultPrompt.trim()) {
@@ -166,11 +217,11 @@ export default function SettingsPage() {
   };
 
   // User management functions
-  const loadUsers = async (page: number = currentUserPage) => {
+  const loadUsers = async () => {
     try {
       const token = localStorage.getItem('token');
       const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
-      const response = await fetch(`${API_BASE_URL}/api/companies/current/users?page=${page}&limit=${usersPerPage}`, {
+      const response = await fetch(`${API_BASE_URL}/api/companies/current/users`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -178,19 +229,12 @@ export default function SettingsPage() {
 
       if (response.ok) {
         const data = await response.json();
-        setUsers(data.data);
-        setTotalUsers(data.total);
-        setTotalUserPages(data.totalPages);
+        setUsers(data);
       }
     } catch (error) {
       console.error("Error loading users:", error);
       toast.error("Error loading users");
     }
-  };
-
-  const handleUserPageChange = (page: number) => {
-    setCurrentUserPage(page);
-    loadUsers(page);
   };
 
   const handleInviteUser = async () => {
@@ -210,7 +254,7 @@ export default function SettingsPage() {
         toast.success("Invitation sent successfully!");
         setInviteDialogOpen(false);
         setInviteForm({ email: "", name: "", role: "user" });
-        await loadUsers(currentUserPage);
+        await loadUsers();
       } else {
         const error = await response.json();
         toast.error(error.message || "Error sending invitation");
@@ -236,7 +280,7 @@ export default function SettingsPage() {
 
       if (response.ok) {
         toast.success("User role updated successfully!");
-        await loadUsers(currentUserPage);
+        await loadUsers();
       } else {
         const error = await response.json();
         toast.error(error.message || "Error updating user role");
@@ -261,7 +305,7 @@ export default function SettingsPage() {
 
       if (response.ok) {
         toast.success(`User ${isActive ? 'deactivated' : 'reactivated'} successfully!`);
-        await loadUsers(currentUserPage);
+        await loadUsers();
       } else {
         const error = await response.json();
         toast.error(error.message || `Error ${isActive ? 'deactivating' : 'reactivating'} user`);
@@ -317,7 +361,7 @@ export default function SettingsPage() {
 
       if (response.ok) {
         toast.success(`${userName} supprimé avec succès`);
-        await loadUsers(currentUserPage);
+        await loadUsers();
       } else {
         const error = await response.json();
         toast.error(error.message || "Erreur lors de la suppression");
@@ -344,7 +388,7 @@ export default function SettingsPage() {
     }
   };
 
-  if (loading || aiConfigLoading) {
+  if (loading || aiConfigLoading || apiKeysLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <LoadingSpinner size="lg" text="Loading settings..." />
@@ -399,17 +443,17 @@ export default function SettingsPage() {
                   AI Configuration
                 </CardTitle>
                 <CardDescription>
-                  Manage your AI analysis preferences (API keys are managed by the system administrator)
+                  Manage your Together AI settings and analysis preferences
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* Current Status */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted rounded-lg">
                   <div>
-                    <Label className="text-sm font-medium">AI Status</Label>
+                    <Label className="text-sm font-medium">API Keys Status</Label>
                     <div className="flex items-center gap-2 mt-1">
-                      <Badge variant="default">
-                        Active
+                      <Badge variant={keyStats.active > 0 ? "default" : "destructive"}>
+                        {keyStats.active} active keys
                       </Badge>
                     </div>
                   </div>
@@ -422,13 +466,118 @@ export default function SettingsPage() {
                     </div>
                   </div>
                   <div>
-                    <Label className="text-sm font-medium">Provider</Label>
+                    <Label className="text-sm font-medium">Status</Label>
                     <div className="flex items-center gap-2 mt-1">
-                      <Badge variant="outline">
-                        Together AI
+                      <Badge variant="default">
+                        Active
                       </Badge>
                     </div>
                   </div>
+                </div>
+
+                {/* Add New API Key */}
+                <div className="space-y-4">
+                  <Label>Together AI Keys Management</Label>
+                  
+                  {/* Add Key Input */}
+                  <div className="flex gap-2">
+                    <Input
+                      value={newKeyInput}
+                      onChange={(e) => setNewKeyInput(e.target.value)}
+                      placeholder="Enter new API key..."
+                      type="password"
+                      className="flex-1"
+                      onKeyPress={(e) => e.key === 'Enter' && handleAddApiKey()}
+                    />
+                    <Button 
+                      onClick={handleAddApiKey}
+                      variant="outline"
+                      className="gap-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add Key
+                    </Button>
+                  </div>
+
+                  {/* Keys List */}
+                  {apiKeys.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      className="space-y-2"
+                    >
+                      <Label className="text-sm">Configured Keys ({apiKeys.length})</Label>
+                      <div className="space-y-2 max-h-60 overflow-y-auto">
+                        {apiKeys.map((apiKey, index) => (
+                          <motion.div
+                            key={apiKey.id}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 20 }}
+                            transition={{ delay: index * 0.05 }}
+                            className="flex items-center gap-3 p-3 border rounded-lg bg-muted/30"
+                          >
+                            {/* Key Info */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <Key className="h-4 w-4 text-muted-foreground" />
+                                <span className="font-mono text-sm">
+                                  {apiKey.maskedKey}
+                                </span>
+                                <Badge 
+                                  variant={apiKey.isActive ? "default" : "secondary"}
+                                  className="text-xs"
+                                >
+                                  {apiKey.isActive ? "Active" : "Inactive"}
+                                </Badge>
+                              </div>
+                              <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
+                                <span>Added: {new Date(apiKey.createdAt).toLocaleDateString()}</span>
+                                <span>Requests: {apiKey.requestCount}</span>
+                                {apiKey.lastUsedAt && (
+                                  <span>Last used: {new Date(apiKey.lastUsedAt).toLocaleDateString()}</span>
+                                )}
+                                <span>Provider: {apiKey.provider}</span>
+                              </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex items-center gap-1">
+                              {/* Toggle Active/Inactive */}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleToggleKeyStatus(apiKey.id)}
+                                className="h-8 w-8 p-0"
+                                title={apiKey.isActive ? "Deactivate key" : "Activate key"}
+                              >
+                                {apiKey.isActive ? (
+                                  <ToggleRight className="h-4 w-4 text-green-600" />
+                                ) : (
+                                  <ToggleLeft className="h-4 w-4 text-muted-foreground" />
+                                )}
+                              </Button>
+
+                              {/* Remove Key */}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleRemoveApiKey(apiKey.id)}
+                                className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                title="Remove key"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+
+                  <p className="text-sm text-muted-foreground">
+                    Add multiple API keys for automatic rotation and better reliability. Inactive keys won't be used.
+                  </p>
                 </div>
 
                 {/* Default Prompt */}
@@ -499,7 +648,7 @@ export default function SettingsPage() {
                   {/* Invite User Dialog */}
                   <div className="flex justify-between items-center">
                     <div>
-                      <h3 className="font-medium">Membres de l'équipe ({totalUsers || users.length})</h3>
+                      <h3 className="font-medium">Membres de l'équipe ({users.length})</h3>
                       <p className="text-sm text-muted-foreground">
                         Gérez les membres de votre entreprise
                       </p>
@@ -702,20 +851,6 @@ export default function SettingsPage() {
                       </div>
                     )}
                   </div>
-                  
-                  {/* Pagination pour les utilisateurs */}
-                  {totalUserPages > 1 && (
-                    <div className="mt-6 border-t pt-6">
-                      <Pagination
-                        currentPage={currentUserPage}
-                        totalPages={totalUserPages}
-                        onPageChange={handleUserPageChange}
-                        showInfo={true}
-                        totalItems={totalUsers}
-                        itemsPerPage={usersPerPage}
-                      />
-                    </div>
-                  )}
                 </CardContent>
               </Card>
             </motion.div>
@@ -810,7 +945,7 @@ export default function SettingsPage() {
                 <div>
                   <h4 className="font-medium mb-2">Getting Started</h4>
                   <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>• API keys are managed by your system administrator</li>
+                    <li>• Configure your Together AI API keys above</li>
                     <li>• Create your first recruitment project</li>
                     <li>• Upload CV files for analysis</li>
                     <li>• Review AI-generated scores and rankings</li>
@@ -818,9 +953,12 @@ export default function SettingsPage() {
                 </div>
                 
                 <div>
-                  <h4 className="font-medium mb-2">Contact</h4>
+                  <h4 className="font-medium mb-2">API Keys</h4>
                   <p className="text-sm text-muted-foreground">
-                    For API key configuration or system administration, please contact your administrator.
+                    You can get your Together AI API keys from your dashboard at{" "}
+                    <a href="https://api.together.ai" target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                      api.together.ai
+                    </a>
                   </p>
                 </div>
               </CardContent>

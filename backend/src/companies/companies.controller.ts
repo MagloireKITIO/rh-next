@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, UseGuards, Request, Put, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, UseGuards, Request, Put, Delete, Query } from '@nestjs/common';
 import { CompaniesService } from './companies.service';
 import { CreateCompanyDto, InviteUserDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
@@ -29,8 +29,15 @@ export class CompaniesController {
   @Get('current/users')
   @Roles(UserRole.ADMIN, UserRole.HR)
   @UseGuards(RolesGuard)
-  getUsers(@CurrentCompany() companyId: string) {
-    return this.companiesService.getUsers(companyId);
+  getUsers(
+    @CurrentCompany() companyId: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string
+  ) {
+    const pageNumber = page ? parseInt(page, 10) : 1;
+    const pageLimit = limit ? parseInt(limit, 10) : 50;
+    
+    return this.companiesService.getUsers(companyId, pageNumber, pageLimit);
   }
 
   @Post('current/invite')

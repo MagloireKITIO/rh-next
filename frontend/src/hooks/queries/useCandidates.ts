@@ -1,18 +1,28 @@
 import { useQuery } from '@tanstack/react-query';
-import { candidatesApi, Candidate, RankingChange } from '@/lib/api-client';
+import { candidatesApi, Candidate, RankingChange, PaginationParams } from '@/lib/api-client';
 
-export function useCandidates() {
+export function useCandidates(params?: PaginationParams) {
   return useQuery({
-    queryKey: ['candidates'],
-    queryFn: () => candidatesApi.getAll().then(res => res.data),
+    queryKey: ['candidates', params],
+    queryFn: () => candidatesApi.getAll(params).then(res => res.data),
     staleTime: 1 * 60 * 1000, // 1 minute
   });
 }
 
-export function useCandidatesByProject(projectId: string) {
+export function useCandidatesByProject(projectId: string, params?: PaginationParams) {
   return useQuery({
-    queryKey: ['candidates', 'project', projectId],
-    queryFn: () => candidatesApi.getByProject(projectId).then(res => res.data),
+    queryKey: ['candidates', 'project', projectId, params],
+    queryFn: () => candidatesApi.getByProject(projectId, params).then(res => res.data),
+    enabled: !!projectId,
+    staleTime: 30 * 1000, // 30 secondes - données changeantes avec analyses
+  });
+}
+
+// Nouveau hook pour rétrocompatibilité - retourne uniquement les données sans pagination
+export function useCandidatesByProjectLegacy(projectId: string) {
+  return useQuery({
+    queryKey: ['candidates', 'project', projectId, 'legacy'],
+    queryFn: () => candidatesApi.getByProject(projectId, { page: 1, limit: 1000 }).then(res => res.data.data),
     enabled: !!projectId,
     staleTime: 30 * 1000, // 30 secondes - données changeantes avec analyses
   });

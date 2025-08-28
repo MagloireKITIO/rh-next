@@ -116,6 +116,21 @@ export interface RankingChange {
   ranking: number;
 }
 
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+}
+
+export interface PaginationParams {
+  page?: number;
+  limit?: number;
+}
+
 // API Functions
 export const projectsApi = {
   getAll: () => apiClient.get<Project[]>('/projects'),
@@ -129,8 +144,14 @@ export const projectsApi = {
 };
 
 export const candidatesApi = {
-  getAll: () => apiClient.get<Candidate[]>('/candidates'),
-  getByProject: (projectId: string) => apiClient.get<Candidate[]>(`/candidates?projectId=${projectId}`),
+  getAll: (params?: PaginationParams) => {
+    const query = params ? `?page=${params.page || 1}&limit=${params.limit || 50}` : '';
+    return apiClient.get<PaginatedResponse<Candidate>>(`/candidates${query}`);
+  },
+  getByProject: (projectId: string, params?: PaginationParams) => {
+    const query = `projectId=${projectId}${params ? `&page=${params.page || 1}&limit=${params.limit || 50}` : ''}`;
+    return apiClient.get<PaginatedResponse<Candidate>>(`/candidates?${query}`);
+  },
   getById: (id: string) => apiClient.get<Candidate>(`/candidates/${id}`),
   getCandidateInProject: (projectId: string, candidateId: string) => apiClient.get<Candidate>(`/candidates/project/${projectId}/candidate/${candidateId}`),
   uploadCVs: (projectId: string, files: File[]) => {
@@ -184,4 +205,11 @@ export const teamRequestsApi = {
   reject: (id: string, reason?: string) => 
     apiClient.patch(`/team-requests/${id}`, { status: 'rejected', rejection_reason: reason }),
   delete: (id: string) => apiClient.delete(`/team-requests/${id}`),
+};
+
+export const companiesApi = {
+  getUsers: (params?: PaginationParams) => {
+    const query = params ? `?page=${params.page || 1}&limit=${params.limit || 50}` : '';
+    return apiClient.get<PaginatedResponse<any>>(`/companies/current/users${query}`);
+  },
 };

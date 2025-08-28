@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, Logger, BadRequestException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThanOrEqual, MoreThanOrEqual, IsNull } from 'typeorm';
+import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
+import { Repository, LessThanOrEqual, MoreThanOrEqual, IsNull, DataSource } from 'typeorm';
 import { Project } from './entities/project.entity';
 import { Candidate } from '../candidates/entities/candidate.entity';
 import { Analysis } from '../analysis/entities/analysis.entity';
@@ -21,6 +21,8 @@ export class ProjectsService {
     private candidateRepository: Repository<Candidate>,
     @InjectRepository(Analysis)
     private analysisRepository: Repository<Analysis>,
+    @InjectDataSource()
+    private dataSource: DataSource,
     private azureStorageService: AzureStorageService,
   ) {}
 
@@ -41,10 +43,10 @@ export class ProjectsService {
     });
   }
 
-  async findOne(id: string, companyId: string): Promise<Project> {
+  async findOne(id: string, companyId: string, withRelations: string[] = []): Promise<Project> {
     const project = await this.projectRepository.findOne({
       where: { id, company_id: companyId },
-      relations: ['candidates', 'analyses'],
+      relations: withRelations,
     });
 
     if (!project) {
@@ -52,6 +54,36 @@ export class ProjectsService {
     }
 
     return project;
+  }
+
+  async findOneWithPaginatedRelations(id: string, companyId: string, candidateLimit: number = 50): Promise<Project> {
+    const project = await this.projectRepository.findOne({
+      where: { id, company_id: companyId },
+    });
+
+    if (!project) {
+      throw new NotFoundException(`Project with ID ${id} not found in your company`);
+    }
+
+    // Charger les candidats avec pagination
+    const candidates = await this.candidateRepository.find({
+      where: { projectId: id },
+      take: candidateLimit,
+      order: { createdAt: 'DESC' },
+    });
+
+    // Charger les analyses avec pagination
+    const analyses = await this.analysisRepository.find({
+      where: { projectId: id },
+      take: candidateLimit,
+      order: { createdAt: 'DESC' },
+    });
+
+    return {
+      ...project,
+      candidates,
+      analyses,
+    } as Project;
   }
 
   async update(id: string, updateProjectDto: UpdateProjectDto, companyId: string): Promise<Project> {
@@ -62,58 +94,90 @@ export class ProjectsService {
   }
 
   async remove(id: string, companyId: string): Promise<void> {
-    // Vérifier que le projet existe et appartient à l'entreprise
+    // Transaction atomique pour garantir la cohérence des données
+    return await this.dataSource.transaction(async manager => {
+      
+      // 1. Vérifier que le projet existe et appartient à l'entreprise
+      const project = await manager.findOne(Project, {
+        where: { id, company_id: companyId },
+        select: ['id', 'name'] // Optimiser la requête
+      });
+
+      if (!project) {
+        throw new NotFoundException(`Project with ID ${id} not found in your company`);
+      }
+
+      this.logger.log(`Starting transactional deletion of project ${project.name} (${id})`);
+
+      // 2. Compter les éléments à supprimer (pour les logs)
+      const [analysisCount, candidateCount] = await Promise.all([
+        manager.count(Analysis, { where: { projectId: id } }),
+        manager.count(Candidate, { where: { projectId: id } })
+      ]);
+
+      this.logger.log(`Found ${analysisCount} analyses and ${candidateCount} candidates to delete`);
+
+      // 3. Suppression atomique dans l'ordre des dépendances
+      // Les analyses dépendent des candidats, donc on les supprime en premier
+      if (analysisCount > 0) {
+        await manager.delete(Analysis, { projectId: id });
+        this.logger.log(`✅ Deleted ${analysisCount} analyses`);
+      }
+
+      if (candidateCount > 0) {
+        await manager.delete(Candidate, { projectId: id });
+        this.logger.log(`✅ Deleted ${candidateCount} candidates`);
+      }
+
+      // 4. Supprimer le projet lui-même
+      const result = await manager.delete(Project, { id });
+      if (result.affected === 0) {
+        throw new NotFoundException(`Project with ID ${id} not found during deletion`);
+      }
+
+      this.logger.log(`✅ Successfully deleted project ${project.name} and all associated data atomically`);
+      
+      // 🎯 Si on arrive ici, TOUTES les opérations ont réussi
+      // 🚨 Si erreur n'importe où, RIEN n'est supprimé (rollback automatique)
+    });
+  }
+
+  async getProjectStats(id: string, companyId: string) {
+    // Vérifier que le projet existe sans charger les relations
     const project = await this.projectRepository.findOne({
       where: { id, company_id: companyId },
-      relations: ['candidates', 'analyses']
     });
 
     if (!project) {
       throw new NotFoundException(`Project with ID ${id} not found in your company`);
     }
 
-    this.logger.log(`Starting deletion of project ${project.name} (${id})`);
-
-    try {
-      // 1. Supprimer toutes les analyses du projet
-      const analysisCount = await this.analysisRepository.count({ where: { projectId: id } });
-      if (analysisCount > 0) {
-        await this.analysisRepository.delete({ projectId: id });
-        this.logger.log(`Deleted ${analysisCount} analyses`);
-      }
-
-      // 2. Supprimer tous les candidats du projet
-      const candidateCount = await this.candidateRepository.count({ where: { projectId: id } });
-      if (candidateCount > 0) {
-        await this.candidateRepository.delete({ projectId: id });
-        this.logger.log(`Deleted ${candidateCount} candidates`);
-      }
-
-      // 3. Supprimer le projet lui-même
-      const result = await this.projectRepository.delete(id);
-      if (result.affected === 0) {
-        throw new NotFoundException(`Project with ID ${id} not found`);
-      }
-
-      this.logger.log(`Successfully deleted project ${project.name} and all associated data`);
-    } catch (error) {
-      this.logger.error(`Error deleting project ${id}:`, error);
-      throw error;
-    }
-  }
-
-  async getProjectStats(id: string, companyId: string) {
-    const project = await this.findOne(id, companyId);
+    // Requêtes optimisées séparées
+    const totalCandidates = await this.candidateRepository.count({ 
+      where: { projectId: id } 
+    });
     
-    const totalCandidates = project.candidates.length;
-    const analyzedCandidates = project.candidates.filter(c => c.status === 'analyzed').length;
-    const avgScore = project.candidates.length > 0 
-      ? project.candidates.reduce((sum, c) => sum + Number(c.score), 0) / project.candidates.length 
-      : 0;
+    const analyzedCandidates = await this.candidateRepository.count({ 
+      where: { projectId: id, status: 'analyzed' } 
+    });
+
+    // Calculer la moyenne des scores avec une requête SQL directe
+    const avgScoreResult = await this.candidateRepository
+      .createQueryBuilder('candidate')
+      .select('AVG(CAST(candidate.score AS DECIMAL))', 'avgScore')
+      .where('candidate.projectId = :projectId', { projectId: id })
+      .andWhere('candidate.score IS NOT NULL')
+      .getRawOne();
     
-    const topCandidates = project.candidates
-      .sort((a, b) => Number(b.score) - Number(a.score))
-      .slice(0, 5);
+    const avgScore = avgScoreResult?.avgScore ? parseFloat(avgScoreResult.avgScore) : 0;
+
+    // Top 5 candidats avec pagination
+    const topCandidates = await this.candidateRepository.find({
+      where: { projectId: id },
+      select: ['id', 'name', 'score', 'summary'],
+      order: { score: 'DESC' },
+      take: 5,
+    });
 
     return {
       totalCandidates,
@@ -130,7 +194,7 @@ export class ProjectsService {
   }
 
   async generateShareLink(id: string, companyId: string, expirationDays: number = 30): Promise<{ shareToken: string, expiresAt: Date }> {
-    const project = await this.findOne(id, companyId);
+    const project = await this.findOne(id, companyId); // Pas de relations nécessaires
     
     const shareToken = randomBytes(32).toString('hex');
     const expiresAt = new Date();
@@ -166,7 +230,7 @@ export class ProjectsService {
   }
 
   async revokeShare(id: string, companyId: string): Promise<void> {
-    const project = await this.findOne(id, companyId);
+    const project = await this.findOne(id, companyId); // Pas de relations nécessaires
     
     await this.projectRepository.update(id, {
       public_share_token: null,
@@ -287,86 +351,100 @@ export class ProjectsService {
       throw new BadRequestException('Only PDF files are accepted for CV');
     }
 
-    try {
-      // Extraire le texte du PDF
-      let extractedText = '';
-      let candidateName = applicationData.name || 'Candidat Inconnu';
+    // Transaction atomique pour la candidature complète
+    return await this.dataSource.transaction(async manager => {
+      let fileUrl: string;
       
       try {
-        const pdfData = await pdf(file.buffer);
-        extractedText = pdfData.text?.trim() || '';
+        // 1. Extraire le texte du PDF
+        let extractedText = '';
+        let candidateName = applicationData.name || 'Candidat Inconnu';
         
-        if (!extractedText || extractedText.length < 10) {
-          this.logger.warn(`PDF text extraction failed for application to job ${id}`);
-          extractedText = `[PDF extraction failed] File: ${file.originalname}`;
-        } else {
-          this.logger.log(`Successfully extracted ${extractedText.length} characters from application CV`);
+        try {
+          const pdfData = await pdf(file.buffer);
+          extractedText = pdfData.text?.trim() || '';
+          
+          if (!extractedText || extractedText.length < 10) {
+            this.logger.warn(`PDF text extraction failed for application to job ${id}`);
+            extractedText = `[PDF extraction failed] File: ${file.originalname}`;
+          } else {
+            this.logger.log(`Successfully extracted ${extractedText.length} characters from application CV`);
+          }
+        } catch (error) {
+          this.logger.error(`Error extracting text from application CV:`, error);
+          extractedText = `[PDF processing error] File: ${file.originalname} - Error: ${error.message}`;
         }
-      } catch (error) {
-        this.logger.error(`Error extracting text from application CV:`, error);
-        extractedText = `[PDF processing error] File: ${file.originalname} - Error: ${error.message}`;
-      }
 
-      // Si pas de nom fourni, essayer d'extraire du nom de fichier
-      if (!candidateName || candidateName === 'Candidat Inconnu') {
-        candidateName = this.extractNameFromFilename(file.originalname) || applicationData.name || 'Candidat Inconnu';
-      }
+        // Si pas de nom fourni, essayer d'extraire du nom de fichier
+        if (!candidateName || candidateName === 'Candidat Inconnu') {
+          candidateName = this.extractNameFromFilename(file.originalname) || applicationData.name || 'Candidat Inconnu';
+        }
 
-      // Sauvegarder le fichier CV
-      let fileUrl: string;
-      try {
-        fileUrl = await this.azureStorageService.uploadFile(
-          file.buffer, 
-          file.originalname, 
-          file.mimetype,
-          'cv'
-        );
-        this.logger.log(`CV uploaded successfully for job application: ${fileUrl}`);
-      } catch (error) {
-        this.logger.error('Error uploading CV file:', error);
-        throw new BadRequestException('Failed to upload CV file');
-      }
+        // 2. Sauvegarder le fichier CV
+        try {
+          fileUrl = await this.azureStorageService.uploadFile(
+            file.buffer, 
+            file.originalname, 
+            file.mimetype,
+            'cv'
+          );
+          this.logger.log(`CV uploaded successfully for job application: ${fileUrl}`);
+        } catch (error) {
+          this.logger.error('Error uploading CV file:', error);
+          throw new BadRequestException('Failed to upload CV file');
+        }
 
-      // Créer le candidat avec les données de candidature
-      const candidate = await this.candidateRepository.create({
-        name: candidateName,
-        email: applicationData.email,
-        phone: applicationData.phone,
-        extractedText,
-        fileName: file.originalname,
-        fileUrl: fileUrl,
-        projectId: project.id,
-        status: 'pending',
-        extractedData: {
+        // 3. Créer le candidat avec les données de candidature (dans la transaction)
+        const candidate = manager.create(Candidate, {
           name: candidateName,
           email: applicationData.email,
           phone: applicationData.phone,
+          extractedText,
+          fileName: file.originalname,
+          fileUrl: fileUrl,
+          projectId: project.id,
+          status: 'pending',
+          extractedData: {
+            name: candidateName,
+            email: applicationData.email,
+            phone: applicationData.phone,
+          }
+        });
+
+        const savedCandidate = await manager.save(candidate);
+        
+        this.logger.log(`✅ New job application saved atomically for ${project.name}: ${candidateName}`);
+
+        return {
+          success: true,
+          message: 'Votre candidature a été reçue avec succès et sera analysée prochainement',
+          candidateId: savedCandidate.id
+        };
+        
+      } catch (error) {
+        this.logger.error('Error processing job application:', error);
+        
+        // En cas d'erreur, on tente de nettoyer le fichier uploadé si nécessaire
+        // (le rollback de la transaction s'occupera des données BDD)
+        if (fileUrl) {
+          try {
+            // TODO: Implémenter la suppression du fichier Azure si nécessaire
+            // await this.azureStorageService.deleteFile(fileUrl);
+          } catch (cleanupError) {
+            this.logger.error('Error cleaning up uploaded file:', cleanupError);
+          }
         }
-      });
-
-      const savedCandidate = await this.candidateRepository.save(candidate);
-
-      // Déclencher l'analyse automatique (utiliser la méthode du service candidates)
-      // On ne peut pas injecter CandidatesService ici à cause des dépendances circulaires
-      // On va donc créer une méthode simplifiée d'analyse ou déléguer à un service séparé
-      this.logger.log(`New job application received for ${project.name}: ${candidateName}`);
-
-      return {
-        success: true,
-        message: 'Votre candidature a été reçue avec succès et sera analysée prochainement',
-        candidateId: savedCandidate.id
-      };
-    } catch (error) {
-      this.logger.error('Error processing job application:', error);
-      if (error instanceof BadRequestException) {
-        throw error;
+        
+        if (error instanceof BadRequestException) {
+          throw error;
+        }
+        throw new BadRequestException('Failed to process job application');
       }
-      throw new BadRequestException('Failed to process job application');
-    }
+    });
   }
 
   async uploadOfferDocument(id: string, companyId: string, file: Express.Multer.File): Promise<Project> {
-    const project = await this.findOne(id, companyId);
+    const project = await this.findOne(id, companyId); // Pas de relations nécessaires
 
     if (!file) {
       throw new NotFoundException('Aucun fichier fourni');
@@ -390,7 +468,7 @@ export class ProjectsService {
       });
 
       this.logger.log(`Offer document uploaded successfully for project ${id}`);
-      return this.findOne(id, companyId);
+      return this.findOne(id, companyId); // Pas de relations nécessaires
     } catch (error) {
       this.logger.error('Error uploading offer document:', error);
       throw new NotFoundException('Erreur lors de l\'upload du document');
