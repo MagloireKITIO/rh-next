@@ -4,13 +4,16 @@ import { MailConfigurationService } from './mail-configuration.service';
 import { MailConfigurationController, MailConfigurationsController } from './mail-configuration.controller';
 import { MailService } from './mail.service';
 import { MailConfiguration } from './entities/mail-configuration.entity';
+import { MailTemplate } from './entities/mail-template.entity';
+import { MailTemplateService } from './mail-template.service';
+import { MailTemplateController } from './mail-template.controller';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([MailConfiguration])
+    TypeOrmModule.forFeature([MailConfiguration, MailTemplate])
   ],
-  controllers: [MailConfigurationController, MailConfigurationsController],
-  providers: [MailConfigurationService, MailService],
-  exports: [MailConfigurationService, MailService], // Export des services pour utilisation dans d'autres modules
+  controllers: [MailConfigurationController, MailConfigurationsController, MailTemplateController],
+  providers: [MailConfigurationService, MailService, MailTemplateService],
+  exports: [MailConfigurationService, MailService, MailTemplateService], // Export des services pour utilisation dans d'autres modules
 })
 export class MailConfigurationModule {}

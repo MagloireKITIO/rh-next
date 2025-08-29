@@ -4,6 +4,8 @@ import { MailProviderType } from './entities/mail-configuration.entity';
 import { ConfigService } from '@nestjs/config';
 import { createClient } from '@supabase/supabase-js';
 import * as nodemailer from 'nodemailer';
+import { MailTemplateService } from './mail-template.service';
+import { MailTemplateType } from './entities/mail-template.entity';
 
 export interface EmailTemplate {
   subject: string;
@@ -27,6 +29,7 @@ export class MailService {
   constructor(
     private mailConfigurationService: MailConfigurationService,
     private configService: ConfigService,
+    private mailTemplateService: MailTemplateService,
   ) {
     this.supabase = createClient(
       this.configService.get('SUPABASE_URL'),
@@ -103,14 +106,15 @@ export class MailService {
     verificationUrl: string,
     companyId?: string
   ): Promise<{ success: boolean; messageId?: string; error?: string }> {
-    const template = this.getVerificationEmailTemplate(verificationUrl);
+    const template = await this.getTemplateByType(MailTemplateType.VERIFICATION, companyId);
     
     return await this.sendEmail({
       to: email,
       subject: template.subject,
       htmlContent: template.htmlContent,
       textContent: template.textContent,
-      companyId
+      companyId,
+      templateData: { verificationUrl }
     });
   }
 
@@ -122,14 +126,15 @@ export class MailService {
     resetUrl: string,
     companyId?: string
   ): Promise<{ success: boolean; messageId?: string; error?: string }> {
-    const template = this.getPasswordResetEmailTemplate(resetUrl);
+    const template = await this.getTemplateByType(MailTemplateType.PASSWORD_RESET, companyId);
     
     return await this.sendEmail({
       to: email,
       subject: template.subject,
       htmlContent: template.htmlContent,
       textContent: template.textContent,
-      companyId
+      companyId,
+      templateData: { resetUrl }
     });
   }
 
@@ -255,40 +260,86 @@ export class MailService {
    * Envoyer une invitation via SMTP
    */
   private async sendSMTPInvitation(config: any, email: string, invitationData: any) {
-    const template = this.getInvitationEmailTemplate(invitationData);
+    const template = await this.getTemplateByType(MailTemplateType.INVITATION, config.company_id);
+    const processedTemplate = this.processTemplateWithData(template, invitationData);
     
     return await this.sendSMTPEmail(
       config,
       email,
-      template.subject,
-      template.htmlContent,
-      template.textContent
+      processedTemplate.subject,
+      processedTemplate.htmlContent,
+      processedTemplate.textContent
     );
   }
 
   /**
-   * Template d'email d'invitation
+   * Récupérer un template par type depuis la base de données
    */
-  private getInvitationEmailTemplate(data: any): EmailTemplate {
+  private async getTemplateByType(type: MailTemplateType, companyId?: string): Promise<EmailTemplate> {
+    const template = await this.mailTemplateService.findActiveByType(type, companyId);
+    
+    if (template) {
+      return {
+        subject: template.subject,
+        htmlContent: template.html_content,
+        textContent: template.text_content
+      };
+    }
+
+    // Fallback sur les templates par défaut si aucun template en DB
+    return this.getDefaultTemplate(type);
+  }
+
+  /**
+   * Traiter un template avec des données
+   */
+  private processTemplateWithData(template: EmailTemplate, data: Record<string, any>): EmailTemplate {
     return {
-      subject: `Invitation à rejoindre ${data.companyName} sur RH Analytics Pro`,
+      subject: this.processTemplate(template.subject, data),
+      htmlContent: this.processTemplate(template.htmlContent, data),
+      textContent: template.textContent ? this.processTemplate(template.textContent, data) : undefined
+    };
+  }
+
+  /**
+   * Templates par défaut (fallback)
+   */
+  private getDefaultTemplate(type: MailTemplateType): EmailTemplate {
+    switch (type) {
+      case MailTemplateType.INVITATION:
+        return this.getDefaultInvitationTemplate();
+      case MailTemplateType.VERIFICATION:
+        return this.getDefaultVerificationTemplate();
+      case MailTemplateType.PASSWORD_RESET:
+        return this.getDefaultPasswordResetTemplate();
+      default:
+        throw new Error(`Template par défaut non disponible pour le type: ${type}`);
+    }
+  }
+
+  /**
+   * Template d'invitation par défaut
+   */
+  private getDefaultInvitationTemplate(): EmailTemplate {
+    return {
+      subject: `Invitation à rejoindre {{companyName}} sur RH Analytics Pro`,
       htmlContent: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #333;">Invitation à rejoindre ${data.companyName}</h2>
+          <h2 style="color: #333;">Invitation à rejoindre {{companyName}}</h2>
           
-          <p>Bonjour ${data.name},</p>
+          <p>Bonjour {{name}},</p>
           
-          <p>Vous avez été invité(e) à rejoindre <strong>${data.companyName}</strong> sur RH Analytics Pro en tant que <strong>${data.role}</strong>.</p>
+          <p>Vous avez été invité(e) à rejoindre <strong>{{companyName}}</strong> sur RH Analytics Pro en tant que <strong>{{role}}</strong>.</p>
           
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${data.redirectUrl}" 
+            <a href="{{redirectUrl}}" 
                style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
               Accepter l'invitation
             </a>
           </div>
           
           <p>Si le bouton ne fonctionne pas, copiez et collez ce lien dans votre navigateur :</p>
-          <p style="word-break: break-all; color: #666;">${data.redirectUrl}</p>
+          <p style="word-break: break-all; color: #666;">{{redirectUrl}}</p>
           
           <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
           <p style="color: #666; font-size: 12px;">
@@ -297,14 +348,14 @@ export class MailService {
         </div>
       `,
       textContent: `
-        Invitation à rejoindre ${data.companyName}
+        Invitation à rejoindre {{companyName}}
         
-        Bonjour ${data.name},
+        Bonjour {{name}},
         
-        Vous avez été invité(e) à rejoindre ${data.companyName} sur RH Analytics Pro en tant que ${data.role}.
+        Vous avez été invité(e) à rejoindre {{companyName}} sur RH Analytics Pro en tant que {{role}}.
         
         Cliquez sur ce lien pour accepter l'invitation :
-        ${data.redirectUrl}
+        {{redirectUrl}}
         
         Si vous n'attendiez pas cette invitation, vous pouvez ignorer cet email.
         
@@ -315,9 +366,9 @@ export class MailService {
   }
 
   /**
-   * Template d'email de vérification
+   * Template de vérification par défaut
    */
-  private getVerificationEmailTemplate(verificationUrl: string): EmailTemplate {
+  private getDefaultVerificationTemplate(): EmailTemplate {
     return {
       subject: 'Vérifiez votre adresse email - RH Analytics Pro',
       htmlContent: `
@@ -329,14 +380,14 @@ export class MailService {
           <p>Pour finaliser votre inscription, veuillez vérifier votre adresse email en cliquant sur le bouton ci-dessous :</p>
           
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${verificationUrl}" 
+            <a href="{{verificationUrl}}" 
                style="background-color: #28a745; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
               Vérifier mon email
             </a>
           </div>
           
           <p>Si le bouton ne fonctionne pas, copiez et collez ce lien dans votre navigateur :</p>
-          <p style="word-break: break-all; color: #666;">${verificationUrl}</p>
+          <p style="word-break: break-all; color: #666;">{{verificationUrl}}</p>
           
           <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
           <p style="color: #666; font-size: 12px;">
@@ -350,7 +401,7 @@ export class MailService {
         Merci de vous être inscrit(e) sur RH Analytics Pro !
         
         Pour finaliser votre inscription, cliquez sur ce lien :
-        ${verificationUrl}
+        {{verificationUrl}}
         
         Si vous n'avez pas créé de compte, vous pouvez ignorer cet email.
         
@@ -361,9 +412,9 @@ export class MailService {
   }
 
   /**
-   * Template d'email de réinitialisation de mot de passe
+   * Template de réinitialisation par défaut
    */
-  private getPasswordResetEmailTemplate(resetUrl: string): EmailTemplate {
+  private getDefaultPasswordResetTemplate(): EmailTemplate {
     return {
       subject: 'Réinitialisation de votre mot de passe - RH Analytics Pro',
       htmlContent: `
@@ -375,14 +426,14 @@ export class MailService {
           <p>Cliquez sur le bouton ci-dessous pour créer un nouveau mot de passe :</p>
           
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${resetUrl}" 
+            <a href="{{resetUrl}}" 
                style="background-color: #dc3545; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
               Réinitialiser mon mot de passe
             </a>
           </div>
           
           <p>Si le bouton ne fonctionne pas, copiez et collez ce lien dans votre navigateur :</p>
-          <p style="word-break: break-all; color: #666;">${resetUrl}</p>
+          <p style="word-break: break-all; color: #666;">{{resetUrl}}</p>
           
           <p><strong>Important :</strong> Ce lien expire dans 24 heures.</p>
           
@@ -398,7 +449,7 @@ export class MailService {
         Vous avez demandé la réinitialisation de votre mot de passe sur RH Analytics Pro.
         
         Cliquez sur ce lien pour créer un nouveau mot de passe :
-        ${resetUrl}
+        {{resetUrl}}
         
         Important : Ce lien expire dans 24 heures.
         

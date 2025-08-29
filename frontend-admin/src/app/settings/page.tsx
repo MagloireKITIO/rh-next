@@ -27,7 +27,7 @@ export default function SettingsPage() {
     {
       id: 'mail',
       label: 'Configuration Mail',
-      description: 'Paramétrage des serveurs de messagerie',
+      description: 'Serveurs et templates d\'emails',
       icon: Mail,
       component: MailSettingsTab,
       badge: null,
