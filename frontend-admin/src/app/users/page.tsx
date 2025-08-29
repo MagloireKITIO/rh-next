@@ -393,7 +393,11 @@ export default function UsersPage() {
                               title="Renvoyer l'invitation"
                               className="text-blue-600 hover:text-blue-800"
                             >
-                              <Send className="w-4 h-4" />
+                              {resendInvitationMutation.isPending ? (
+                                <LoadingSpinner className="w-4 h-4" />
+                              ) : (
+                                <Send className="w-4 h-4" />
+                              )}
                             </Button>
                           )}
                           <Button

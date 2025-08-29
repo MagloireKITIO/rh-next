@@ -226,7 +226,7 @@ export class MailService {
    */
   private async sendSMTPEmail(config: any, to: string | string[], subject: string, htmlContent: string, textContent?: string) {
     try {
-      const transporter = nodemailer.createTransporter({
+      const transporter = nodemailer.createTransport({
         host: config.smtp_host,
         port: config.smtp_port || 587,
         secure: config.smtp_secure || false,

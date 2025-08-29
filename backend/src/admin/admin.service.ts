@@ -9,6 +9,7 @@ import { Project } from '../projects/entities/project.entity';
 import { Candidate } from '../candidates/entities/candidate.entity';
 import { Analysis } from '../analysis/entities/analysis.entity';
 import { ApiKey } from '../api-keys/entities/api-key.entity';
+import { MailService } from '../mail-configuration/mail.service';
 
 @Injectable()
 export class AdminService {
@@ -28,6 +29,7 @@ export class AdminService {
     @InjectRepository(ApiKey)
     private apiKeyRepository: Repository<ApiKey>,
     private configService: ConfigService,
+    private mailService: MailService,
   ) {
     this.supabase = createClient(
       this.configService.get('SUPABASE_URL'),
@@ -296,37 +298,40 @@ export class AdminService {
     }
 
     try {
-      // Envoyer l'invitation via Supabase
-      console.log('📨 Envoi d\'invitation Supabase pour:', createUserDto.email);
-      const { data, error } = await this.supabase.auth.admin.inviteUserByEmail(
-        createUserDto.email,
-        {
-          data: {
-            name: createUserDto.name,
-            role: createUserDto.role,
-            company_name: company?.name || null,
-          },
-          redirectTo: `${this.configService.get('FRONTEND_URL') || 'http://localhost:3000'}/auth/callback`,
-        }
-      );
-
-      if (error) {
-        console.error('❌ Erreur Supabase invitation:', error);
-        throw new BadRequestException('Erreur lors de l\'envoi de l\'invitation par email');
-      }
-
+      // Générer un token d'invitation unique
+      const invitationToken = `invite_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+      
       // Créer l'utilisateur dans notre base de données
       const user = this.userRepository.create({
         ...createUserDto,
         role: createUserDto.role as UserRole,
-        supabase_user_id: data.user.id,
         is_active: true,
         is_invited: true,
         email_verified: false,
-        invitation_token: data.user.id, // Utiliser l'ID Supabase comme token
+        invitation_token: invitationToken,
       });
 
       const savedUser = await this.userRepository.save(user);
+
+      // Envoyer l'invitation via notre MailService personnalisé
+      console.log('📨 Envoi d\'invitation personnalisée pour:', createUserDto.email);
+      const redirectUrl = `${this.configService.get('FRONTEND_URL') || 'http://localhost:3000'}/auth/callback?token=${invitationToken}`;
+      
+      const mailResult = await this.mailService.sendInvitationEmail(
+        createUserDto.email,
+        {
+          name: createUserDto.name,
+          companyName: company?.name || 'RH Analytics Pro',
+          role: createUserDto.role,
+          redirectUrl: redirectUrl,
+        },
+        createUserDto.company_id
+      );
+
+      if (!mailResult.success) {
+        console.error('❌ Erreur envoi invitation:', mailResult.error);
+        throw new BadRequestException(`Erreur lors de l'envoi de l'invitation: ${mailResult.error}`);
+      }
 
       console.log('✅ Utilisateur créé et invitation envoyée à:', createUserDto.email);
       
@@ -391,23 +396,31 @@ export class AdminService {
     }
 
     try {
-      // Renvoyer l'invitation via Supabase
-      console.log('📨 Renvoi d\'invitation Supabase pour:', user.email);
-      const { data, error } = await this.supabase.auth.admin.inviteUserByEmail(
+      // Générer un nouveau token d'invitation
+      const newInvitationToken = `invite_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+      
+      // Mettre à jour le token d'invitation
+      user.invitation_token = newInvitationToken;
+      await this.userRepository.save(user);
+
+      // Renvoyer l'invitation via notre MailService personnalisé
+      console.log('📨 Renvoi d\'invitation personnalisée pour:', user.email);
+      const redirectUrl = `${this.configService.get('FRONTEND_URL') || 'http://localhost:3000'}/auth/callback?token=${newInvitationToken}`;
+      
+      const mailResult = await this.mailService.sendInvitationEmail(
         user.email,
         {
-          data: {
-            name: user.name,
-            role: user.role,
-            company_name: user.company?.name || null,
-          },
-          redirectTo: `${this.configService.get('FRONTEND_URL') || 'http://localhost:3000'}/auth/callback`,
-        }
+          name: user.name,
+          companyName: user.company?.name || 'RH Analytics Pro',
+          role: user.role,
+          redirectUrl: redirectUrl,
+        },
+        user.company_id
       );
 
-      if (error) {
-        console.error('❌ Erreur Supabase renvoi invitation:', error);
-        throw new BadRequestException('Erreur lors du renvoi de l\'invitation par email');
+      if (!mailResult.success) {
+        console.error('❌ Erreur renvoi invitation:', mailResult.error);
+        throw new BadRequestException(`Erreur lors du renvoi de l'invitation: ${mailResult.error}`);
       }
 
       console.log('✅ Invitation renvoyée à:', user.email);
