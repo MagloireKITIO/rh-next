@@ -250,6 +250,12 @@ export const adminApi = {
     apiClient.delete(`/admin/mail-configs/${id}`),
   toggleMailConfiguration: (id: string, is_active: boolean) =>
     apiClient.patch(`/admin/mail-configs/${id}/toggle`, { is_active }),
+  duplicateMailConfiguration: (id: string, name?: string) =>
+    apiClient.post(`/admin/mail-configs/${id}/duplicate`, { name }),
+  assignCompaniesToConfiguration: (configId: string, companyIds: string[]) =>
+    apiClient.post(`/admin/mail-configs/${configId}/assign-companies`, { companyIds }),
+  getConfigurationCompanies: (configId: string) =>
+    apiClient.get(`/admin/mail-configs/${configId}/companies`),
   saveMailConfiguration: (data: MailConfiguration) => 
     apiClient.post<MailConfiguration>('/admin/mail-config', data),
   testMailConfiguration: (testEmail: string, companyId?: string) =>

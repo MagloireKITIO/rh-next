@@ -1,5 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
 import { Company } from '../../companies/entities/company.entity';
+import { MailConfigurationCompany } from './mail-configuration-company.entity';
 
 export enum MailProviderType {
   SUPABASE = 'supabase',
@@ -27,6 +28,10 @@ export class MailConfiguration {
   @ManyToOne(() => Company, { nullable: true, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'company_id' })
   company?: Company;
+
+  // Nouvelle relation Many-to-Many avec les entreprises
+  @OneToMany(() => MailConfigurationCompany, (configCompany) => configCompany.mailConfiguration)
+  configurationCompanies?: MailConfigurationCompany[];
 
   // Configuration SMTP
   @Column({ nullable: true })

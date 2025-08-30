@@ -7,6 +7,7 @@ import * as crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 
 import { MailConfiguration, MailProviderType } from './entities/mail-configuration.entity';
+import { MailConfigurationCompany } from './entities/mail-configuration-company.entity';
 import { CreateMailConfigurationDto } from './dto/create-mail-configuration.dto';
 import { UpdateMailConfigurationDto } from './dto/update-mail-configuration.dto';
 import { TestMailDto } from './dto/test-mail.dto';
@@ -19,6 +20,8 @@ export class MailConfigurationService {
   constructor(
     @InjectRepository(MailConfiguration)
     private mailConfigRepository: Repository<MailConfiguration>,
+    @InjectRepository(MailConfigurationCompany)
+    private mailConfigCompanyRepository: Repository<MailConfigurationCompany>,
     private configService: ConfigService,
   ) {
     this.supabase = createClient(
@@ -153,6 +156,9 @@ export class MailConfigurationService {
       // Mettre à jour la configuration existante
       console.log('📝 [MAIL CONFIG] Mise à jour configuration existante:', existingConfig.id);
       Object.assign(existingConfig, encryptedData);
+      if (encryptedData.company_id === null) {
+        existingConfig.company_id = null;
+      }
       existingConfig.updated_at = new Date();
       const saved = await this.mailConfigRepository.save(existingConfig);
       console.log('✅ [MAIL CONFIG] Configuration mise à jour avec succès');
@@ -529,11 +535,24 @@ export class MailConfigurationService {
     console.log('📋 [MAIL CONFIG] Récupération de toutes les configurations');
     
     const configs = await this.mailConfigRepository.find({
-      relations: ['company'],
+      relations: ['company', 'configurationCompanies', 'configurationCompanies.company'],
       order: { created_at: 'DESC' }
     });
 
     console.log(`📋 [MAIL CONFIG] ${configs.length} configurations trouvées`);
+    configs.forEach((config, index) => {
+      console.log(`📋 [MAIL CONFIG] Config ${index + 1}:`, {
+        id: config.id,
+        company_id: config.company_id,
+        hasConfigurationCompanies: !!config.configurationCompanies,
+        configurationCompaniesCount: config.configurationCompanies?.length || 0,
+        configurationCompanies: config.configurationCompanies?.map(cc => ({
+          id: cc.id,
+          company_id: cc.company_id,
+          company_name: cc.company?.name
+        }))
+      });
+    });
     
     // Retourner les configurations sans les données sensibles
     return configs.map(config => ({
@@ -607,11 +626,19 @@ export class MailConfigurationService {
       );
     }
 
-    Object.assign(existingConfig, encryptedData);
-    existingConfig.updated_at = new Date();
+    // Utiliser directement update() pour forcer la mise à jour des champs null
+    await this.mailConfigRepository.update(id, {
+      ...encryptedData,
+      updated_at: new Date()
+    });
     
-    const saved = await this.mailConfigRepository.save(existingConfig);
     console.log('✅ [MAIL CONFIG] Configuration mise à jour avec succès');
+    
+    // Récupérer la configuration mise à jour
+    const saved = await this.mailConfigRepository.findOne({
+      where: { id },
+      relations: ['company']
+    });
     
     return saved;
   }
@@ -657,5 +684,96 @@ export class MailConfigurationService {
     console.log('✅ [MAIL CONFIG] Configuration togglée avec succès');
     
     return saved;
+  }
+
+  /**
+   * Dupliquer une configuration mail
+   */
+  async duplicateConfiguration(id: string, newName?: string): Promise<MailConfiguration> {
+    console.log('📋 [MAIL CONFIG] Duplication configuration:', id);
+    
+    const originalConfig = await this.mailConfigRepository.findOne({
+      where: { id },
+      relations: ['configurationCompanies'],
+      select: ['id', 'provider_type', 'company_id', 'smtp_host', 'smtp_port', 'smtp_user', 'smtp_password', 'smtp_secure', 'smtp_require_tls', 'api_key', 'api_secret', 'from_email', 'from_name', 'is_active', 'is_default']
+    });
+
+    if (!originalConfig) {
+      throw new NotFoundException('Configuration non trouvée');
+    }
+
+    // Déchiffrer les données sensibles
+    const decryptedConfig = this.decryptSensitiveData(originalConfig);
+
+    // Créer la nouvelle configuration (copie)
+    const duplicatedConfig = this.mailConfigRepository.create({
+      provider_type: decryptedConfig.provider_type,
+      company_id: null, // Les nouvelles configs sont globales par défaut
+      smtp_host: decryptedConfig.smtp_host,
+      smtp_port: decryptedConfig.smtp_port,
+      smtp_user: decryptedConfig.smtp_user,
+      smtp_password: decryptedConfig.smtp_password,
+      smtp_secure: decryptedConfig.smtp_secure,
+      smtp_require_tls: decryptedConfig.smtp_require_tls,
+      api_key: decryptedConfig.api_key,
+      api_secret: decryptedConfig.api_secret,
+      from_email: decryptedConfig.from_email,
+      from_name: newName || `${decryptedConfig.from_name} (Copie)`,
+      is_active: false, // Nouvelle config inactive par défaut
+      is_default: false // Pas par défaut
+    });
+
+    // Chiffrer les données sensibles avant sauvegarde
+    if (duplicatedConfig.smtp_password) {
+      duplicatedConfig.smtp_password = this.encrypt(duplicatedConfig.smtp_password);
+    }
+    if (duplicatedConfig.api_key) {
+      duplicatedConfig.api_key = this.encrypt(duplicatedConfig.api_key);
+    }
+    if (duplicatedConfig.api_secret) {
+      duplicatedConfig.api_secret = this.encrypt(duplicatedConfig.api_secret);
+    }
+
+    const savedConfig = await this.mailConfigRepository.save(duplicatedConfig);
+
+    console.log('✅ [MAIL CONFIG] Configuration dupliquée:', savedConfig.id);
+    return savedConfig;
+  }
+
+  /**
+   * Affecter plusieurs entreprises à une configuration
+   */
+  async assignCompaniesToConfiguration(configId: string, companyIds: string[]): Promise<void> {
+    console.log('🏢 [MAIL CONFIG] Affectation entreprises:', { configId, companyIds });
+
+    // Vérifier que la configuration existe
+    const config = await this.mailConfigRepository.findOne({ where: { id: configId } });
+    if (!config) {
+      throw new NotFoundException('Configuration non trouvée');
+    }
+
+    // Supprimer les anciennes affectations
+    await this.mailConfigCompanyRepository.delete({ mail_configuration_id: configId });
+
+    // Créer les nouvelles affectations
+    const assignments = companyIds.map(companyId => 
+      this.mailConfigCompanyRepository.create({
+        mail_configuration_id: configId,
+        company_id: companyId
+      })
+    );
+
+    await this.mailConfigCompanyRepository.save(assignments);
+    console.log('✅ [MAIL CONFIG] Affectations créées');
+  }
+
+  /**
+   * Récupérer les entreprises affectées à une configuration
+   */
+  async getConfigurationCompanies(configId: string): Promise<MailConfigurationCompany[]> {
+    return await this.mailConfigCompanyRepository.find({
+      where: { mail_configuration_id: configId },
+      relations: ['company']
+    });
   }
 }

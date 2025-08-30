@@ -7,6 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { 
   Mail, 
   Server, 
@@ -16,7 +19,9 @@ import {
   Edit,
   Trash2,
   CheckCircle,
-  XCircle
+  XCircle,
+  Copy,
+  Users
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -25,6 +30,11 @@ interface MailConfig {
   provider_type: 'smtp' | 'sendgrid' | 'mailgun' | 'aws_ses' | 'supabase';
   company_id?: string;
   company?: { name: string };
+  configurationCompanies?: Array<{
+    id: string;
+    company_id: string;
+    company?: { name: string };
+  }>;
   from_email: string;
   from_name: string;
   is_active: boolean;
@@ -40,15 +50,27 @@ interface MailConfigListProps {
 
 export default function MailConfigList({ onEdit, onAdd }: MailConfigListProps) {
   const queryClient = useQueryClient();
+  const [duplicateModal, setDuplicateModal] = useState<{
+    isOpen: boolean;
+    config: MailConfig | null;
+    name: string;
+  }>({
+    isOpen: false,
+    config: null,
+    name: ''
+  });
 
   // Récupérer toutes les configurations
-  const { data: configs, isLoading } = useQuery({
+  const { data: configs, isLoading, refetch } = useQuery({
     queryKey: ['admin', 'mail-configs'],
     queryFn: () => adminApi.getAllMailConfigurations(),
+    staleTime: 0, // Toujours considérer les données comme périmées
     onSuccess: (data) => {
       console.log('📥 [FRONTEND] Configurations reçues:', data);
       console.log('📥 [FRONTEND] Type de data:', typeof data);
       console.log('📥 [FRONTEND] Structure data:', Object.keys(data || {}));
+      console.log('📥 [FRONTEND] Première config détaillée:', JSON.stringify(data?.data?.[0], null, 2));
+      console.log('📥 [FRONTEND] Toutes les configs:', JSON.stringify(data?.data, null, 2));
     },
   });
 
@@ -74,6 +96,19 @@ export default function MailConfigList({ onEdit, onAdd }: MailConfigListProps) {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Erreur lors de la mise à jour');
+    },
+  });
+
+  // Dupliquer une configuration
+  const duplicateMutation = useMutation({
+    mutationFn: ({ id, name }: { id: string; name?: string }) => 
+      adminApi.duplicateMailConfiguration(id, name),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'mail-configs'] });
+      toast.success('Configuration dupliquée avec succès');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Erreur lors de la duplication');
     },
   });
 
@@ -141,17 +176,33 @@ export default function MailConfigList({ onEdit, onAdd }: MailConfigListProps) {
                         {getProviderName(config.provider_type)}
                       </CardTitle>
                       <CardDescription>
-                        {config.company_id ? (
+                        <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <Building2 className="w-3 h-3" />
-                            {config.company?.name || 'Compagnie spécifique'}
+                            {config.configurationCompanies && config.configurationCompanies.length > 0 ? (
+                              <>
+                                <Building2 className="w-3 h-3" />
+                                {config.configurationCompanies.length === 1 
+                                  ? config.configurationCompanies[0].company?.name || 'Entreprise spécifique'
+                                  : `${config.configurationCompanies.length} entreprises`
+                                }
+                              </>
+                            ) : (
+                              <>
+                                <Globe className="w-3 h-3" />
+                                Configuration globale
+                              </>
+                            )}
                           </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <Globe className="w-3 h-3" />
-                            Configuration globale
-                          </div>
-                        )}
+                          
+                          {/* Indicateur du nombre d'entreprises - À implémenter avec une query */}
+                          <Badge variant="outline" className="text-xs">
+                            <Users className="w-3 h-3 mr-1" />
+                            {config.configurationCompanies && config.configurationCompanies.length > 0 
+                              ? `${config.configurationCompanies.length} entreprise${config.configurationCompanies.length > 1 ? 's' : ''}`
+                              : 'Toutes les entreprises'
+                            }
+                          </Badge>
+                        </div>
                       </CardDescription>
                     </div>
                   </div>
@@ -218,6 +269,25 @@ export default function MailConfigList({ onEdit, onAdd }: MailConfigListProps) {
                   <Button
                     variant="outline"
                     size="sm"
+                    onClick={() => setDuplicateModal({
+                      isOpen: true,
+                      config: config,
+                      name: `${config.from_name} (Copie)`
+                    })}
+                    disabled={duplicateMutation.isPending}
+                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                  >
+                    {duplicateMutation.isPending ? (
+                      <LoadingSpinner className="w-3 h-3 mr-1" />
+                    ) : (
+                      <Copy className="w-3 h-3 mr-1" />
+                    )}
+                    Dupliquer
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => onEdit(config)}
                   >
                     <Edit className="w-3 h-3 mr-1" />
@@ -260,6 +330,62 @@ export default function MailConfigList({ onEdit, onAdd }: MailConfigListProps) {
           </CardContent>
         </Card>
       )}
+
+      {/* Modal de duplication */}
+      <Dialog 
+      open={duplicateModal.isOpen} 
+      onOpenChange={(open) => {
+        if (!open) {
+          setDuplicateModal({ isOpen: false, config: null, name: '' });
+        }
+      }}
+    >
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Dupliquer la configuration</DialogTitle>
+          <DialogDescription>
+            Créer une copie de cette configuration mail avec un nouveau nom.
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="duplicate-name">Nom de la nouvelle configuration</Label>
+            <Input
+              id="duplicate-name"
+              value={duplicateModal.name}
+              onChange={(e) => setDuplicateModal(prev => ({ ...prev, name: e.target.value }))}
+              placeholder="Nom de la configuration..."
+            />
+          </div>
+        </div>
+        
+        <DialogFooter>
+          <Button 
+            variant="outline" 
+            onClick={() => setDuplicateModal({ isOpen: false, config: null, name: '' })}
+          >
+            Annuler
+          </Button>
+          <Button
+            onClick={() => {
+              if (duplicateModal.config && duplicateModal.name.trim()) {
+                duplicateMutation.mutate({ 
+                  id: duplicateModal.config.id, 
+                  name: duplicateModal.name.trim() 
+                });
+                setDuplicateModal({ isOpen: false, config: null, name: '' });
+              }
+            }}
+            disabled={!duplicateModal.name.trim() || duplicateMutation.isPending}
+            className="bg-gradient-to-r from-admin-light to-admin-dark"
+          >
+            {duplicateMutation.isPending && <LoadingSpinner className="w-4 h-4 mr-2" />}
+            Dupliquer
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+      </Dialog>
     </div>
   );
 }

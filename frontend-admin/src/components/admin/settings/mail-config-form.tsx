@@ -13,6 +13,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { 
   Mail, 
   Server, 
@@ -31,6 +32,11 @@ interface MailConfiguration {
   id?: string;
   provider_type: 'smtp' | 'sendgrid' | 'mailgun' | 'aws_ses' | 'supabase';
   company_id?: string;
+  configurationCompanies?: Array<{
+    id: string;
+    company_id: string;
+    company?: { name: string };
+  }>;
   smtp_host?: string;
   smtp_port?: number;
   smtp_user?: string;
@@ -55,7 +61,8 @@ interface MailConfigFormProps {
 
 export default function MailConfigForm({ config, onCancel, onSuccess }: MailConfigFormProps) {
   const [selectedProvider, setSelectedProvider] = useState<string>('smtp');
-  const [selectedCompany, setSelectedCompany] = useState<string>('global');
+  const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
+  const [isGlobal, setIsGlobal] = useState<boolean>(true);
   const [testEmail, setTestEmail] = useState('');
   const [isTestMode, setIsTestMode] = useState(false);
   
@@ -91,14 +98,43 @@ export default function MailConfigForm({ config, onCancel, onSuccess }: MailConf
     }
   });
 
+  // Charger les entreprises affectées si on édite
+  const { data: assignedCompanies, isLoading: assignedLoading, refetch: refetchAssignedCompanies } = useQuery({
+    queryKey: ['admin', 'mail-config-companies', config?.id],
+    queryFn: () => config?.id ? adminApi.getConfigurationCompanies(config.id) : Promise.resolve({ data: [] }),
+    enabled: !!config?.id,
+    staleTime: 0, // Toujours considérer les données comme périmées
+    cacheTime: 0, // Ne pas garder en cache
+    onSuccess: (data) => {
+      console.log('📥 [FRONTEND] Entreprises affectées:', data);
+    }
+  });
+
   // Initialiser le formulaire si on édite
   useEffect(() => {
     if (config) {
       setConfiguration(config);
       setSelectedProvider(config.provider_type);
-      setSelectedCompany(config.company_id || 'global');
+      
+      // Déterminer si c'est global ou spécifique
+      if (config.company_id) {
+        // Configuration ancienne avec company_id unique
+        setIsGlobal(false);
+        setSelectedCompanies([config.company_id]);
+      } else if (config.configurationCompanies && config.configurationCompanies.length > 0) {
+        // Configuration avec assignations d'entreprises
+        const companyIds = config.configurationCompanies.map(cc => cc.company_id);
+        setSelectedCompanies(companyIds);
+        setIsGlobal(false);
+      } else {
+        // Configuration globale (aucune entreprise assignée)
+        setIsGlobal(true);
+        setSelectedCompanies([]);
+      }
     }
   }, [config]);
+
+  // Note: Les entreprises assignées sont maintenant incluses directement dans config.configurationCompanies
 
   // Sauvegarder la configuration
   const saveConfigMutation = useMutation({
@@ -110,9 +146,8 @@ export default function MailConfigForm({ config, onCancel, onSuccess }: MailConf
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'mail-configs'] });
+      // L'invalidation est gérée dans handleSave après les affectations
       toast.success(`Configuration ${isEditing ? 'mise à jour' : 'créée'} avec succès`);
-      onSuccess();
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Erreur lors de la sauvegarde');
@@ -121,7 +156,7 @@ export default function MailConfigForm({ config, onCancel, onSuccess }: MailConf
 
   // Tester la configuration
   const testConfigMutation = useMutation({
-    mutationFn: (email: string) => adminApi.testMailConfiguration(email, selectedCompany === 'global' ? undefined : selectedCompany),
+    mutationFn: (email: string) => adminApi.testMailConfiguration(email, isGlobal ? undefined : selectedCompanies[0]),
     onSuccess: () => {
       toast.success('Email de test envoyé avec succès');
       setIsTestMode(false);
@@ -170,15 +205,20 @@ export default function MailConfigForm({ config, onCancel, onSuccess }: MailConf
     },
   ];
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!configuration.from_email) {
       toast.error('L\'email expéditeur est requis');
       return;
     }
 
+    if (!isGlobal && selectedCompanies.length === 0) {
+      toast.error('Veuillez sélectionner au moins une entreprise');
+      return;
+    }
+
     const configToSave = {
       provider_type: selectedProvider as any,
-      company_id: selectedCompany === 'global' ? null : selectedCompany,
+      company_id: null, // Toujours null pour les nouvelles configs
       smtp_host: configuration.smtp_host,
       smtp_port: configuration.smtp_port,
       smtp_user: configuration.smtp_user,
@@ -193,7 +233,35 @@ export default function MailConfigForm({ config, onCancel, onSuccess }: MailConf
       is_default: configuration.is_default,
     };
 
-    saveConfigMutation.mutate(configToSave);
+    try {
+      // 1. Sauvegarder la configuration
+      const result = await saveConfigMutation.mutateAsync(configToSave);
+      const savedConfigId = result.data?.id || config?.id;
+
+      // 2. Gérer les affectations d'entreprises
+      if (savedConfigId) {
+        if (isGlobal) {
+          // Si c'est global, supprimer toutes les affectations d'entreprises
+          await adminApi.assignCompaniesToConfiguration(savedConfigId, []);
+        } else if (selectedCompanies.length > 0) {
+          // Affecter les entreprises sélectionnées
+          await adminApi.assignCompaniesToConfiguration(savedConfigId, selectedCompanies);
+        }
+      }
+
+      // Invalider les caches spécifiques
+      queryClient.invalidateQueries({ queryKey: ['admin', 'mail-configs'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'mail-config-companies', savedConfigId] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'mail-config-companies'] });
+      
+      // Mettre à jour l'état isGlobal après la sauvegarde
+      setIsGlobal(selectedCompanies.length === 0);
+      
+      toast.success('Configuration sauvegardée avec succès');
+      onSuccess();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Erreur lors de la sauvegarde');
+    }
   };
 
   const handleTest = () => {
@@ -335,35 +403,70 @@ export default function MailConfigForm({ config, onCancel, onSuccess }: MailConf
             Portée de la Configuration
           </CardTitle>
           <CardDescription>
-            Choisissez si cette configuration s'applique globalement ou à une compagnie spécifique
+            Choisissez si cette configuration s'applique globalement ou à des entreprises spécifiques
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div>
-              <Label htmlFor="company_scope">Configuration pour</Label>
-              <Select value={selectedCompany} onValueChange={setSelectedCompany}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionnez la portée" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="global">
-                    <div className="flex items-center gap-2">
-                      <Globe className="w-4 h-4" />
-                      Configuration globale (par défaut)
-                    </div>
-                  </SelectItem>
-                  {(companies?.data?.data || companies?.data || []).map((company: any) => (
-                    <SelectItem key={company.id} value={company.id}>
-                      <div className="flex items-center gap-2">
-                        <Building2 className="w-4 h-4" />
-                        {company.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            {/* Switch Global/Spécifique */}
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="is_global"
+                checked={isGlobal}
+                onCheckedChange={setIsGlobal}
+              />
+              <Label htmlFor="is_global" className="flex items-center gap-2">
+                <Globe className="w-4 h-4" />
+                Configuration globale
+              </Label>
             </div>
+            
+            {!isGlobal && (
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Entreprises utilisant cette configuration :</Label>
+                <div className="border rounded-lg p-3 max-h-48 overflow-y-auto">
+                  {companiesLoading ? (
+                    <div className="flex items-center justify-center py-4">
+                      <LoadingSpinner className="w-4 h-4 mr-2" />
+                      Chargement des entreprises...
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {(companies?.data?.data || companies?.data || []).map((company: any) => (
+                        <div key={company.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`company-${company.id}`}
+                            checked={selectedCompanies.includes(company.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedCompanies([...selectedCompanies, company.id]);
+                              } else {
+                                setSelectedCompanies(selectedCompanies.filter(id => id !== company.id));
+                              }
+                            }}
+                          />
+                          <Label 
+                            htmlFor={`company-${company.id}`}
+                            className="flex items-center gap-2 cursor-pointer"
+                          >
+                            <Building2 className="w-4 h-4" />
+                            {company.name}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                
+                {selectedCompanies.length > 0 && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Badge variant="secondary">
+                      {selectedCompanies.length} entreprise{selectedCompanies.length > 1 ? 's' : ''} sélectionnée{selectedCompanies.length > 1 ? 's' : ''}
+                    </Badge>
+                  </div>
+                )}
+              </div>
+            )}
             
             <div className="flex items-center space-x-2">
               <Switch

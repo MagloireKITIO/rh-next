@@ -194,4 +194,50 @@ export class MailConfigurationsController {
       data: config
     };
   }
+
+  /**
+   * Dupliquer une configuration mail
+   */
+  @Post(':id/duplicate')
+  async duplicate(
+    @Param('id') id: string,
+    @Body() body: { name?: string }
+  ) {
+    const config = await this.mailConfigurationService.duplicateConfiguration(id, body.name);
+    
+    return {
+      success: true,
+      message: 'Configuration dupliquée avec succès',
+      data: config
+    };
+  }
+
+  /**
+   * Affecter plusieurs entreprises à une configuration
+   */
+  @Post(':id/assign-companies')
+  async assignCompanies(
+    @Param('id') configId: string,
+    @Body() body: { companyIds: string[] }
+  ) {
+    await this.mailConfigurationService.assignCompaniesToConfiguration(configId, body.companyIds);
+    
+    return {
+      success: true,
+      message: 'Entreprises affectées avec succès'
+    };
+  }
+
+  /**
+   * Récupérer les entreprises affectées à une configuration
+   */
+  @Get(':id/companies')
+  async getConfigurationCompanies(@Param('id') configId: string) {
+    const companies = await this.mailConfigurationService.getConfigurationCompanies(configId);
+    
+    return {
+      success: true,
+      data: companies
+    };
+  }
 }
