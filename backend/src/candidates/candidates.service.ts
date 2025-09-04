@@ -8,6 +8,8 @@ import { AnalysisService } from '../analysis/analysis.service';
 import { StorageService } from '../storage/storage.service';
 import { ProjectWebSocketGateway } from '../websocket/websocket.gateway';
 import { AnalysisQueueService } from './analysis-queue.service';
+import { AutomationTriggerService } from '../mail-automation/services/automation-trigger.service';
+import { AutomationTrigger, AutomationEntityType } from '../mail-automation/entities/mail-automation.entity';
 import * as pdf from 'pdf-parse';
 import * as fs from 'fs';
 
@@ -19,6 +21,12 @@ export interface PaginatedResponse<T> {
   totalPages: number;
   hasNext: boolean;
   hasPrevious: boolean;
+}
+
+export interface CandidateFilters {
+  search?: string;
+  status?: string;
+  scoreFilter?: string;
 }
 
 @Injectable()
@@ -35,6 +43,7 @@ export class CandidatesService {
     private storageService: StorageService,
     private webSocketGateway: ProjectWebSocketGateway,
     private analysisQueueService: AnalysisQueueService,
+    private automationTriggerService: AutomationTriggerService,
   ) {}
 
   private extractNameFromFilename(filename: string): string | null {
@@ -74,20 +83,78 @@ export class CandidatesService {
 
   async create(createCandidateDto: CreateCandidateDto): Promise<Candidate> {
     const candidate = this.candidateRepository.create(createCandidateDto);
-    return await this.candidateRepository.save(candidate);
+    const savedCandidate = await this.candidateRepository.save(candidate);
+    
+    // Déclencher les automatisations lors de la création d'un candidat
+    try {
+      // Charger les relations nécessaires pour les automatisations
+      const candidateWithRelations = await this.candidateRepository.findOne({
+        where: { id: savedCandidate.id },
+        relations: ['project', 'project.company', 'project.createdBy']
+      });
+      
+      if (candidateWithRelations) {
+        await this.automationTriggerService.triggerCandidateAutomations(
+          AutomationTrigger.ON_CREATE,
+          candidateWithRelations
+        );
+      }
+    } catch (error) {
+      this.logger.warn('Error triggering automations for candidate creation:', error);
+      // Ne pas faire échouer la création du candidat si les automatisations échouent
+    }
+    
+    return savedCandidate;
   }
 
-  async findAll(companyId: string, page: number = 1, limit: number = 50): Promise<PaginatedResponse<Candidate>> {
+  async findAll(companyId: string, page: number = 1, limit: number = 50, filters?: CandidateFilters): Promise<PaginatedResponse<Candidate>> {
     const skip = (page - 1) * limit;
     
-    const [data, total] = await this.candidateRepository.findAndCount({
-      relations: ['project'],
-      where: { project: { company_id: companyId } },
-      order: { score: 'DESC' },
-      skip,
-      take: limit,
-    });
+    // Construction dynamique des conditions WHERE
+    const queryBuilder = this.candidateRepository.createQueryBuilder('candidate')
+      .leftJoinAndSelect('candidate.project', 'project')
+      .leftJoinAndSelect('candidate.analyses', 'analyses')
+      .where('project.company_id = :companyId', { companyId });
 
+    // Filtrage par recherche (nom, email, résumé, texte extrait)
+    if (filters?.search) {
+      const searchTerm = `%${filters.search.toLowerCase()}%`;
+      queryBuilder.andWhere(
+        '(LOWER(candidate.name) LIKE :search OR LOWER(candidate.email) LIKE :search OR LOWER(candidate.summary) LIKE :search OR LOWER(candidate.extractedText) LIKE :search)',
+        { search: searchTerm }
+      );
+    }
+
+    // Filtrage par statut
+    if (filters?.status) {
+      queryBuilder.andWhere('candidate.status = :status', { status: filters.status });
+    }
+
+    // Filtrage par score
+    if (filters?.scoreFilter && filters.scoreFilter !== 'all') {
+      switch (filters.scoreFilter) {
+        case 'excellent':
+          queryBuilder.andWhere('candidate.score >= 80');
+          break;
+        case 'good':
+          queryBuilder.andWhere('candidate.score >= 60 AND candidate.score < 80');
+          break;
+        case 'average':
+          queryBuilder.andWhere('candidate.score >= 40 AND candidate.score < 60');
+          break;
+        case 'poor':
+          queryBuilder.andWhere('candidate.score < 40');
+          break;
+      }
+    }
+
+    // Ordre et pagination
+    queryBuilder
+      .orderBy('candidate.score', 'DESC')
+      .skip(skip)
+      .take(limit);
+
+    const [data, total] = await queryBuilder.getManyAndCount();
     const totalPages = Math.ceil(total / limit);
 
     return {
@@ -110,17 +177,55 @@ export class CandidatesService {
     });
   }
 
-  async findByProject(projectId: string, companyId: string, page: number = 1, limit: number = 50): Promise<PaginatedResponse<Candidate>> {
+  async findByProject(projectId: string, companyId: string, page: number = 1, limit: number = 50, filters?: CandidateFilters): Promise<PaginatedResponse<Candidate>> {
     const skip = (page - 1) * limit;
     
-    const [data, total] = await this.candidateRepository.findAndCount({
-      where: { projectId, project: { company_id: companyId } },
-      relations: ['project', 'analyses'],
-      order: { score: 'DESC' },
-      skip,
-      take: limit,
-    });
+    // Construction dynamique des conditions WHERE
+    const queryBuilder = this.candidateRepository.createQueryBuilder('candidate')
+      .leftJoinAndSelect('candidate.project', 'project')
+      .leftJoinAndSelect('candidate.analyses', 'analyses')
+      .where('candidate.projectId = :projectId', { projectId })
+      .andWhere('project.company_id = :companyId', { companyId });
 
+    // Filtrage par recherche (nom, email, résumé, texte extrait)
+    if (filters?.search) {
+      const searchTerm = `%${filters.search.toLowerCase()}%`;
+      queryBuilder.andWhere(
+        '(LOWER(candidate.name) LIKE :search OR LOWER(candidate.email) LIKE :search OR LOWER(candidate.summary) LIKE :search OR LOWER(candidate.extractedText) LIKE :search)',
+        { search: searchTerm }
+      );
+    }
+
+    // Filtrage par statut
+    if (filters?.status) {
+      queryBuilder.andWhere('candidate.status = :status', { status: filters.status });
+    }
+
+    // Filtrage par score
+    if (filters?.scoreFilter && filters.scoreFilter !== 'all') {
+      switch (filters.scoreFilter) {
+        case 'excellent':
+          queryBuilder.andWhere('candidate.score >= 80');
+          break;
+        case 'good':
+          queryBuilder.andWhere('candidate.score >= 60 AND candidate.score < 80');
+          break;
+        case 'average':
+          queryBuilder.andWhere('candidate.score >= 40 AND candidate.score < 60');
+          break;
+        case 'poor':
+          queryBuilder.andWhere('candidate.score < 40');
+          break;
+      }
+    }
+
+    // Ordre et pagination
+    queryBuilder
+      .orderBy('candidate.score', 'DESC')
+      .skip(skip)
+      .take(limit);
+
+    const [data, total] = await queryBuilder.getManyAndCount();
     const totalPages = Math.ceil(total / limit);
 
     return {
@@ -303,6 +408,8 @@ export class CandidatesService {
 
       // Mettre à jour le candidat avec les résultats
       const previousScore = candidate.score;
+      const previousCandidate = { ...candidate }; // Sauvegarder l'état précédent
+      
       await this.candidateRepository.update(candidateId, {
         score: aiAnalysis.score,
         previousScore,
@@ -312,6 +419,25 @@ export class CandidatesService {
         email: aiAnalysis.extractedData?.email || candidate.email,
         phone: aiAnalysis.extractedData?.phone || candidate.phone,
       });
+
+      // Déclencher les automatisations après mise à jour
+      try {
+        const updatedCandidateWithRelations = await this.candidateRepository.findOne({
+          where: { id: candidateId },
+          relations: ['project', 'project.company', 'project.createdBy']
+        });
+        
+        if (updatedCandidateWithRelations) {
+          await this.automationTriggerService.triggerCandidateAutomations(
+            AutomationTrigger.ON_UPDATE,
+            updatedCandidateWithRelations,
+            previousCandidate
+          );
+        }
+      } catch (error) {
+        this.logger.warn('Error triggering automations for candidate update:', error);
+        // Ne pas faire échouer l'analyse si les automatisations échouent
+      }
 
       // Sauvegarder l'analyse complète
       await this.analysisService.create({

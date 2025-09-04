@@ -133,6 +133,7 @@ export interface CompanyStats {
 
 export interface ApiKey {
   id: string;
+  key: string;
   name?: string;
   isActive: boolean;
   requestCount: number;
@@ -185,6 +186,16 @@ export const adminApi = {
   // Dashboard & Stats
   getGlobalStats: () => apiClient.get<GlobalStats>('/admin/stats'),
   getCompaniesStats: () => apiClient.get<CompanyStats[]>('/admin/companies/stats'),
+  
+  // Mail Automations (Admin)
+  getMailAutomationsStats: () => apiClient.get('/admin/mail-automations/stats'),
+  getAllMailAutomations: () => apiClient.get('/admin/mail-automations'),
+  getCompaniesAutomationStats: () => apiClient.get('/admin/companies/automation-stats'),
+  toggleMailAutomation: (id: string) => apiClient.patch(`/admin/mail-automations/${id}/toggle`),
+  getMailAutomation: (id: string) => apiClient.get(`/admin/mail-automations/${id}`),
+  createMailAutomation: (data: any) => apiClient.post('/admin/mail-automations', data),
+  updateMailAutomation: (id: string, data: any) => apiClient.patch(`/admin/mail-automations/${id}`, data),
+  deleteMailAutomation: (id: string) => apiClient.delete(`/admin/mail-automations/${id}`),
   
   // Companies Management
   getAllCompanies: () => apiClient.get<Company[]>('/admin/companies'),
@@ -261,6 +272,15 @@ export const adminApi = {
   testMailConfiguration: (testEmail: string, companyId?: string) =>
     apiClient.post('/admin/mail-config/test', { email: testEmail, company_id: companyId }),
   getMailConfigurationStatus: () => apiClient.get('/admin/mail-config/status'),
+
+  // Mail Templates (Super Admin can see ALL templates)
+  getAllMailTemplates: (context?: string) => apiClient.get('/mail-templates', { params: { context } }),
+  getMailTemplateById: (id: string) => apiClient.get(`/mail-templates/${id}`),
+  createMailTemplate: (data: any) => apiClient.post('/mail-templates', data),
+  updateMailTemplate: (id: string, data: any) => apiClient.patch(`/mail-templates/${id}`, data),
+  deleteMailTemplate: (id: string) => apiClient.delete(`/mail-templates/${id}`),
+  previewMailTemplate: (id: string, variables: Record<string, any> = {}) => 
+    apiClient.post(`/mail-templates/${id}/preview`, { variables }),
 };
 
 // Auth API for admin

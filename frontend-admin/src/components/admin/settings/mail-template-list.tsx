@@ -60,6 +60,7 @@ export default function MailTemplateList({ onEdit, onAdd }: MailTemplateListProp
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [selectedContext, setSelectedContext] = useState<string>('all');
 
   useEffect(() => {
     loadTemplates();
@@ -88,13 +89,20 @@ export default function MailTemplateList({ onEdit, onAdd }: MailTemplateListProp
     }
   };
 
+  const getTemplateContext = (type: string): 'system' | 'automation' => {
+    return ['invitation', 'verification', 'password_reset', 'welcome'].includes(type) 
+      ? 'system' 
+      : 'automation';
+  };
+
   const filteredTemplates = templates.filter(template => {
     const matchesSearch = template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          template.subject.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = selectedType === 'all' || template.type === selectedType;
     const matchesStatus = selectedStatus === 'all' || template.status === selectedStatus;
+    const matchesContext = selectedContext === 'all' || getTemplateContext(template.type) === selectedContext;
     
-    return matchesSearch && matchesType && matchesStatus;
+    return matchesSearch && matchesType && matchesStatus && matchesContext;
   });
 
   const handleSetAsDefault = async (templateId: string) => {
@@ -215,6 +223,16 @@ export default function MailTemplateList({ onEdit, onAdd }: MailTemplateListProp
             <SelectItem value="archived">Archivé</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={selectedContext} onValueChange={setSelectedContext}>
+          <SelectTrigger className="w-full sm:w-48">
+            <SelectValue placeholder="Tous les contextes" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous les contextes</SelectItem>
+            <SelectItem value="system">Système</SelectItem>
+            <SelectItem value="automation">Automation</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Liste des templates */}
@@ -225,12 +243,12 @@ export default function MailTemplateList({ onEdit, onAdd }: MailTemplateListProp
               <FileText className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-lg font-medium mb-2">Aucun template trouvé</h3>
               <p className="text-muted-foreground mb-4">
-                {searchQuery || selectedType !== 'all' || selectedStatus !== 'all'
+                {searchQuery || selectedType !== 'all' || selectedStatus !== 'all' || selectedContext !== 'all'
                   ? 'Aucun template ne correspond à vos critères de recherche'
                   : 'Commencez par créer votre premier template d\'email'
                 }
               </p>
-              {(!searchQuery && selectedType === 'all' && selectedStatus === 'all') && (
+              {(!searchQuery && selectedType === 'all' && selectedStatus === 'all' && selectedContext === 'all') && (
                 <Button onClick={onAdd} className="bg-gradient-to-r from-admin-light to-admin-dark">
                   <Plus className="w-4 h-4 mr-2" />
                   Créer un template
@@ -257,6 +275,12 @@ export default function MailTemplateList({ onEdit, onAdd }: MailTemplateListProp
                           </Badge>
                         )}
                         {getStatusBadge(template.status)}
+                        <Badge 
+                          variant={getTemplateContext(template.type) === 'system' ? 'default' : 'secondary'}
+                          className="text-xs"
+                        >
+                          {getTemplateContext(template.type) === 'system' ? '🔒 Système' : '⚙️ Automation'}
+                        </Badge>
                       </div>
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
                         <span>{getTypeLabel(template.type)}</span>

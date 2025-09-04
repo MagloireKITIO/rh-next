@@ -2,7 +2,27 @@
   "permissions": {
     "allow": [
       "Bash(rm:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Read(C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\ActivaHR\\horilla_automations/**)",
+      "Read(C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\ActivaHR\\horilla_automations/**)",
+      "Read(C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\ActivaHR\\horilla_automations/**)",
+      "Read(C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\ActivaHR\\horilla_automations\\views/**)",
+      "Read(C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\ActivaHR\\horilla_automations/**)",
+      "Read(C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\ActivaHR\\horilla_automations\\views/**)",
+      "Read(C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\ActivaHR\\horilla_automations\\views/**)",
+      "Read(C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\ActivaHR\\horilla_automations/**)",
+      "Read(C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\ActivaHR\\horilla_automations/**)",
+      "Read(C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\ActivaHR\\horilla_automations/**)",
+      "Read(C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\ActivaHR\\horilla_automations/**)",
+      "Read(C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\ActivaHR\\horilla_automations\\views/**)",
+      "Read(C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\ActivaHR\\horilla_automations\\views/**)",
+      "Read(C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\ActivaHR\\horilla_automations\\views/**)",
+      "Read(C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\ActivaHR/**)",
+      "Read(C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\ActivaHR\\base/**)",
+      "Read(C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\ActivaHR\\base/**)",
+      "Bash(npm install:*)",
+      "Bash(npm uninstall:*)",
+      "WebFetch(domain:openrouter.ai)"
     ],
     "deny": [],
     "additionalDirectories": [

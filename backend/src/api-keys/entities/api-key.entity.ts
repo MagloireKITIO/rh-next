@@ -21,7 +21,7 @@ export class ApiKey {
   @Column({ type: 'timestamp', nullable: true })
   lastUsedAt?: Date;
 
-  @Column({ length: 50, default: 'together_ai' })
+  @Column({ length: 50, default: 'openrouter' })
   provider: string;
 
   @ManyToOne(() => Company, { nullable: true })

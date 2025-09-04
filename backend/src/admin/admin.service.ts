@@ -10,6 +10,8 @@ import { Candidate } from '../candidates/entities/candidate.entity';
 import { Analysis } from '../analysis/entities/analysis.entity';
 import { ApiKey } from '../api-keys/entities/api-key.entity';
 import { MailService } from '../mail-configuration/mail.service';
+import { MailTemplateService } from '../mail-configuration/mail-template.service';
+import { MailAutomation, AutomationStatus } from '../mail-automation/entities/mail-automation.entity';
 
 @Injectable()
 export class AdminService {
@@ -28,8 +30,11 @@ export class AdminService {
     private analysisRepository: Repository<Analysis>,
     @InjectRepository(ApiKey)
     private apiKeyRepository: Repository<ApiKey>,
+    @InjectRepository(MailAutomation)
+    private mailAutomationRepository: Repository<MailAutomation>,
     private configService: ConfigService,
     private mailService: MailService,
+    private mailTemplateService: MailTemplateService,
   ) {
     this.supabase = createClient(
       this.configService.get('SUPABASE_URL'),
@@ -481,7 +486,7 @@ export class AdminService {
       select: {
         id: true,
         name: true,
-        key: false, // Ne pas exposer la clé complète
+        key: true, // Exposer la clé pour permettre la modification
         isActive: true,
         requestCount: true,
         lastUsedAt: true,
@@ -505,7 +510,7 @@ export class AdminService {
       select: {
         id: true,
         name: true,
-        key: false, // Ne pas exposer la clé complète
+        key: true, // Exposer la clé pour permettre la modification
         isActive: true,
         requestCount: true,
         lastUsedAt: true,
@@ -556,7 +561,7 @@ export class AdminService {
 
     const apiKey = this.apiKeyRepository.create({
       ...createApiKeyDto,
-      provider: createApiKeyDto.provider || 'together_ai',
+      provider: createApiKeyDto.provider || 'openrouter',
       isActive: true,
     });
 
@@ -567,6 +572,7 @@ export class AdminService {
   }
 
   async updateApiKey(id: string, updateData: {
+    key?: string;
     name?: string;
     company_id?: string;
     provider?: string;
@@ -701,5 +707,173 @@ export class AdminService {
       message: 'Paramètres système mis à jour avec succès',
       settings,
     };
+  }
+
+  // Mail Automations Management
+  async getAllMailAutomations() {
+    return this.mailAutomationRepository.find({
+      relations: ['company', 'created_by_user', 'mail_template'],
+      order: { created_at: 'DESC' },
+    });
+  }
+
+  async getMailAutomationStats() {
+    const [
+      totalAutomations,
+      activeAutomations,
+      totalCompaniesWithAutomations,
+    ] = await Promise.all([
+      this.mailAutomationRepository.count(),
+      this.mailAutomationRepository.count({ where: { status: AutomationStatus.ACTIVE } }),
+      this.mailAutomationRepository
+        .createQueryBuilder('automation')
+        .select('COUNT(DISTINCT automation.company_id)', 'count')
+        .getRawOne(),
+    ]);
+
+    const totalSentResult = await this.mailAutomationRepository
+      .createQueryBuilder('automation')
+      .select('SUM(automation.sent_count)', 'total')
+      .getRawOne();
+
+    const totalSuccessResult = await this.mailAutomationRepository
+      .createQueryBuilder('automation')
+      .select('SUM(automation.success_count)', 'total')
+      .getRawOne();
+
+    const total_sent = parseInt(totalSentResult?.total || '0');
+    const total_success = parseInt(totalSuccessResult?.total || '0');
+    const success_rate = total_sent > 0 ? Math.round((total_success / total_sent) * 100 * 100) / 100 : 0;
+
+    // Automatisations par type d'entité
+    const automationsByType = await this.mailAutomationRepository
+      .createQueryBuilder('automation')
+      .select('automation.entity_type', 'entity_type')
+      .addSelect('COUNT(*)', 'count')
+      .groupBy('automation.entity_type')
+      .getRawMany();
+
+    const automations_by_type = automationsByType.reduce((acc, item) => {
+      acc[item.entity_type] = parseInt(item.count);
+      return acc;
+    }, {});
+
+    return {
+      total_companies: parseInt(totalCompaniesWithAutomations.count || '0'),
+      total_automations: totalAutomations,
+      active_automations: activeAutomations,
+      total_sent,
+      success_rate,
+      automations_by_type,
+    };
+  }
+
+  async getCompaniesAutomationStats() {
+    const companies = await this.companyRepository
+      .createQueryBuilder('company')
+      .leftJoinAndSelect('company.users', 'users')
+      .getMany();
+
+    const companiesWithAutomationStats = await Promise.all(
+      companies.map(async (company) => {
+        const automations = await this.mailAutomationRepository.find({
+          where: { company_id: company.id }
+        });
+
+        const automations_count = automations.length;
+        const total_sent = automations.reduce((sum, a) => sum + a.sent_count, 0);
+        const total_success = automations.reduce((sum, a) => sum + a.success_count, 0);
+        const success_rate = total_sent > 0 ? Math.round((total_success / total_sent) * 100 * 100) / 100 : 0;
+
+        return {
+          id: company.id,
+          name: company.name,
+          domain: company.domain,
+          users_count: company.users?.length || 0,
+          automations_count,
+          total_sent,
+          success_rate,
+        };
+      })
+    );
+
+    // Ne retourner que les entreprises qui ont des automatisations
+    return companiesWithAutomationStats.filter(company => company.automations_count > 0);
+  }
+
+  async toggleMailAutomationStatus(id: string) {
+    const automation = await this.mailAutomationRepository.findOne({
+      where: { id },
+      relations: ['company']
+    });
+    
+    if (!automation) {
+      throw new NotFoundException('Automatisation introuvable');
+    }
+
+    const newStatus = automation.status === AutomationStatus.ACTIVE ? AutomationStatus.INACTIVE : AutomationStatus.ACTIVE;
+    automation.status = newStatus;
+    await this.mailAutomationRepository.save(automation);
+
+    return {
+      message: `Automatisation ${newStatus === AutomationStatus.ACTIVE ? 'activée' : 'désactivée'} avec succès`,
+      automation,
+    };
+  }
+
+  async getMailAutomationById(id: string) {
+    const automation = await this.mailAutomationRepository.findOne({
+      where: { id },
+      relations: ['company', 'created_by_user', 'mail_template', 'conditions'],
+    });
+
+    if (!automation) {
+      throw new NotFoundException('Automatisation introuvable');
+    }
+
+    return automation;
+  }
+
+  async createMailAutomation(createDto: any) {
+    // Vérifier que l'entreprise existe
+    const company = await this.companyRepository.findOne({
+      where: { id: createDto.company_id }
+    });
+    
+    if (!company) {
+      throw new NotFoundException('Entreprise introuvable');
+    }
+
+    // Vérifier que le template existe si fourni
+    if (createDto.mail_template_id) {
+      const template = await this.mailTemplateService.findOne(createDto.mail_template_id);
+      if (!template) {
+        throw new NotFoundException('Template de mail introuvable');
+      }
+    }
+
+    const automation = this.mailAutomationRepository.create({
+      ...createDto,
+      status: AutomationStatus.DRAFT, // Par défaut en brouillon
+      created_by: null, // Admin creation
+    });
+
+    return this.mailAutomationRepository.save(automation);
+  }
+
+  async updateMailAutomation(id: string, updateDto: any) {
+    const automation = await this.getMailAutomationById(id);
+    Object.assign(automation, updateDto);
+    return this.mailAutomationRepository.save(automation);
+  }
+
+  async deleteMailAutomation(id: string) {
+    const automation = await this.getMailAutomationById(id);
+    await this.mailAutomationRepository.remove(automation);
+    return { message: 'Automatisation supprimée avec succès' };
+  }
+
+  async getMailTemplates() {
+    return this.mailTemplateService.findAll();
   }
 }

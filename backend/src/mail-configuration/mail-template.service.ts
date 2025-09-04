@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { MailTemplate, MailTemplateType, MailTemplateStatus } from './entities/mail-template.entity';
+import { MailTemplate, MailTemplateType, MailTemplateStatus, MailTemplateContext, getTemplateTypesByContext } from './entities/mail-template.entity';
 import { CreateMailTemplateDto } from './dto/create-mail-template.dto';
 import { UpdateMailTemplateDto } from './dto/update-mail-template.dto';
 
@@ -12,9 +12,17 @@ export class MailTemplateService {
     private mailTemplateRepository: Repository<MailTemplate>,
   ) {}
 
-  async findAll(companyId?: string): Promise<MailTemplate[]> {
+  async findAll(companyId?: string, context?: MailTemplateContext): Promise<MailTemplate[]> {
     const query = this.mailTemplateRepository.createQueryBuilder('template')
-      .where('(template.company_id = :companyId OR template.company_id IS NULL)', { companyId })
+      .where('(template.company_id = :companyId OR template.company_id IS NULL)', { companyId });
+
+    // Filtrer par contexte si spécifié
+    if (context) {
+      const allowedTypes = getTemplateTypesByContext(context);
+      query.andWhere('template.type IN (:...allowedTypes)', { allowedTypes });
+    }
+
+    query
       .orderBy('template.type', 'ASC')
       .addOrderBy('template.is_default', 'DESC')
       .addOrderBy('template.created_at', 'DESC');
@@ -180,15 +188,15 @@ export class MailTemplateService {
 
   async previewTemplate(id: string, variables: Record<string, any> = {}): Promise<{
     subject: string;
-    html_content: string;
-    text_content?: string;
+    html: string;
+    text?: string;
   }> {
     const template = await this.findOne(id);
 
     return {
       subject: this.processTemplateVariables(template.subject, variables),
-      html_content: this.processTemplateVariables(template.html_content, variables),
-      text_content: template.text_content 
+      html: this.processTemplateVariables(template.html_content, variables),
+      text: template.text_content 
         ? this.processTemplateVariables(template.text_content, variables)
         : undefined
     };
@@ -197,10 +205,15 @@ export class MailTemplateService {
   private processTemplateVariables(content: string, variables: Record<string, any>): string {
     let processed = content;
     
+    // Replace all provided variables
     Object.keys(variables).forEach(key => {
       const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
-      processed = processed.replace(regex, variables[key] || '');
+      processed = processed.replace(regex, String(variables[key] || ''));
     });
+    
+    // Replace any remaining template variables with empty strings to prevent JavaScript errors
+    // This handles cases like {{candidate_name}} that weren't provided in variables
+    processed = processed.replace(/{{[^}]*}}/g, '');
     
     return processed;
   }

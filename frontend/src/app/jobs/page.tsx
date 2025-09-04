@@ -8,6 +8,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Calendar, Building, MapPin, Clock, ExternalLink, Share2 } from 'lucide-react';
 import Link from 'next/link';
 import { ShareButton } from '@/components/ui/share-button';
+import { publicApi } from '@/lib/api-client';
 
 interface JobOffer {
   id: string;
@@ -31,14 +32,10 @@ export default function JobsPage() {
   useEffect(() => {
     const fetchJobOffers = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'}/api/public/job-offers`);
-        if (!response.ok) {
-          throw new Error('Erreur lors du chargement des offres');
-        }
-        const data = await response.json();
-        setJobOffers(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Une erreur est survenue');
+        const response = await publicApi.getAllJobOffers();
+        setJobOffers(response.data);
+      } catch (err: any) {
+        setError(err.response?.data?.message || 'Erreur lors du chargement des offres');
       } finally {
         setLoading(false);
       }

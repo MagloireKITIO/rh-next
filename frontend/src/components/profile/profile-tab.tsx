@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth-context";
+import { authApi } from "@/lib/api-client";
 
 interface ProfileTabProps {
   user: any;
@@ -122,35 +123,20 @@ export function ProfileTab({ user }: ProfileTabProps) {
 
     setIsSaving(true);
     try {
-      const token = localStorage.getItem('token');
-      const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
-      
-      const response = await fetch(`${API_BASE_URL}/api/auth/change-password`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          currentPassword: passwordForm.currentPassword,
-          newPassword: passwordForm.newPassword,
-        }),
+      await authApi.changePassword({
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
       });
 
-      if (response.ok) {
-        toast.success("Mot de passe modifié avec succès !");
-        setPasswordForm({
-          currentPassword: "",
-          newPassword: "",
-          confirmPassword: "",
-        });
-        setIsChangingPassword(false);
-      } else {
-        const error = await response.json();
-        toast.error(error.message || "Erreur lors du changement de mot de passe");
-      }
+      toast.success("Mot de passe modifié avec succès !");
+      setPasswordForm({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+      setIsChangingPassword(false);
     } catch (error: any) {
-      toast.error("Erreur lors du changement de mot de passe");
+      toast.error(error.response?.data?.message || "Erreur lors du changement de mot de passe");
     } finally {
       setIsSaving(false);
     }
@@ -174,32 +160,16 @@ export function ProfileTab({ user }: ProfileTabProps) {
 
     setIsSaving(true);
     try {
-      const token = localStorage.getItem('token');
-      const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
-      
       const formData = new FormData();
       formData.append('avatar', file);
       
-      const response = await fetch(`${API_BASE_URL}/api/auth/avatar`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        body: formData,
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        toast.success("Avatar mis à jour avec succès !");
-        
-        // Refresh user profile to get new avatar
-        window.location.reload();
-      } else {
-        const error = await response.json();
-        toast.error(error.message || "Erreur lors de l'upload de l'avatar");
-      }
+      await authApi.uploadAvatar(formData);
+      toast.success("Avatar mis à jour avec succès !");
+      
+      // Refresh user profile to get new avatar
+      window.location.reload();
     } catch (error: any) {
-      toast.error("Erreur lors de l'upload de l'avatar");
+      toast.error(error.response?.data?.message || "Erreur lors de l'upload de l'avatar");
     } finally {
       setIsSaving(false);
       // Reset file input
@@ -221,36 +191,17 @@ export function ProfileTab({ user }: ProfileTabProps) {
     }
 
     try {
-      const token = localStorage.getItem('token');
-      const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+      await authApi.deleteAccount();
+      toast.success("Compte supprimé avec succès. Au revoir !");
       
-      const response = await fetch(`${API_BASE_URL}/api/auth/delete-account`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          password,
-          reason: reason || undefined,
-        }),
-      });
-
-      if (response.ok) {
-        toast.success("Compte supprimé avec succès. Au revoir !");
-        
-        // Clear local storage and redirect
-        localStorage.clear();
-        sessionStorage.clear();
-        
-        // Redirect to landing page after a short delay
-        setTimeout(() => {
-          window.location.href = '/landing';
-        }, 2000);
-      } else {
-        const error = await response.json();
-        toast.error(error.message || "Erreur lors de la suppression du compte");
-      }
+      // Clear local storage and redirect
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Redirect to landing page after a short delay
+      setTimeout(() => {
+        window.location.href = '/landing';
+      }, 2000);
     } catch (error: any) {
       toast.error("Erreur lors de la suppression du compte");
     }

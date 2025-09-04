@@ -1,353 +1,98 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/auth-context";
 import { NavBar } from "@/components/ui/navbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { useAIConfiguration } from "@/hooks/queries";
-import { useSetConfigurationValue } from "@/hooks/mutations";
-import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Save, Settings, Brain, Users, UserPlus, Shield, Crown, Mail, RefreshCcw, UserCheck, ToggleLeft, ToggleRight, Trash2 } from "lucide-react";
-import { Pagination } from "@/components/ui/pagination";
-import { TeamRequestsModal } from "@/components/modals/team-requests-modal";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { toast } from "sonner";
+import { ArrowLeft, Brain, Users, Mail, FileText, UserCheck, Info, HelpCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-export default function SettingsPage() {
+// Import sections
+import { AIConfigurationSection } from "@/components/settings/ai-configuration-section";
+import { UserManagementSection } from "@/components/settings/user-management-section";
+import { MailAutomationsSection } from "@/components/settings/mail-automations-section";
+import { MailTemplatesSection } from "@/components/settings/mail-templates-section";
+import { TeamRequestsSection } from "@/components/settings/team-requests-section";
+import { SystemInfoSection } from "@/components/settings/system-info-section";
+import { HelpSection } from "@/components/settings/help-section";
+
+type TabType = "ai" | "users" | "mail" | "templates" | "teams" | "system" | "help";
+
+const tabs: Array<{ 
+  id: TabType; 
+  label: string; 
+  icon: React.ReactNode; 
+  adminOnly?: boolean; 
+  hrAccess?: boolean 
+}> = [
+  { id: "ai", label: "Configuration IA", icon: <Brain className="h-4 w-4" />, adminOnly: true },
+  { id: "users", label: "Utilisateurs", icon: <Users className="h-4 w-4" />, hrAccess: true },
+  { id: "mail", label: "Automatisations Mail", icon: <Mail className="h-4 w-4" />, hrAccess: true },
+  { id: "templates", label: "Templates Mail", icon: <FileText className="h-4 w-4" />, hrAccess: true },
+  { id: "teams", label: "Demandes d'équipe", icon: <UserCheck className="h-4 w-4" />, adminOnly: true },
+  { id: "system", label: "Système", icon: <Info className="h-4 w-4" /> },
+  { id: "help", label: "Aide", icon: <HelpCircle className="h-4 w-4" /> },
+];
+
+function SettingsContent() {
   const router = useRouter();
-  const { user: currentUser, loading, isAdmin } = useAuth();
-  const isUserAdmin = isAdmin(); // Appeler la fonction
-  const isHR = currentUser?.role === 'hr';
-  const canManageUsers = isUserAdmin; // Seuls les admins peuvent gérer les utilisateurs
-  const canViewUsers = isUserAdmin || isHR; // Admins et HR peuvent voir les utilisateurs
-  // TanStack Query hooks
-  const { data: aiConfig, isLoading: aiConfigLoading } = useAIConfiguration();
-  const setConfigMutation = useSetConfigurationValue();
-  const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
+  const { user: currentUser, loading, isAdmin, isHR: isHRFromContext } = useAuth();
+  const [activeTab, setActiveTab] = useState<TabType | null>(null);
+
+  const isUserAdmin = isAdmin();
+  const isHR = isHRFromContext();
+  const canManageUsers = isUserAdmin;
+  const canViewUsers = isUserAdmin || isHR;
+
 
   useEffect(() => {
     if (!loading && !currentUser) {
       router.push("/auth/login");
     }
   }, [currentUser, loading, router]);
-  
-  const [isSaving, setIsSaving] = useState(false);
-  const [settings, setSettings] = useState({
-    defaultPrompt: ""
-  });
 
-  // User management states
-  const [users, setUsers] = useState<Array<{
-    id: string;
-    email: string;
-    name: string;
-    role: string;
-    is_active: boolean;
-    is_invited: boolean;
-    created_at: string;
-  }>>([]);
-  
-  // Pagination state
-  const [currentUserPage, setCurrentUserPage] = useState(1);
-  const [usersPerPage] = useState(20);
-  const [totalUsers, setTotalUsers] = useState(0);
-  const [totalUserPages, setTotalUserPages] = useState(0);
-  
-  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
-  const [inviteForm, setInviteForm] = useState({
-    email: "",
-    name: "",
-    role: "user"
-  });
-  const [loadingStates, setLoadingStates] = useState<{[key: string]: boolean}>({});
-  
-  // Team requests modal state
-  const [teamRequestsModalOpen, setTeamRequestsModalOpen] = useState(false);
-
-  // Configuration des settings basée sur les données TanStack Query
   useEffect(() => {
-    if (aiConfig) {
-      setSettings({
-        defaultPrompt: aiConfig.defaultPrompt || ""
-      });
-    }
-  }, [aiConfig]);
+    // Only set active tab once user is loaded and not loading
+    if (loading || !currentUser) return;
 
-  // Écouter l'événement d'ouverture du modal team requests depuis les notifications
-  useEffect(() => {
-    const handleOpenTeamRequestsModal = () => {
-      setTeamRequestsModalOpen(true);
-    };
-
-    window.addEventListener('openTeamRequestsModal', handleOpenTeamRequestsModal);
-    return () => {
-      window.removeEventListener('openTeamRequestsModal', handleOpenTeamRequestsModal);
-    };
-  }, []);
-
-  // Séparé pour éviter les dépendances circulaires
-  useEffect(() => {
-    console.log('🔍 Debug permissions:', {
-      currentUser: currentUser?.email,
-      role: currentUser?.role,
-      isUserAdmin,
-      isHR,
-      canViewUsers,
-      canManageUsers
-    });
-    
-    if (currentUser && canViewUsers) {
-      console.log('✅ Chargement des utilisateurs autorisé');
-      loadUsers();
+    const tab = searchParams.get("tab") as TabType;
+    if (tab && tabs.some(t => t.id === tab)) {
+      setActiveTab(tab);
     } else {
-      console.log('❌ Chargement des utilisateurs bloqué');
-    }
-  }, [currentUser, canViewUsers]);
-
-  const handleReset = () => {
-    // Invalider toutes les queries pour forcer un refetch
-    queryClient.invalidateQueries({ queryKey: ['configuration'] });
-    
-    // Reset du form
-    if (aiConfig) {
-      setSettings({
-        defaultPrompt: aiConfig.defaultPrompt || ""
-      });
-    }
-  };
-
-  const handleSave = () => {
-    setIsSaving(true);
-    let saveCount = 0;
-    let totalSaves = 0;
-    
-    // Compter les sauvegardes nécessaires
-    if (settings.defaultPrompt.trim()) totalSaves++;
-    
-    const checkCompletion = () => {
-      saveCount++;
-      if (saveCount >= totalSaves) {
-        setIsSaving(false);
-        toast.success("Settings saved successfully!");
-      }
-    };
-
-    // Sauvegarder le prompt par défaut
-    if (settings.defaultPrompt.trim()) {
-      setConfigMutation.mutate(
-        {
-          key: "DEFAULT_AI_PROMPT",
-          value: settings.defaultPrompt.trim(),
-          description: "Default prompt for AI analysis of CVs"
-        },
-        {
-          onSuccess: checkCompletion,
-          onError: () => {
-            setIsSaving(false);
-            toast.error("Error saving default prompt");
-          }
-        }
-      );
-    }
-    
-    if (totalSaves === 0) {
-      setIsSaving(false);
-      toast.info("No changes to save");
-    }
-  };
-
-  // User management functions
-  const loadUsers = async (page: number = currentUserPage) => {
-    try {
-      const token = localStorage.getItem('token');
-      const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
-      const response = await fetch(`${API_BASE_URL}/api/companies/current/users?page=${page}&limit=${usersPerPage}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setUsers(data.data);
-        setTotalUsers(data.total);
-        setTotalUserPages(data.totalPages);
-      }
-    } catch (error) {
-      console.error("Error loading users:", error);
-      toast.error("Error loading users");
-    }
-  };
-
-  const handleUserPageChange = (page: number) => {
-    setCurrentUserPage(page);
-    loadUsers(page);
-  };
-
-  const handleInviteUser = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
-      const response = await fetch(`${API_BASE_URL}/api/companies/current/invite`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(inviteForm),
-      });
-
-      if (response.ok) {
-        toast.success("Invitation sent successfully!");
-        setInviteDialogOpen(false);
-        setInviteForm({ email: "", name: "", role: "user" });
-        await loadUsers(currentUserPage);
+      // Set default tab based on permissions
+      if (isUserAdmin) {
+        setActiveTab("ai");
+      } else if (canViewUsers) {
+        setActiveTab("users");
       } else {
-        const error = await response.json();
-        toast.error(error.message || "Error sending invitation");
+        setActiveTab("system");
       }
-    } catch (error) {
-      console.error("Error inviting user:", error);
-      toast.error("Error sending invitation");
     }
+  }, [searchParams, isUserAdmin, canViewUsers, loading, currentUser]);
+
+  const handleTabChange = (tabId: TabType) => {
+    setActiveTab(tabId);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", tabId);
+    router.push(`/settings?${params.toString()}`, { scroll: false });
   };
 
-  const handleUpdateUserRole = async (userId: string, newRole: string) => {
-    try {
-      const token = localStorage.getItem('token');
-      const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
-      const response = await fetch(`${API_BASE_URL}/api/companies/current/users/${userId}/role`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ role: newRole }),
-      });
+  // Filter tabs based on permissions - only after user is loaded
+  const availableTabs = !loading && currentUser ? tabs.filter(tab => {
+    if (tab.adminOnly && !isUserAdmin) return false;
+    if (tab.hrAccess && !canViewUsers) return false;
+    return true;
+  }) : [];
 
-      if (response.ok) {
-        toast.success("User role updated successfully!");
-        await loadUsers(currentUserPage);
-      } else {
-        const error = await response.json();
-        toast.error(error.message || "Error updating user role");
-      }
-    } catch (error) {
-      console.error("Error updating user role:", error);
-      toast.error("Error updating user role");
-    }
-  };
-
-  const handleToggleUserStatus = async (userId: string, isActive: boolean) => {
-    try {
-      const token = localStorage.getItem('token');
-      const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
-      const endpoint = isActive ? 'deactivate' : 'reactivate';
-      const response = await fetch(`${API_BASE_URL}/api/companies/current/users/${userId}/${endpoint}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        toast.success(`User ${isActive ? 'deactivated' : 'reactivated'} successfully!`);
-        await loadUsers(currentUserPage);
-      } else {
-        const error = await response.json();
-        toast.error(error.message || `Error ${isActive ? 'deactivating' : 'reactivating'} user`);
-      }
-    } catch (error) {
-      console.error("Error toggling user status:", error);
-      toast.error("Error updating user status");
-    }
-  };
-
-  const handleResendInvitation = async (userId: string, email: string) => {
-    const loadingKey = `resend_${userId}`;
-    setLoadingStates(prev => ({ ...prev, [loadingKey]: true }));
-    
-    try {
-      const token = localStorage.getItem('token');
-      const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
-      const response = await fetch(`${API_BASE_URL}/api/companies/current/users/${userId}/resend-invitation`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        toast.success(`Invitation renvoyée à ${email}`);
-      } else {
-        const error = await response.json();
-        toast.error(error.message || "Erreur lors du renvoi de l'invitation");
-      }
-    } catch (error) {
-      console.error("Error resending invitation:", error);
-      toast.error("Erreur lors du renvoi de l'invitation");
-    } finally {
-      setLoadingStates(prev => ({ ...prev, [loadingKey]: false }));
-    }
-  };
-
-  const handleDeleteUser = async (userId: string, userName: string) => {
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer ${userName} ? Cette action est irréversible.`)) {
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem('token');
-      const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
-      const response = await fetch(`${API_BASE_URL}/api/companies/current/users/${userId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        toast.success(`${userName} supprimé avec succès`);
-        await loadUsers(currentUserPage);
-      } else {
-        const error = await response.json();
-        toast.error(error.message || "Erreur lors de la suppression");
-      }
-    } catch (error) {
-      console.error("Error deleting user:", error);
-      toast.error("Erreur lors de la suppression");
-    }
-  };
-
-  const getRoleIcon = (role: string) => {
-    switch (role) {
-      case 'admin': return <Crown className="h-4 w-4" />;
-      case 'hr': return <Shield className="h-4 w-4" />;
-      default: return <Users className="h-4 w-4" />;
-    }
-  };
-
-  const getRoleBadgeVariant = (role: string) => {
-    switch (role) {
-      case 'admin': return 'default';
-      case 'hr': return 'secondary';
-      default: return 'outline';
-    }
-  };
-
-  if (loading || aiConfigLoading) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <LoadingSpinner size="lg" text="Loading settings..." />
+        <LoadingSpinner size="lg" text="Chargement..." />
       </div>
     );
   }
@@ -356,11 +101,20 @@ export default function SettingsPage() {
     return null;
   }
 
+  // Don't render tabs until activeTab is determined
+  if (activeTab === null) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <LoadingSpinner size="lg" text="Chargement des paramètres..." />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       <NavBar />
       
-      <div className="container mx-auto p-6 pt-24 max-w-4xl">
+      <div className="container mx-auto p-6 pt-24 max-w-6xl">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -374,117 +128,75 @@ export default function SettingsPage() {
             className="gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Dashboard
+            Retour au Dashboard
           </Button>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Paramètres</h1>
             <p className="text-muted-foreground">
-              Configure your AI settings and platform preferences
+              Configurez vos paramètres IA et préférences de plateforme
             </p>
           </div>
         </motion.div>
 
-        <div className="grid gap-6">
-          {/* AI Configuration - Admin only */}
-          {isUserAdmin && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
+        <div className="flex gap-8">
+          {/* Sidebar Navigation */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="w-64 flex-shrink-0"
+          >
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Brain className="h-5 w-5" />
-                  AI Configuration
-                </CardTitle>
-                <CardDescription>
-                  Manage your AI analysis preferences (API keys are managed by the system administrator)
-                </CardDescription>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Navigation</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Current Status */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted rounded-lg">
-                  <div>
-                    <Label className="text-sm font-medium">AI Status</Label>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge variant="default">
-                        Active
-                      </Badge>
-                    </div>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">Default Prompt</Label>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge variant={aiConfig?.hasDefaultPrompt ? "default" : "secondary"}>
-                        {aiConfig?.hasDefaultPrompt ? "Configured" : "Using default"}
-                      </Badge>
-                    </div>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">Provider</Label>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge variant="outline">
-                        Together AI
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Default Prompt */}
-                <div className="space-y-2">
-                  <Label htmlFor="defaultPrompt">Default AI Prompt</Label>
-                  <Textarea
-                    id="defaultPrompt"
-                    value={settings.defaultPrompt}
-                    onChange={(e) => setSettings(prev => ({ ...prev, defaultPrompt: e.target.value }))}
-                    placeholder="Enter your default AI prompt for CV analysis..."
-                    rows={12}
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    This prompt will be used by default for all CV analyses unless overridden in project settings
-                  </p>
-                </div>
-
-                {/* Save Button */}
-                <div className="flex gap-4 pt-4">
-                  <Button
-                    onClick={handleSave}
-                    disabled={isSaving}
-                    className="gap-2"
-                  >
-                    {isSaving ? (
-                      <>
-                        <LoadingSpinner size="sm" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="h-4 w-4" />
-                        Save Settings
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={handleReset}
-                    disabled={isSaving}
-                  >
-                    Reset
-                  </Button>
-                </div>
+              <CardContent className="p-0">
+                <nav className="space-y-1">
+                  {availableTabs.map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => handleTabChange(tab.id)}
+                      className={cn(
+                        "flex items-center gap-3 w-full px-4 py-2.5 text-sm font-medium rounded-md transition-all duration-200",
+                        activeTab === tab.id
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                      )}
+                    >
+                      {tab.icon}
+                      {tab.label}
+                    </button>
+                  ))}
+                </nav>
               </CardContent>
             </Card>
           </motion.div>
-          )}
 
-          {/* User Management (Admin & HR can view, Admin can manage) */}
-          {canViewUsers && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15 }}
-            >
+          {/* Main Content */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="flex-1"
+          >
+            {/* AI Configuration - Admin only */}
+            {activeTab === "ai" && isUserAdmin && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Brain className="h-5 w-5" />
+                    Configuration IA
+                  </CardTitle>
+                  <CardDescription>
+                    Gérez vos paramètres d'intelligence artificielle (les clés API sont gérées par l'administrateur système)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <AIConfigurationSection />
+                </CardContent>
+              </Card>
+            )}
+
+            {/* User Management */}
+            {activeTab === "users" && canViewUsers && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -492,242 +204,50 @@ export default function SettingsPage() {
                     Gestion des utilisateurs
                   </CardTitle>
                   <CardDescription>
-                    Invitez des membres dans votre équipe et gérez leurs rôles
+                    {canManageUsers 
+                      ? "Invitez et gérez les membres de votre équipe"
+                      : "Consultez les membres de votre équipe"
+                    }
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Invite User Dialog */}
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <h3 className="font-medium">Membres de l'équipe ({totalUsers || users.length})</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Gérez les membres de votre entreprise
-                      </p>
-                    </div>
-                    {canManageUsers && (
-                      <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
-                        <DialogTrigger asChild>
-                          <Button className="gap-2">
-                            <UserPlus className="h-4 w-4" />
-                            Inviter un utilisateur
-                          </Button>
-                        </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Inviter un nouvel utilisateur</DialogTitle>
-                          <DialogDescription>
-                            Envoyez une invitation par email pour ajouter un membre à votre équipe
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="invite-email">Email</Label>
-                            <Input
-                              id="invite-email"
-                              type="email"
-                              placeholder="utilisateur@entreprise.com"
-                              value={inviteForm.email}
-                              onChange={(e) => setInviteForm(prev => ({ ...prev, email: e.target.value }))}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="invite-name">Nom</Label>
-                            <Input
-                              id="invite-name"
-                              placeholder="Nom de l'utilisateur"
-                              value={inviteForm.name}
-                              onChange={(e) => setInviteForm(prev => ({ ...prev, name: e.target.value }))}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="invite-role">Rôle</Label>
-                            <Select
-                              value={inviteForm.role}
-                              onValueChange={(value) => setInviteForm(prev => ({ ...prev, role: value }))}
-                            >
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="user">Utilisateur</SelectItem>
-                                <SelectItem value="hr">RH</SelectItem>
-                                <SelectItem value="admin">Administrateur</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                        <DialogFooter>
-                          <Button
-                            variant="outline"
-                            onClick={() => setInviteDialogOpen(false)}
-                          >
-                            Annuler
-                          </Button>
-                          <Button onClick={handleInviteUser}>
-                            Envoyer l'invitation
-                          </Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-                    )}
-                  </div>
-
-                  {/* Users List */}
-                  <div className="space-y-3">
-                    {users.map((user) => (
-                      <div
-                        key={user.id}
-                        className="flex items-center justify-between p-4 border rounded-lg"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="flex items-center gap-2">
-                            {getRoleIcon(user.role)}
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium">{user.name}</span>
-                                {user.is_invited && (
-                                  <Badge variant="outline" className="text-xs">
-                                    Invité
-                                  </Badge>
-                                )}
-                                {!user.is_active && (
-                                  <Badge variant="destructive" className="text-xs">
-                                    Inactif
-                                  </Badge>
-                                )}
-                              </div>
-                              <p className="text-sm text-muted-foreground">{user.email}</p>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          {/* Role Badge */}
-                          <Badge variant={getRoleBadgeVariant(user.role)}>
-                            {user.role === 'admin' ? 'Administrateur' : 
-                             user.role === 'hr' ? 'RH' : 'Utilisateur'}
-                          </Badge>
-
-                          {/* Role Select - Admin only */}
-                          {canManageUsers ? (
-                            <Select
-                              value={user.role}
-                              onValueChange={(newRole) => handleUpdateUserRole(user.id, newRole)}
-                              disabled={user.id === currentUser?.id} // Cannot change own role
-                            >
-                              <SelectTrigger className="w-32">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="user">Utilisateur</SelectItem>
-                                <SelectItem value="hr">RH</SelectItem>
-                                <SelectItem value="admin">Admin</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          ) : (
-                            <span className="text-sm text-muted-foreground px-3 py-1.5 bg-muted rounded">
-                              {user.role === 'admin' ? 'Administrateur' : 
-                               user.role === 'hr' ? 'RH' : 'Utilisateur'}
-                            </span>
-                          )}
-
-                          {/* Management Actions - Admin only */}
-                          {canManageUsers && (
-                            <>
-                              {/* Toggle Status */}
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleToggleUserStatus(user.id, user.is_active)}
-                                disabled={user.id === currentUser?.id} // Cannot deactivate self
-                                className="h-8 w-8 p-0"
-                              >
-                                {user.is_active ? (
-                                  <ToggleRight className="h-4 w-4 text-green-600" />
-                                ) : (
-                                  <ToggleLeft className="h-4 w-4 text-muted-foreground" />
-                                )}
-                              </Button>
-
-                              {/* Resend Invitation Button - only for invited users */}
-                              {user.is_invited && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleResendInvitation(user.id, user.email)}
-                                  disabled={loadingStates[`resend_${user.id}`] || false}
-                                  className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                  title="Renvoyer l'invitation"
-                                >
-                                  <RefreshCcw className={`h-4 w-4${loadingStates[`resend_${user.id}`] ? ' animate-spin' : ''}`} />
-                                </Button>
-                              )}
-
-                              {/* Delete User Button */}
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDeleteUser(user.id, user.name)}
-                                disabled={user.id === currentUser?.id} // Cannot delete self
-                                className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                title="Supprimer l'utilisateur"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </>
-                          )}
-
-                          {/* Read-only status indicator for HR */}
-                          {!canManageUsers && (
-                            <div className="flex items-center gap-2">
-                              <span className={`text-xs px-2 py-1 rounded-full ${user.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                {user.is_active ? 'Actif' : 'Inactif'}
-                              </span>
-                              {user.is_invited && (
-                                <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800">
-                                  Invité
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-
-                    {users.length === 0 && (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p>Aucun utilisateur trouvé</p>
-                        <p className="text-sm">Invitez votre premier membre d'équipe</p>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Pagination pour les utilisateurs */}
-                  {totalUserPages > 1 && (
-                    <div className="mt-6 border-t pt-6">
-                      <Pagination
-                        currentPage={currentUserPage}
-                        totalPages={totalUserPages}
-                        onPageChange={handleUserPageChange}
-                        showInfo={true}
-                        totalItems={totalUsers}
-                        itemsPerPage={usersPerPage}
-                      />
-                    </div>
-                  )}
+                <CardContent>
+                  <UserManagementSection 
+                    canManage={canManageUsers}
+                    canView={canViewUsers}
+                    currentUser={currentUser}
+                  />
                 </CardContent>
               </Card>
-            </motion.div>
-          )}
+            )}
 
-          {/* Team Requests Management (Admin only) */}
-          {isUserAdmin && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
+            {/* Mail Automations */}
+            {activeTab === "mail" && (isUserAdmin || isHR) && (
+              <MailAutomationsSection 
+                currentUser={currentUser} 
+                isUserAdmin={isUserAdmin} 
+              />
+            )}
+
+            {/* Mail Templates */}
+            {activeTab === "templates" && (isUserAdmin || isHR) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Templates de Mail
+                  </CardTitle>
+                  <CardDescription>
+                    Créez et gérez vos modèles d'emails pour les automatisations
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <MailTemplatesSection />
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Team Requests - Admin only */}
+            {activeTab === "teams" && isUserAdmin && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -738,102 +258,67 @@ export default function SettingsPage() {
                     Gérez les demandes de personnes souhaitant rejoindre votre équipe
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
-                    <div>
-                      <h4 className="font-medium">Demandes de rejoindre l'équipe</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Consultez et approuvez les demandes de personnes ayant accès à vos projets partagés
-                      </p>
-                    </div>
-                    <Button 
-                      onClick={() => setTeamRequestsModalOpen(true)}
-                      variant="outline"
-                      className="gap-2"
-                    >
-                      <UserCheck className="h-4 w-4" />
-                      Voir les demandes
-                    </Button>
-                  </div>
+                <CardContent>
+                  <TeamRequestsSection />
                 </CardContent>
               </Card>
-            </motion.div>
-          )}
+            )}
 
-          {/* System Information */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Settings className="h-5 w-5" />
-                  System Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-sm font-medium">Platform Version</Label>
-                    <p className="text-sm text-muted-foreground">v1.0.0</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">Backend Status</Label>
-                    <Badge variant="default">Connected</Badge>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">Database</Label>
-                    <p className="text-sm text-muted-foreground">PostgreSQL (Supabase)</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">AI Provider</Label>
-                    <p className="text-sm text-muted-foreground">Together AI (DeepSeek)</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
+            {/* System Information */}
+            {activeTab === "system" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Info className="h-5 w-5" />
+                    Informations système
+                  </CardTitle>
+                  <CardDescription>
+                    Informations sur la plateforme et votre utilisation
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <SystemInfoSection />
+                </CardContent>
+              </Card>
+            )}
 
-          {/* Help & Documentation */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <Card>
-              <CardHeader>
-                <CardTitle>Help & Documentation</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <h4 className="font-medium mb-2">Getting Started</h4>
-                  <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>• API keys are managed by your system administrator</li>
-                    <li>• Create your first recruitment project</li>
-                    <li>• Upload CV files for analysis</li>
-                    <li>• Review AI-generated scores and rankings</li>
-                  </ul>
-                </div>
-                
-                <div>
-                  <h4 className="font-medium mb-2">Contact</h4>
-                  <p className="text-sm text-muted-foreground">
-                    For API key configuration or system administration, please contact your administrator.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Help & Documentation */}
+            {activeTab === "help" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <HelpCircle className="h-5 w-5" />
+                    Aide et Documentation
+                  </CardTitle>
+                  <CardDescription>
+                    Guides d'utilisation et support
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <HelpSection />
+                </CardContent>
+              </Card>
+            )}
           </motion.div>
         </div>
-        
-        {/* Team Requests Modal */}
-        <TeamRequestsModal 
-          open={teamRequestsModalOpen} 
-          onOpenChange={setTeamRequestsModalOpen} 
-        />
       </div>
     </div>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <NavBar />
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center h-64">
+            <LoadingSpinner className="w-8 h-8" />
+          </div>
+        </div>
+      </div>
+    }>
+      <SettingsContent />
+    </Suspense>
   );
 }

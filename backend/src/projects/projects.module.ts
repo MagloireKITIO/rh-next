@@ -6,11 +6,13 @@ import { Project } from './entities/project.entity';
 import { Candidate } from '../candidates/entities/candidate.entity';
 import { Analysis } from '../analysis/entities/analysis.entity';
 import { StorageModule } from '../storage/storage.module';
+import { MailAutomationModule } from '../mail-automation/mail-automation.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Project, Candidate, Analysis]),
-    StorageModule
+    StorageModule,
+    MailAutomationModule
   ],
   controllers: [ProjectsController, PublicProjectsController, PublicJobOffersController],
   providers: [ProjectsService],

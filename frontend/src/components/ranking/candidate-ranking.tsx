@@ -10,12 +10,14 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Pagination } from "@/components/ui/pagination";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Candidate, RankingChange, PaginatedResponse } from "@/lib/api-client";
-import { useCandidatesByProject, useCandidatesByProjectLegacy, useRankingChanges } from "@/hooks/queries";
+import { useCandidatesByProject, useCandidatesByProjectLegacy, useRankingChanges, useCandidatesWithSearch } from "@/hooks/queries";
 import { useDeleteCandidate } from "@/hooks/mutations";
 import { useWebSocketSync } from "@/hooks/useWebSocketSync";
 import { useQueryClient } from '@tanstack/react-query';
-import { TrendingUp, TrendingDown, RefreshCw, Eye, FileText, Wifi, Trash2 } from "lucide-react";
+import { TrendingUp, TrendingDown, RefreshCw, Eye, FileText, Wifi, Trash2, Search, Filter, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CandidateRankingProps {
@@ -39,35 +41,65 @@ export function CandidateRanking({
   enablePagination = false,
   pageSize = 20
 }: CandidateRankingProps) {
-  // États pour la pagination
+  // États de base
   const [currentPage, setCurrentPage] = useState(1);
-  
-  // Choisir le hook approprié selon si la pagination est activée
-  const legacyQuery = useCandidatesByProjectLegacy(projectId);
-  const paginatedQuery = useCandidatesByProject(projectId, enablePagination ? { page: currentPage, limit: pageSize } : undefined);
-  
-  const queryToUse = enablePagination ? paginatedQuery : legacyQuery;
-  
-  // Extraire les données selon le type de réponse avec useMemo pour stabiliser
-  const candidates = useMemo(() => {
-    if (enablePagination) {
-      return (queryToUse.data as PaginatedResponse<Candidate>)?.data || [];
-    } else {
-      return (queryToUse.data as Candidate[]) || initialCandidates || [];
-    }
-  }, [queryToUse.data, enablePagination, initialCandidates]);
-    
-  const paginationInfo = useMemo(() => {
-    return enablePagination ? (queryToUse.data as PaginatedResponse<Candidate>) : null;
-  }, [queryToUse.data, enablePagination]);
-  
-  const { data: rankingChanges = [], isLoading: rankingLoading } = useRankingChanges(projectId);
-  const deleteCandidateMutation = useDeleteCandidate();
-  const queryClient = useQueryClient();
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [selectedCandidates, setSelectedCandidates] = useState<Set<string>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [scoreFilter, setScoreFilter] = useState("all");
+  const [showFilters, setShowFilters] = useState(false);
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+
+  // Debounce pour la recherche (500ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+  
+  // Réinitialiser la page quand on change les filtres
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchQuery, statusFilter, scoreFilter]);
+
+  // Déterminer si on doit utiliser la recherche côté serveur
+  const hasActiveFilters = debouncedSearchQuery.trim() !== "" || statusFilter !== "all" || scoreFilter !== "all";
+  
+  // Hooks de requête
+  const legacyQuery = useCandidatesByProjectLegacy(projectId);
+  const paginatedQuery = useCandidatesByProject(projectId, enablePagination && !hasActiveFilters ? { page: currentPage, limit: pageSize } : undefined);
+  const searchQueryResult = useCandidatesWithSearch(projectId, {
+    search: debouncedSearchQuery,
+    statusFilter,
+    scoreFilter,
+    page: currentPage,
+    limit: pageSize
+  });
+  
+  // Choisir la requête appropriée
+  const queryToUse = hasActiveFilters ? searchQueryResult : (enablePagination ? paginatedQuery : legacyQuery);
+  
+  // Extraire les données selon le type de réponse avec useMemo pour stabiliser
+  const candidates = useMemo(() => {
+    if (hasActiveFilters || enablePagination) {
+      return (queryToUse.data as PaginatedResponse<Candidate>)?.data || [];
+    } else {
+      return (queryToUse.data as Candidate[]) || initialCandidates || [];
+    }
+  }, [queryToUse.data, hasActiveFilters, enablePagination, initialCandidates]);
+    
+  const paginationInfo = useMemo(() => {
+    return (hasActiveFilters || enablePagination) ? (queryToUse.data as PaginatedResponse<Candidate>) : null;
+  }, [queryToUse.data, hasActiveFilters, enablePagination]);
+  
+  const { data: rankingChanges = [], isLoading: rankingLoading } = useRankingChanges(projectId);
+  const deleteCandidateMutation = useDeleteCandidate();
+  const queryClient = useQueryClient();
   
   const { isConnected } = useWebSocketSync(projectId);
   
@@ -108,13 +140,16 @@ export function CandidateRanking({
     });
   }, []);
 
+  // Les candidats sont maintenant filtrés côté serveur quand hasActiveFilters est true
+  const filteredCandidates = candidates;
+
   const handleSelectAll = useCallback((checked: boolean) => {
     if (checked) {
-      setSelectedCandidates(new Set(candidates.map(c => c.id)));
+      setSelectedCandidates(new Set(filteredCandidates.map(c => c.id)));
     } else {
       setSelectedCandidates(new Set());
     }
-  }, [candidates]);
+  }, [filteredCandidates]);
 
   const handleDeleteSelected = async () => {
     if (selectedCandidates.size === 0) return;
@@ -141,10 +176,10 @@ export function CandidateRanking({
     }
   };
 
-  const isAllSelected = candidates.length > 0 && selectedCandidates.size === candidates.length;
-  const isIndeterminate = selectedCandidates.size > 0 && selectedCandidates.size < candidates.length;
+  const isAllSelected = filteredCandidates.length > 0 && selectedCandidates.size === filteredCandidates.length;
+  const isIndeterminate = selectedCandidates.size > 0 && selectedCandidates.size < filteredCandidates.length;
 
-  const sortedCandidates = [...candidates].sort((a, b) => {
+  const sortedCandidates = [...filteredCandidates].sort((a, b) => {
     // First by status (analyzed first)
     if (a.status === "analyzed" && b.status !== "analyzed") return -1;
     if (b.status === "analyzed" && a.status !== "analyzed") return 1;
@@ -188,7 +223,136 @@ export function CandidateRanking({
             )}
           </div>
         </div>
-        {candidates.length > 0 && (
+        
+        {/* Recherche et filtres */}
+        <div className="pt-4 space-y-4">
+          <div className="flex flex-col sm:flex-row gap-4">
+            {/* Barre de recherche */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Rechercher par nom, email ou résumé..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+              {searchQuery && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-gray-100"
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+            
+            {/* Bouton pour afficher/masquer les filtres */}
+            <Button
+              variant="outline"
+              onClick={() => setShowFilters(!showFilters)}
+              className="gap-2"
+            >
+              <Filter className="h-4 w-4" />
+              Filtres
+              {(statusFilter !== "all" || scoreFilter !== "all") && (
+                <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 flex items-center justify-center text-xs">
+                  {(statusFilter !== "all" ? 1 : 0) + (scoreFilter !== "all" ? 1 : 0)}
+                </Badge>
+              )}
+            </Button>
+          </div>
+          
+          {/* Filtres détaillés */}
+          {showFilters && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="flex flex-col sm:flex-row gap-4 p-4 bg-muted/50 rounded-lg"
+            >
+              <div className="flex-1">
+                <label className="text-sm font-medium mb-2 block">Statut</label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Tous les statuts" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous les statuts</SelectItem>
+                    <SelectItem value="analyzed">Analysé</SelectItem>
+                    <SelectItem value="pending">En attente</SelectItem>
+                    <SelectItem value="error">Erreur</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="flex-1">
+                <label className="text-sm font-medium mb-2 block">Score</label>
+                <Select value={scoreFilter} onValueChange={setScoreFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Tous les scores" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous les scores</SelectItem>
+                    <SelectItem value="excellent">Excellent (80+)</SelectItem>
+                    <SelectItem value="good">Bon (60-79)</SelectItem>
+                    <SelectItem value="average">Moyen (40-59)</SelectItem>
+                    <SelectItem value="poor">Faible (&lt;40)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Bouton pour réinitialiser les filtres */}
+              {(statusFilter !== "all" || scoreFilter !== "all") && (
+                <div className="flex items-end">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setStatusFilter("all");
+                      setScoreFilter("all");
+                    }}
+                    className="gap-2"
+                  >
+                    <X className="h-4 w-4" />
+                    Réinitialiser
+                  </Button>
+                </div>
+              )}
+            </motion.div>
+          )}
+          
+          {/* Résultats et sélection */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              <span>
+                {hasActiveFilters && paginationInfo 
+                  ? `${paginationInfo.total} résultat${paginationInfo.total > 1 ? 's' : ''}`
+                  : `${filteredCandidates.length} candidat${filteredCandidates.length > 1 ? 's' : ''}`
+                }
+              </span>
+              {(searchQuery || statusFilter !== "all" || scoreFilter !== "all") && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setStatusFilter("all");
+                    setScoreFilter("all");
+                    setShowFilters(false);
+                  }}
+                  className="gap-2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3 w-3" />
+                  Effacer tous les filtres
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {filteredCandidates.length > 0 && (
           <div className="flex items-center justify-between pt-4">
             <div className="flex items-center gap-3">
               <Checkbox
@@ -386,7 +550,7 @@ export function CandidateRanking({
         </div>
         
         {/* Pagination */}
-        {enablePagination && paginationInfo && paginationInfo.totalPages > 1 && (
+        {(enablePagination || hasActiveFilters) && paginationInfo && paginationInfo.totalPages > 1 && (
           <div className="mt-6 border-t pt-6">
             <Pagination
               currentPage={currentPage}

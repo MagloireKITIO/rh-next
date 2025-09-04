@@ -7,8 +7,11 @@ import { Analysis } from '../analysis/entities/analysis.entity';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { AzureStorageService } from '../storage/azure-storage.service';
+import { AutomationTriggerService } from '../mail-automation/services/automation-trigger.service';
+import { AutomationTrigger, AutomationEntityType } from '../mail-automation/entities/mail-automation.entity';
 import { randomBytes } from 'crypto';
 import * as pdf from 'pdf-parse';
+import { CandidateFilters, PaginatedResponse } from '../candidates/candidates.service';
 
 @Injectable()
 export class ProjectsService {
@@ -24,6 +27,7 @@ export class ProjectsService {
     @InjectDataSource()
     private dataSource: DataSource,
     private azureStorageService: AzureStorageService,
+    private automationTriggerService: AutomationTriggerService,
   ) {}
 
   async create(createProjectDto: CreateProjectDto, companyId: string, userId: string): Promise<Project> {
@@ -32,7 +36,28 @@ export class ProjectsService {
       company_id: companyId,
       created_by: userId,
     });
-    return await this.projectRepository.save(project);
+    const savedProject = await this.projectRepository.save(project);
+    
+    // Déclencher les automatisations lors de la création d'un projet
+    try {
+      // Charger les relations nécessaires pour les automatisations
+      const projectWithRelations = await this.projectRepository.findOne({
+        where: { id: savedProject.id },
+        relations: ['company', 'createdBy']
+      });
+      
+      if (projectWithRelations) {
+        await this.automationTriggerService.triggerProjectAutomations(
+          AutomationTrigger.ON_CREATE,
+          projectWithRelations
+        );
+      }
+    } catch (error) {
+      this.logger.warn('Error triggering automations for project creation:', error);
+      // Ne pas faire échouer la création du projet si les automatisations échouent
+    }
+    
+    return savedProject;
   }
 
   async findAll(companyId: string): Promise<Project[]> {
@@ -227,6 +252,85 @@ export class ProjectsService {
     }
 
     return project;
+  }
+
+  async getSharedProjectCandidates(shareToken: string, page: number = 1, limit: number = 20, filters?: CandidateFilters): Promise<PaginatedResponse<Candidate>> {
+    // Vérifier d'abord que le projet partagé existe et est valide
+    const project = await this.projectRepository.findOne({
+      where: { 
+        public_share_token: shareToken,
+        is_public_shared: true,
+      },
+    });
+
+    if (!project) {
+      throw new NotFoundException('Lien de partage invalide ou expiré');
+    }
+
+    if (project.public_share_expires_at && new Date() > project.public_share_expires_at) {
+      throw new NotFoundException('Lien de partage expiré');
+    }
+
+    // Maintenant rechercher les candidats avec pagination et filtres
+    const skip = (page - 1) * limit;
+    
+    const queryBuilder = this.dataSource
+      .getRepository(Candidate)
+      .createQueryBuilder('candidate')
+      .leftJoinAndSelect('candidate.project', 'project')
+      .leftJoinAndSelect('candidate.analyses', 'analyses')
+      .where('candidate.projectId = :projectId', { projectId: project.id });
+
+    // Filtrage par recherche (nom, email, résumé, texte extrait)
+    if (filters?.search) {
+      const searchTerm = `%${filters.search.toLowerCase()}%`;
+      queryBuilder.andWhere(
+        '(LOWER(candidate.name) LIKE :search OR LOWER(candidate.email) LIKE :search OR LOWER(candidate.summary) LIKE :search OR LOWER(candidate.extractedText) LIKE :search)',
+        { search: searchTerm }
+      );
+    }
+
+    // Filtrage par statut
+    if (filters?.status) {
+      queryBuilder.andWhere('candidate.status = :status', { status: filters.status });
+    }
+
+    // Filtrage par score
+    if (filters?.scoreFilter && filters.scoreFilter !== 'all') {
+      switch (filters.scoreFilter) {
+        case 'excellent':
+          queryBuilder.andWhere('candidate.score >= 80');
+          break;
+        case 'good':
+          queryBuilder.andWhere('candidate.score >= 60 AND candidate.score < 80');
+          break;
+        case 'average':
+          queryBuilder.andWhere('candidate.score >= 40 AND candidate.score < 60');
+          break;
+        case 'poor':
+          queryBuilder.andWhere('candidate.score < 40');
+          break;
+      }
+    }
+
+    // Ordre et pagination
+    queryBuilder
+      .orderBy('candidate.score', 'DESC')
+      .skip(skip)
+      .take(limit);
+
+    const [data, total] = await queryBuilder.getManyAndCount();
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages,
+      hasNext: page < totalPages,
+      hasPrevious: page > 1,
+    };
   }
 
   async revokeShare(id: string, companyId: string): Promise<void> {

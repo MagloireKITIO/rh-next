@@ -32,7 +32,7 @@ export class TogetherAIService {
       // Logs removed for memory efficiency - initialized ${this.accounts.length} accounts
     } catch (error) {
       this.logger.warn('Failed to load API keys from database, falling back to environment variables');
-      const apiKeys = process.env.TOGETHER_AI_KEYS?.split(',') || [];
+      const apiKeys = process.env.OPENROUTER_API_KEYS?.split(',') || [];
       this.accounts = apiKeys.map(key => ({
         apiKey: key.trim(),
         isActive: true,
@@ -132,18 +132,27 @@ export class TogetherAIService {
   }
 
   async analyzeCV(cvText: string, jobDescription: string, customPrompt?: string, companyId?: string): Promise<any> {
+    this.logger.log(`🔍 Starting CV analysis for company: ${companyId || 'global'}`);
+    this.logger.log(`📄 CV text length: ${cvText.length} characters`);
+    this.logger.log(`💼 Job description length: ${jobDescription.length} characters`);
+    
     // Utiliser les clés spécifiques à l'entreprise
     const companyAccounts = await this.getAccountsForCompany(companyId);
     
     if (companyAccounts.length === 0) {
-      throw new Error('Aucune clé API disponible pour cette entreprise. Contactez votre administrateur.');
+      this.logger.error('❌ No API keys available for company');
+      throw new Error('Aucune clé API OpenRouter disponible pour cette entreprise. Contactez votre administrateur.');
     }
 
     // Utiliser la première clé disponible pour cette entreprise
     const account = companyAccounts[0];
     if (!account) {
-      throw new Error('No available Together AI accounts');
+      this.logger.error('❌ No available accounts found');
+      throw new Error('No available OpenRouter AI accounts');
     }
+
+    this.logger.log(`🔑 Using API key: ${account.apiKey.substring(0, 8)}...`);
+    this.logger.log(`📊 Account usage: ${account.requestCount}/${account.maxRequests} requests`)
 
     // Pas de délai ici car c'est géré par la queue
     // Le délai est maintenant géré par AnalysisQueueService
@@ -188,20 +197,20 @@ Analysez ce CV et fournissez une réponse JSON avec la structure suivante :
   }
 }`;
 
-    // Utiliser un modèle plus rapide par défaut, avec fallback
+    // Utiliser le modèle Llama disponible sur OpenRouter
     const models = [
-      'meta-llama/Llama-3.2-11B-Vision-Instruct-Turbo', // Plus rapide
-      'deepseek-ai/deepseek-v3' // Fallback si le premier échoue
+      'meta-llama/llama-3.2-11b-vision-instruct', // Modèle principal sur OpenRouter
+      'anthropic/claude-3-haiku' // Fallback alternatif si Llama échoue
     ];
     
-    const selectedModel = models[0]; // Commencer par le plus rapide
+    const selectedModel = models[0]; // Commencer par Llama
 
     try {
-      // Log pour diagnostiquer
-      // Debug logs removed for memory efficiency
+      this.logger.log(`🤖 Making AI request with model: ${selectedModel}`);
+      this.logger.log(`⏱️ Request started at: ${new Date().toISOString()}`);
       
       const response = await axios.post(
-        'https://api.together.xyz/v1/chat/completions',
+        'https://openrouter.ai/api/v1/chat/completions',
         {
           model: selectedModel,
           messages: [
@@ -218,31 +227,38 @@ Analysez ce CV et fournissez une réponse JSON avec la structure suivante :
           headers: {
             'Authorization': `Bearer ${account.apiKey}`,
             'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://your-app.com', // Optionnel mais recommandé
+            'X-Title': 'RH-Next CV Analysis', // Optionnel mais recommandé
           },
         }
       );
 
+      this.logger.log(`✅ AI request completed successfully`);
+      this.logger.log(`⏱️ Response received at: ${new Date().toISOString()}`);
+      this.logger.log(`📈 Response status: ${response.status} ${response.statusText}`);
+      
       this.markAccountAsUsed(account);
       
       // Analyser les headers de rate limiting si disponibles
       const rateLimitHeaders = response.headers;
       if (rateLimitHeaders['x-ratelimit-remaining']) {
         const remaining = parseInt(rateLimitHeaders['x-ratelimit-remaining']);
+        this.logger.log(`📊 Rate limit remaining: ${remaining} requests`);
         if (remaining <= 5) { // Si il reste moins de 5 requêtes
-          this.logger.warn(`Account ${account.apiKey.substring(0, 8)}... has only ${remaining} requests remaining`);
+          this.logger.warn(`⚠️ Account ${account.apiKey.substring(0, 8)}... has only ${remaining} requests remaining`);
         }
       }
       
       // Mettre à jour le compteur d'utilisation dans la base de données
       try {
         await this.apiKeysService.incrementUsage(account.apiKey);
+        this.logger.log(`💾 API key usage updated in database`);
       } catch (error) {
         this.logger.warn('Failed to update API key usage in database', error);
       }
       
       const aiResponse = response.data.choices?.[0]?.message?.content || response.data.output?.choices?.[0]?.text;
-      
-      // Debug logs removed for memory efficiency
+      this.logger.log(`📝 AI response length: ${aiResponse?.length || 0} characters`);
       
       try {
         // Nettoyer la réponse et extraire le JSON
@@ -263,6 +279,10 @@ Analysez ce CV et fournissez une réponse JSON avec la structure suivante :
         
         const parsedResponse = JSON.parse(cleanResponse.trim());
         
+        this.logger.log(`🎯 Successfully parsed AI response - Score: ${parsedResponse.score || 'N/A'}`);
+        this.logger.log(`📊 HR Decision: ${parsedResponse.hrDecision?.recommendation || 'N/A'} (Confidence: ${parsedResponse.hrDecision?.confidence || 'N/A'}%)`);
+        this.logger.log(`👤 Extracted candidate: ${parsedResponse.extractedData?.name || 'N/A'} (${parsedResponse.extractedData?.email || 'N/A'})`);
+        
         // Nettoyer l'email extrait s'il contient des caractères parasites
         if (parsedResponse.extractedData?.email) {
           parsedResponse.extractedData.email = this.cleanEmail(parsedResponse.extractedData.email);
@@ -270,51 +290,57 @@ Analysez ce CV et fournissez une réponse JSON avec la structure suivante :
         
         return parsedResponse;
       } catch (parseError) {
-        this.logger.warn('Failed to parse AI response as JSON, returning raw response');
-        // Debug logs removed for memory efficiency
+        this.logger.warn('❌ Failed to parse AI response as JSON, returning raw response');
+        this.logger.warn(`Parse error details: ${parseError.message}`);
         
         // Si le CV est vide ou contient un message d'erreur, score = 0
         const isEmptyCV = cvText.includes('[PDF extraction failed]') || 
                          cvText.includes('[PDF processing error]') || 
                          cvText.trim().length < 20;
         
-        return {
+        const fallbackResult = {
           score: isEmptyCV ? 0 : 25, // Score minimal pour parsing échoué mais CV valide
           summary: isEmptyCV ? 'Impossible d\'analyser : échec de l\'extraction PDF' : 'Analyse terminée mais format de réponse à revoir',
           aiResponse,
           extractedData: {}
         };
+        
+        this.logger.warn(`🔄 Returning fallback result with score: ${fallbackResult.score}`);
+        return fallbackResult;
       }
     } catch (error) {
-      this.logger.error(`Error with Together AI account ${account.apiKey.substring(0, 8)}...`, error.message);
+      this.logger.error(`💥 Error with OpenRouter AI account ${account.apiKey.substring(0, 8)}...`, error.message);
       
       // Log plus détaillé pour diagnostiquer
       if (error.response) {
-        this.logger.error(`HTTP Status: ${error.response.status}`);
-        this.logger.error(`Response data:`, error.response.data);
-        this.logger.error(`Response headers:`, error.response.headers);
+        this.logger.error(`🔴 HTTP Status: ${error.response.status} ${error.response.statusText}`);
+        this.logger.error(`📄 Response data:`, JSON.stringify(error.response.data, null, 2));
+        this.logger.error(`📋 Response headers:`, error.response.headers);
       } else if (error.request) {
-        this.logger.error(`No response received:`, error.request);
+        this.logger.error(`📡 No response received - Network or timeout error`);
+        this.logger.error(`Request details:`, error.request?.method, error.request?.url);
       } else {
-        this.logger.error(`Request setup error:`, error.message);
+        this.logger.error(`⚙️ Request setup error:`, error.message);
       }
       
       if (error.response?.status === 429 || error.response?.status === 402) {
         account.isActive = false;
-        this.logger.warn(`Marking account as inactive due to rate limit or payment issue`);
+        this.logger.warn(`🚫 Marking account as inactive due to rate limit or payment issue`);
       }
       
-      // Si le modèle Llama échoue, retry avec deepseek
-      if (selectedModel.includes('llama') && !selectedModel.includes('deepseek')) {
-        this.logger.warn(`${selectedModel} failed, retrying with deepseek-v3`);
+      // Si le modèle Llama échoue, retry avec Claude Haiku
+      if (selectedModel.includes('llama') && !selectedModel.includes('claude')) {
+        this.logger.warn(`🔄 ${selectedModel} failed, retrying with claude-3-haiku`);
         return this.retryWithFallbackModel(cvText, jobDescription, customPrompt, account);
       }
       
-      throw new Error(`AI analysis failed: ${error.message}`);
+      this.logger.error(`❌ AI analysis completely failed for account ${account.apiKey.substring(0, 8)}...`);
+      throw new Error(`OpenRouter AI analysis failed: ${error.message}`);
     }
   }
 
   private async retryWithFallbackModel(cvText: string, jobDescription: string, customPrompt?: string, account?: any): Promise<any> {
+    this.logger.log(`🔄 Retrying with fallback model: anthropic/claude-3-haiku`);
     const prompt = customPrompt || this.getDefaultPrompt();
     const fullPrompt = `${prompt}
 
@@ -356,10 +382,11 @@ Analysez ce CV et fournissez une réponse JSON avec la structure suivante :
 }`;
 
     try {
+      this.logger.log(`🤖 Making fallback AI request at: ${new Date().toISOString()}`);
       const response = await axios.post(
-        'https://api.together.xyz/v1/chat/completions',
+        'https://openrouter.ai/api/v1/chat/completions',
         {
-          model: 'deepseek-ai/deepseek-v3', // Modèle de fallback
+          model: 'anthropic/claude-3-haiku', // Modèle de fallback
           messages: [
             {
               role: 'user',
@@ -374,11 +401,17 @@ Analysez ce CV et fournissez une réponse JSON avec la structure suivante :
           headers: {
             'Authorization': `Bearer ${account.apiKey}`,
             'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://your-app.com',
+            'X-Title': 'RH-Next CV Analysis',
           },
         }
       );
 
+      this.logger.log(`✅ Fallback AI request completed successfully`);
+      this.logger.log(`⏱️ Fallback response received at: ${new Date().toISOString()}`);
+      
       const aiResponse = response.data.choices?.[0]?.message?.content || response.data.output?.choices?.[0]?.text;
+      this.logger.log(`📝 Fallback AI response length: ${aiResponse?.length || 0} characters`);
       
       try {
         // Nettoyer la réponse et extraire le JSON
@@ -399,6 +432,9 @@ Analysez ce CV et fournissez une réponse JSON avec la structure suivante :
         
         const parsedResponse = JSON.parse(cleanResponse.trim());
         
+        this.logger.log(`🎯 Successfully parsed fallback response - Score: ${parsedResponse.score || 'N/A'}`);
+        this.logger.log(`📊 Fallback HR Decision: ${parsedResponse.hrDecision?.recommendation || 'N/A'} (Confidence: ${parsedResponse.hrDecision?.confidence || 'N/A'}%)`);
+        
         // Nettoyer l'email extrait s'il contient des caractères parasites
         if (parsedResponse.extractedData?.email) {
           parsedResponse.extractedData.email = this.cleanEmail(parsedResponse.extractedData.email);
@@ -406,22 +442,30 @@ Analysez ce CV et fournissez une réponse JSON avec la structure suivante :
         
         return parsedResponse;
       } catch (parseError) {
-        // Warn logs removed for memory efficiency;
+        this.logger.warn(`❌ Failed to parse fallback AI response as JSON`);
+        this.logger.warn(`Fallback parse error: ${parseError.message}`);
         
         // Si le CV est vide ou contient un message d'erreur, score = 0
         const isEmptyCV = cvText.includes('[PDF extraction failed]') || 
                          cvText.includes('[PDF processing error]') || 
                          cvText.trim().length < 20;
         
-        return {
+        const fallbackResult = {
           score: isEmptyCV ? 0 : 25,
           summary: isEmptyCV ? 'Impossible d\'analyser : échec de l\'extraction PDF' : 'Analyse terminée mais format de réponse à revoir',
           aiResponse,
           extractedData: {}
         };
+        
+        this.logger.warn(`🔄 Returning fallback result from retry with score: ${fallbackResult.score}`);
+        return fallbackResult;
       }
     } catch (error) {
-      this.logger.error('Fallback model also failed:', error.message);
+      this.logger.error('💥 Fallback model (claude-3-haiku) also failed:', error.message);
+      if (error.response) {
+        this.logger.error(`🔴 Fallback HTTP Status: ${error.response.status} ${error.response.statusText}`);
+        this.logger.error(`📄 Fallback Response data:`, JSON.stringify(error.response.data, null, 2));
+      }
       throw error;
     }
   }

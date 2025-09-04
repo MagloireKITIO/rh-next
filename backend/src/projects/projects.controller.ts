@@ -99,6 +99,27 @@ export class PublicProjectsController {
   getSharedProject(@Param('token') token: string) {
     return this.projectsService.getSharedProject(token);
   }
+
+  @Get('shared/:token/candidates')
+  getSharedProjectCandidates(
+    @Param('token') token: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+    @Query('status') status?: string,
+    @Query('scoreFilter') scoreFilter?: string,
+  ) {
+    const pageNumber = page ? parseInt(page, 10) : 1;
+    const pageLimit = limit ? parseInt(limit, 10) : 20;
+    
+    const filters = {
+      search,
+      status,
+      scoreFilter
+    };
+    
+    return this.projectsService.getSharedProjectCandidates(token, pageNumber, pageLimit, filters);
+  }
 }
 
 // Contrôleur pour les offres d'emploi publiques

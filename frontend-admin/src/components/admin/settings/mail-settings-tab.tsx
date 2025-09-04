@@ -3,10 +3,11 @@
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
-import { Server, FileText } from 'lucide-react';
+import { Server, FileText, Zap } from 'lucide-react';
 import MailConfigList from './mail-config-list';
 import MailConfigForm from './mail-config-form';
 import MailTemplatesTab from './mail-templates-tab';
+import MailAutomationsTab from './mail-automations-tab';
 
 interface MailConfig {
   id?: string;
@@ -49,7 +50,7 @@ export default function MailSettingsTab() {
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="configurations" className="flex items-center gap-2">
             <Server className="w-4 h-4" />
             Serveurs Mail
@@ -57,6 +58,10 @@ export default function MailSettingsTab() {
           <TabsTrigger value="templates" className="flex items-center gap-2">
             <FileText className="w-4 h-4" />
             Templates
+          </TabsTrigger>
+          <TabsTrigger value="automations" className="flex items-center gap-2">
+            <Zap className="w-4 h-4" />
+            Automatisations
           </TabsTrigger>
         </TabsList>
 
@@ -85,6 +90,10 @@ export default function MailSettingsTab() {
               <MailTemplatesTab />
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="automations" className="space-y-0">
+          <MailAutomationsTab />
         </TabsContent>
       </Tabs>
     </div>

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { AuthLoader } from "@/components/ui/auth-loader";
 import { toast } from "sonner";
-import { apiClient } from "@/lib/api-client";
+import { authApi } from "@/lib/api-client";
 import { useAuth } from "@/contexts/auth-context";
 
 export default function AuthCallbackPage() {
@@ -27,22 +27,11 @@ export default function AuthCallbackPage() {
         if (data.session) {
           // Authentifier avec notre backend pour obtenir le JWT et le profil complet
           try {
-            const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
-            const response = await fetch(`${API_BASE_URL}/api/auth/google`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                access_token: data.session.access_token
-              }),
-            });
-
-            const authData = await response.json();
-
-            if (response.ok && authData.access_token) {
+            const response = await authApi.googleAuth(data.session.access_token);
+            
+            if (response.data.access_token) {
               // Stocker le JWT de notre backend
-              localStorage.setItem('token', authData.access_token);
+              localStorage.setItem('token', response.data.access_token);
               
               // Actualiser le profil utilisateur pour récupérer le rôle et l'état d'onboarding
               await refreshProfile();

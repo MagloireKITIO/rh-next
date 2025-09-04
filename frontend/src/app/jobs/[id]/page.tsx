@@ -25,6 +25,7 @@ import {
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { ShareButton } from '@/components/ui/share-button';
+import { publicApi } from '@/lib/api-client';
 
 interface JobOffer {
   id: string;
@@ -62,14 +63,10 @@ export default function JobDetailPage() {
   useEffect(() => {
     const fetchJobOffer = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'}/api/public/job-offers/${id}`);
-        if (!response.ok) {
-          throw new Error('Offre d\'emploi non trouvée');
-        }
-        const data = await response.json();
-        setJobOffer(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Une erreur est survenue');
+        const response = await publicApi.getJobOffer(id as string);
+        setJobOffer(response.data);
+      } catch (err: any) {
+        setError(err.response?.data?.message || 'Offre d\'emploi non trouvée');
       } finally {
         setLoading(false);
       }
@@ -128,25 +125,17 @@ export default function JobDetailPage() {
       formData.append('coverLetter', applicationData.coverLetter);
       formData.append('cv', applicationData.cv);
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'}/api/public/job-offers/${id}/apply`, {
-        method: 'POST',
-        body: formData,
+      await publicApi.applyToJob(id as string, formData);
+      
+      toast.success('Votre candidature a été envoyée avec succès !');
+      setShowApplicationDialog(false);
+      setApplicationData({
+        name: '',
+        email: '',
+        phone: '',
+        coverLetter: '',
+        cv: null
       });
-
-      if (response.ok) {
-        toast.success('Votre candidature a été envoyée avec succès !');
-        setShowApplicationDialog(false);
-        setApplicationData({
-          name: '',
-          email: '',
-          phone: '',
-          coverLetter: '',
-          cv: null
-        });
-      } else {
-        const errorData = await response.json();
-        toast.error(errorData.message || 'Erreur lors de l\'envoi de la candidature');
-      }
     } catch (error) {
       toast.error('Erreur lors de l\'envoi de la candidature');
     } finally {

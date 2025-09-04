@@ -23,6 +23,11 @@ export class AdminController {
     return this.adminService.getCompaniesStats();
   }
 
+  @Get('companies/automation-stats')
+  async getCompaniesAutomationStats() {
+    return this.adminService.getCompaniesAutomationStats();
+  }
+
   // Companies Management
   @Get('companies')
   async getAllCompanies() {
@@ -160,6 +165,7 @@ export class AdminController {
   async updateApiKey(
     @Param('id') id: string,
     @Body() updateData: {
+      key?: string;
       name?: string;
       company_id?: string;
       provider?: string;
@@ -187,5 +193,47 @@ export class AdminController {
   @Patch('settings')
   async updateSystemSettings(@Body() settings: any) {
     return this.adminService.updateSystemSettings(settings);
+  }
+
+  // Mail Automations Management
+  @Get('mail-automations/stats')
+  async getMailAutomationStats() {
+    return this.adminService.getMailAutomationStats();
+  }
+
+  @Get('mail-automations')
+  async getAllMailAutomations() {
+    return this.adminService.getAllMailAutomations();
+  }
+
+  @Get('mail-automations/:id')
+  async getMailAutomationById(@Param('id') id: string) {
+    return this.adminService.getMailAutomationById(id);
+  }
+
+  @Post('mail-automations')
+  async createMailAutomation(@Body() createDto: any) {
+    return this.adminService.createMailAutomation(createDto);
+  }
+
+  @Patch('mail-automations/:id')
+  async updateMailAutomation(@Param('id') id: string, @Body() updateDto: any) {
+    return this.adminService.updateMailAutomation(id, updateDto);
+  }
+
+  @Delete('mail-automations/:id')
+  async deleteMailAutomation(@Param('id') id: string) {
+    return this.adminService.deleteMailAutomation(id);
+  }
+
+  @Patch('mail-automations/:id/toggle')
+  async toggleMailAutomationStatus(@Param('id') id: string) {
+    return this.adminService.toggleMailAutomationStatus(id);
+  }
+
+  // Mail Templates for automation
+  @Get('mail-templates')
+  async getMailTemplates() {
+    return this.adminService.getMailTemplates();
   }
 }

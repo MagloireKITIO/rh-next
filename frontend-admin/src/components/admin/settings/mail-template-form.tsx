@@ -55,6 +55,7 @@ interface MailTemplateFormProps {
 
 export default function MailTemplateForm({ template, onCancel, onSuccess }: MailTemplateFormProps) {
   const [templateTypes, setTemplateTypes] = useState<TemplateType[]>([]);
+  const [selectedContext, setSelectedContext] = useState<'system' | 'automation'>('automation');
   const [formData, setFormData] = useState<MailTemplate>({
     type: 'custom',
     name: '',
@@ -74,6 +75,10 @@ export default function MailTemplateForm({ template, onCancel, onSuccess }: Mail
 
   useEffect(() => {
     if (template && templateTypes.length > 0) {
+      // Déterminer le contexte basé sur le type existant
+      const isSystemType = ['invitation', 'verification', 'password_reset', 'welcome'].includes(template.type);
+      setSelectedContext(isSystemType ? 'system' : 'automation');
+      
       setFormData({
         id: template.id,
         type: template.type,
@@ -237,6 +242,28 @@ export default function MailTemplateForm({ template, onCancel, onSuccess }: Mail
     }
   };
 
+  const getTypesByContext = (context: 'system' | 'automation') => {
+    if (context === 'system') {
+      return templateTypes.filter(type => 
+        ['invitation', 'verification', 'password_reset', 'welcome'].includes(type.type)
+      );
+    } else {
+      return templateTypes.filter(type => 
+        ['notification', 'custom'].includes(type.type)
+      );
+    }
+  };
+
+  const handleContextChange = (context: 'system' | 'automation') => {
+    setSelectedContext(context);
+    
+    // Réinitialiser le type si le type actuel n'est pas compatible avec le nouveau contexte
+    const availableTypes = getTypesByContext(context);
+    if (availableTypes.length > 0 && !availableTypes.find(t => t.type === formData.type)) {
+      handleInputChange('type', availableTypes[0].type);
+    }
+  };
+
   const isEditing = !!template?.id;
 
   return (
@@ -297,7 +324,7 @@ export default function MailTemplateForm({ template, onCancel, onSuccess }: Mail
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="name">Nom du template *</Label>
                     <Input
@@ -308,24 +335,66 @@ export default function MailTemplateForm({ template, onCancel, onSuccess }: Mail
                       required
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="type">Type *</Label>
-                    <Select
-                      value={formData.type}
-                      onValueChange={(value) => handleInputChange('type', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sélectionner un type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {templateTypes.map((type) => (
-                          <SelectItem key={type.type} value={type.type}>
-                            {type.label}
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="context">Contexte *</Label>
+                      <Select
+                        value={selectedContext}
+                        onValueChange={handleContextChange}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner un contexte" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="system">
+                            <div className="flex flex-col">
+                              <span className="font-medium">Système</span>
+                              <span className="text-xs text-muted-foreground">Invitation, vérification, mot de passe</span>
+                            </div>
                           </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                          <SelectItem value="automation">
+                            <div className="flex flex-col">
+                              <span className="font-medium">Automation</span>
+                              <span className="text-xs text-muted-foreground">Notifications, templates personnalisés</span>
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="type">Type *</Label>
+                      <Select
+                        value={formData.type}
+                        onValueChange={(value) => handleInputChange('type', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner un type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {getTypesByContext(selectedContext).map((type) => (
+                            <SelectItem key={type.type} value={type.type}>
+                              {type.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
+                </div>
+
+                {/* Explication du contexte */}
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    <strong>
+                      {selectedContext === 'system' ? 'Templates Système' : 'Templates Automation'}:
+                    </strong>{' '}
+                    {selectedContext === 'system' 
+                      ? 'Ces templates sont utilisés par le système pour des fonctions essentielles (invitation d\'utilisateurs, vérification d\'email, etc.). Ils ne sont pas visibles par les Admin/RH dans l\'interface normale.'
+                      : 'Ces templates sont utilisés pour les automatisations de mail créées par les Admin/RH. Ils sont visibles et modifiables dans l\'interface standard.'
+                    }
+                  </p>
                 </div>
 
                 <div className="space-y-2">

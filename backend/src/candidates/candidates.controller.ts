@@ -35,15 +35,24 @@ export class CandidatesController {
     @CurrentCompany() companyId: string, 
     @Query('projectId') projectId?: string,
     @Query('page') page?: string,
-    @Query('limit') limit?: string
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+    @Query('status') status?: string,
+    @Query('scoreFilter') scoreFilter?: string,
   ) {
     const pageNumber = page ? parseInt(page, 10) : 1;
     const pageLimit = limit ? parseInt(limit, 10) : 50;
     
+    const filters = {
+      search,
+      status,
+      scoreFilter
+    };
+    
     if (projectId) {
-      return this.candidatesService.findByProject(projectId, companyId, pageNumber, pageLimit);
+      return this.candidatesService.findByProject(projectId, companyId, pageNumber, pageLimit, filters);
     }
-    return this.candidatesService.findAll(companyId, pageNumber, pageLimit);
+    return this.candidatesService.findAll(companyId, pageNumber, pageLimit, filters);
   }
 
   @Get(':id')

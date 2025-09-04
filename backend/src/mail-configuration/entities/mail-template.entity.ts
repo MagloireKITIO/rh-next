@@ -10,6 +10,11 @@ export enum MailTemplateType {
   CUSTOM = 'custom'
 }
 
+export enum MailTemplateContext {
+  SYSTEM = 'system',           // Templates système (invitation, verification, password_reset, welcome)
+  AUTOMATION = 'automation'    // Templates pour les automations (notification, custom)
+}
+
 export enum MailTemplateStatus {
   ACTIVE = 'active',
   DRAFT = 'draft',
@@ -70,4 +75,29 @@ export class MailTemplate {
 
   @UpdateDateColumn()
   updated_at: Date;
+}
+
+// Fonction utilitaire pour obtenir le contexte d'un type de template
+export function getTemplateContext(type: MailTemplateType): MailTemplateContext {
+  switch (type) {
+    case MailTemplateType.INVITATION:
+    case MailTemplateType.VERIFICATION:
+    case MailTemplateType.PASSWORD_RESET:
+    case MailTemplateType.WELCOME:
+      return MailTemplateContext.SYSTEM;
+    case MailTemplateType.NOTIFICATION:
+    case MailTemplateType.CUSTOM:
+      return MailTemplateContext.AUTOMATION;
+    default:
+      return MailTemplateContext.AUTOMATION;
+  }
+}
+
+// Fonction utilitaire pour obtenir les types de template par contexte
+export function getTemplateTypesByContext(context: MailTemplateContext): MailTemplateType[] {
+  if (context === MailTemplateContext.SYSTEM) {
+    return [MailTemplateType.INVITATION, MailTemplateType.VERIFICATION, MailTemplateType.PASSWORD_RESET, MailTemplateType.WELCOME];
+  } else {
+    return [MailTemplateType.NOTIFICATION, MailTemplateType.CUSTOM];
+  }
 }

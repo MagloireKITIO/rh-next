@@ -45,7 +45,7 @@ export default function ApiKeysPage() {
   const [newApiKey, setNewApiKey] = useState({
     key: '',
     name: '',
-    provider: 'together_ai',
+    provider: 'openrouter',
     company_id: 'unassigned',
   });
 
@@ -76,7 +76,7 @@ export default function ApiKeysPage() {
       queryClient.invalidateQueries({ queryKey: ['admin', 'api-keys'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'api-keys', 'stats'] });
       setIsCreateDialogOpen(false);
-      setNewApiKey({ key: '', name: '', provider: 'together_ai', company_id: 'unassigned' });
+      setNewApiKey({ key: '', name: '', provider: 'openrouter', company_id: 'unassigned' });
       toast.success('Clé API créée avec succès');
     },
     onError: (error: any) => {
@@ -146,9 +146,14 @@ export default function ApiKeysPage() {
 
   const handleUpdateApiKey = () => {
     if (selectedApiKey) {
+      if (!selectedApiKey.key.trim()) {
+        toast.error('La clé API est requise');
+        return;
+      }
       updateApiKeyMutation.mutate({
         id: selectedApiKey.id,
         data: {
+          key: selectedApiKey.key,
           name: selectedApiKey.name,
           company_id: selectedApiKey.company_id,
           provider: selectedApiKey.provider,
@@ -174,6 +179,7 @@ export default function ApiKeysPage() {
 
   const getProviderBadgeColor = (provider: string) => {
     switch (provider) {
+      case 'openrouter': return 'bg-orange-100 text-orange-800 border-orange-200';
       case 'together_ai': return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'openai': return 'bg-green-100 text-green-800 border-green-200';
       case 'anthropic': return 'bg-purple-100 text-purple-800 border-purple-200';
@@ -247,6 +253,7 @@ export default function ApiKeysPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="openrouter">OpenRouter</SelectItem>
                         <SelectItem value="together_ai">Together AI</SelectItem>
                         <SelectItem value="openai">OpenAI</SelectItem>
                         <SelectItem value="anthropic">Anthropic</SelectItem>
@@ -392,7 +399,7 @@ export default function ApiKeysPage() {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
-                            {showFullKey[apiKey.id] ? apiKey.id : maskKey(apiKey.id)}
+                            {showFullKey[apiKey.id] ? apiKey.key : maskKey(apiKey.key)}
                           </code>
                           <Button
                             variant="ghost"
@@ -507,6 +514,16 @@ export default function ApiKeysPage() {
               {selectedApiKey && (
                 <div className="space-y-4">
                   <div>
+                    <Label htmlFor="edit-key">Clé API *</Label>
+                    <Textarea
+                      id="edit-key"
+                      placeholder="sk-..."
+                      value={selectedApiKey.key || ''}
+                      onChange={(e) => setSelectedApiKey({ ...selectedApiKey, key: e.target.value })}
+                      className="min-h-[80px]"
+                    />
+                  </div>
+                  <div>
                     <Label htmlFor="edit-name">Nom</Label>
                     <Input
                       id="edit-name"
@@ -524,6 +541,7 @@ export default function ApiKeysPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="openrouter">OpenRouter</SelectItem>
                         <SelectItem value="together_ai">Together AI</SelectItem>
                         <SelectItem value="openai">OpenAI</SelectItem>
                         <SelectItem value="anthropic">Anthropic</SelectItem>
