@@ -48,7 +48,7 @@ export interface Company {
   logo_url?: string;
   description?: string;
   is_active: boolean;
-  settings?: any;
+  settings?: Record<string, unknown>;
   users?: User[];
   projects?: Project[];
   created_at: string;
@@ -94,7 +94,7 @@ export interface Candidate {
   extractedText: string;
   fileName: string;
   fileUrl: string;
-  extractedData?: any;
+  extractedData?: Record<string, unknown>;
   score: number;
   previousScore?: number;
   status: string;
@@ -242,8 +242,8 @@ export const adminApi = {
   getCompaniesAutomationStats: () => apiClient.get('/admin/companies/automation-stats'),
   toggleMailAutomation: (id: string) => apiClient.patch(`/admin/mail-automations/${id}/toggle`),
   getMailAutomation: (id: string) => apiClient.get(`/admin/mail-automations/${id}`),
-  createMailAutomation: (data: any) => apiClient.post('/admin/mail-automations', data),
-  updateMailAutomation: (id: string, data: any) => apiClient.patch(`/admin/mail-automations/${id}`, data),
+  createMailAutomation: (data: Record<string, unknown>) => apiClient.post('/admin/mail-automations', data),
+  updateMailAutomation: (id: string, data: Record<string, unknown>) => apiClient.patch(`/admin/mail-automations/${id}`, data),
   deleteMailAutomation: (id: string) => apiClient.delete(`/admin/mail-automations/${id}`),
   
   // Companies Management
@@ -340,7 +340,7 @@ export const adminApi = {
 
   // System Settings
   getSystemSettings: () => apiClient.get('/admin/settings'),
-  updateSystemSettings: (data: any) => apiClient.patch('/admin/settings', data),
+  updateSystemSettings: (data: Record<string, unknown>) => apiClient.patch('/admin/settings', data),
 
   // Mail Configuration
   getMailConfiguration: () => apiClient.get<MailConfiguration>('/admin/mail-config'),
@@ -368,10 +368,10 @@ export const adminApi = {
   // Mail Templates (Super Admin can see ALL templates)
   getAllMailTemplates: (context?: string) => apiClient.get('/mail-templates', { params: { context } }),
   getMailTemplateById: (id: string) => apiClient.get(`/mail-templates/${id}`),
-  createMailTemplate: (data: any) => apiClient.post('/mail-templates', data),
-  updateMailTemplate: (id: string, data: any) => apiClient.patch(`/mail-templates/${id}`, data),
+  createMailTemplate: (data: Record<string, unknown>) => apiClient.post('/mail-templates', data),
+  updateMailTemplate: (id: string, data: Record<string, unknown>) => apiClient.patch(`/mail-templates/${id}`, data),
   deleteMailTemplate: (id: string) => apiClient.delete(`/mail-templates/${id}`),
-  previewMailTemplate: (id: string, variables: Record<string, any> = {}) => 
+  previewMailTemplate: (id: string, variables: Record<string, unknown> = {}) => 
     apiClient.post(`/mail-templates/${id}/preview`, { variables }),
 };
 

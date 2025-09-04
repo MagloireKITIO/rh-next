@@ -39,7 +39,21 @@
       "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\backend\\src\\ai/**)",
       "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\backend\\src\\ai/**)",
       "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\frontend-admin\\src\\app\\api-keys/**)",
-      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\frontend-admin\\src\\components\\admin\\api-keys/**)"
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\frontend-admin\\src\\components\\admin\\api-keys/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\frontend-admin\\src\\lib/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\frontend-admin\\src\\providers/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\backend\\src\\projects/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\backend\\src\\projects/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\frontend\\src\\app\\shared\\[token]/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\backend\\src/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\backend\\src\\projects/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\frontend\\src\\app\\shared\\[token]/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\frontend\\src\\hooks\\queries/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\backend\\src\\projects/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\backend\\src\\projects/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\backend\\src\\projects/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\backend\\src\\projects/**)"
     ],
     "deny": [],
     "ask": []

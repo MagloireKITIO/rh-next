@@ -137,6 +137,15 @@ export default function SharedProjectPage() {
     limit: 20
   });
 
+  // Hook séparé pour les statistiques (sans filtres, première page avec limite élevée)
+  const statsQuery = useSharedProjectCandidates(token, {
+    search: '',
+    statusFilter: 'all',
+    scoreFilter: 'all', 
+    page: 1,
+    limit: 1000 // Limite élevée pour obtenir tous les candidats pour les stats
+  });
+
   const requestToJoinTeam = () => {
     setShowJoinDialog(true);
   };
@@ -312,6 +321,9 @@ export default function SharedProjectPage() {
   const sortedCandidates = candidatesData?.data || [];
   const paginationInfo = candidatesData;
 
+  // Récupérer les données pour les statistiques (tous les candidats sans filtre)
+  const allCandidates = statsQuery.data?.data || [];
+
   return (
     <div className="min-h-screen bg-background py-8">
       <div className="max-w-6xl mx-auto px-4">
@@ -331,7 +343,7 @@ export default function SharedProjectPage() {
                 </div>
                 <div className="flex items-center gap-1">
                   <User className="w-4 h-4" />
-                  {project.candidates.length} candidat{project.candidates.length > 1 ? 's' : ''}
+                  {allCandidates.length} candidat{allCandidates.length > 1 ? 's' : ''}
                 </div>
               </div>
               <Badge variant={project.status === 'active' ? 'default' : 'secondary'}>
@@ -381,28 +393,33 @@ export default function SharedProjectPage() {
         {/* Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <Card className="p-4 text-center">
-            <div className="text-2xl font-bold text-primary">{project.candidates.length}</div>
+            <div className="text-2xl font-bold text-primary">{allCandidates.length}</div>
             <div className="text-sm text-muted-foreground">Candidats total</div>
           </Card>
           <Card className="p-4 text-center">
             <div className="text-2xl font-bold text-green-600">
-              {project.candidates.filter(c => c.status === 'analyzed').length}
+              {allCandidates.filter(c => c.status === 'analyzed').length}
             </div>
             <div className="text-sm text-muted-foreground">Analysés</div>
           </Card>
           <Card className="p-4 text-center">
             <div className="text-2xl font-bold text-orange-600">
-              {project.candidates.filter(c => c.status !== 'analyzed').length}
+              {allCandidates.filter(c => c.status !== 'analyzed').length}
             </div>
             <div className="text-sm text-muted-foreground">En attente</div>
           </Card>
           <Card className="p-4 text-center">
             <div className="text-2xl font-bold text-purple-600">
               {(() => {
-                if (project.candidates.length === 0) return '0';
-                const validScores = project.candidates.filter(c => c.score && !isNaN(c.score));
+                if (allCandidates.length === 0) return '0';
+                const validScores = allCandidates.filter(c => 
+                  c.score !== undefined && 
+                  c.score !== null && 
+                  !isNaN(Number(c.score)) && 
+                  Number(c.score) > 0
+                );
                 if (validScores.length === 0) return '0';
-                const average = validScores.reduce((sum, c) => sum + c.score, 0) / validScores.length;
+                const average = validScores.reduce((sum, c) => sum + Number(c.score), 0) / validScores.length;
                 return Math.round(average * 100) / 100;
               })()}
             </div>

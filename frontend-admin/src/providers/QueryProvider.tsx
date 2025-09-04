@@ -16,11 +16,12 @@ export default function QueryProvider({
           queries: {
             staleTime: 60 * 1000, // 1 minute
             refetchOnWindowFocus: false,
-            retry: (failureCount, error: any) => {
+            retry: (failureCount, error: unknown) => {
               // Ne pas retry sur les erreurs 401, 403, 404
-              if (error?.response?.status === 401 || 
-                  error?.response?.status === 403 || 
-                  error?.response?.status === 404) {
+              const axiosError = error as { response?: { status?: number } };
+              if (axiosError?.response?.status === 401 || 
+                  axiosError?.response?.status === 403 || 
+                  axiosError?.response?.status === 404) {
                 return false;
               }
               return failureCount < 2;
