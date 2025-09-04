@@ -15,6 +15,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AdminLayout from '@/components/layout/admin-layout';
 import ProtectedRoute from '@/components/layout/protected-route';
+import OpenRouterModelsDialog from '@/components/admin/api-keys/openrouter-models-dialog';
+import ModelConfigDialog from '@/components/admin/api-keys/model-config-dialog';
 import { 
   Plus, 
   Search, 
@@ -29,7 +31,9 @@ import {
   TrendingUp,
   Eye,
   EyeOff,
-  Users
+  Users,
+  List,
+  Settings
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -42,6 +46,10 @@ export default function ApiKeysPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedApiKey, setSelectedApiKey] = useState<ApiKey | null>(null);
   const [showFullKey, setShowFullKey] = useState<{[key: string]: boolean}>({});
+  const [isModelsDialogOpen, setIsModelsDialogOpen] = useState(false);
+  const [selectedApiKeyForModels, setSelectedApiKeyForModels] = useState<ApiKey | null>(null);
+  const [isModelConfigDialogOpen, setIsModelConfigDialogOpen] = useState(false);
+  const [selectedApiKeyForConfig, setSelectedApiKeyForConfig] = useState<ApiKey | null>(null);
   const [newApiKey, setNewApiKey] = useState({
     key: '',
     name: '',
@@ -262,7 +270,7 @@ export default function ApiKeysPage() {
                   </div>
                   <div>
                     <Label htmlFor="company">Entreprise (optionnel)</Label>
-                    <Select value={newApiKey.company_id} onValueChange={(value) => setNewApiKey({ ...newApiKey, company_id: value === 'unassigned' ? '' : value })}>
+                    <Select value={newApiKey.company_id || 'unassigned'} onValueChange={(value) => setNewApiKey({ ...newApiKey, company_id: value === 'unassigned' ? '' : value })}>
                       <SelectTrigger>
                         <SelectValue placeholder="Non assignée" />
                       </SelectTrigger>
@@ -463,6 +471,32 @@ export default function ApiKeysPage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center justify-end gap-2">
+                          {apiKey.provider === 'openrouter' && apiKey.isActive && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedApiKeyForConfig(apiKey);
+                                  setIsModelConfigDialogOpen(true);
+                                }}
+                                title="Configurer les modèles"
+                              >
+                                <Settings className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedApiKeyForModels(apiKey);
+                                  setIsModelsDialogOpen(true);
+                                }}
+                                title="Voir les modèles disponibles"
+                              >
+                                <List className="w-4 h-4" />
+                              </Button>
+                            </>
+                          )}
                           <Button
                             variant="ghost"
                             size="sm"
@@ -583,6 +617,34 @@ export default function ApiKeysPage() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+
+          {/* OpenRouter Models Dialog */}
+          {selectedApiKeyForModels && (
+            <OpenRouterModelsDialog
+              apiKey={selectedApiKeyForModels}
+              isOpen={isModelsDialogOpen}
+              onOpenChange={(open) => {
+                setIsModelsDialogOpen(open);
+                if (!open) {
+                  setSelectedApiKeyForModels(null);
+                }
+              }}
+            />
+          )}
+
+          {/* Model Configuration Dialog */}
+          {selectedApiKeyForConfig && (
+            <ModelConfigDialog
+              apiKey={selectedApiKeyForConfig}
+              isOpen={isModelConfigDialogOpen}
+              onOpenChange={(open) => {
+                setIsModelConfigDialogOpen(open);
+                if (!open) {
+                  setSelectedApiKeyForConfig(null);
+                }
+              }}
+            />
+          )}
         </div>
       </AdminLayout>
     </ProtectedRoute>

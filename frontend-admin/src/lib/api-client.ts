@@ -158,6 +158,55 @@ export interface ApiKeyStats {
   }[];
 }
 
+export interface OpenRouterModel {
+  id: string;
+  name: string;
+  description: string;
+  context_length: number;
+  architecture: {
+    modality: string;
+    tokenizer: string;
+    instruct_type?: string;
+  };
+  pricing: {
+    prompt: string;
+    completion: string;
+    image?: string;
+    request?: string;
+  };
+  top_provider: {
+    max_completion_tokens?: number;
+    is_moderated: boolean;
+  };
+  per_request_limits?: {
+    prompt_tokens: string;
+    completion_tokens: string;
+  };
+}
+
+export interface OpenRouterModelsResponse {
+  data: OpenRouterModel[];
+}
+
+export interface ModelConfig {
+  id?: string;
+  apiKeyId: string;
+  primaryModel: string;
+  fallbackModel1?: string;
+  fallbackModel2?: string;
+  fallbackModel3?: string;
+  notes?: string;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ModelConfigStats {
+  totalConfigs: number;
+  configuredKeys: number;
+  popularModels: { model: string; count: number }[];
+}
+
 export interface MailConfiguration {
   id?: string;
   provider_type: 'smtp' | 'sendgrid' | 'mailgun' | 'aws_ses' | 'supabase';
@@ -239,12 +288,55 @@ export const adminApi = {
     company_id?: string;
   }) => apiClient.post<ApiKey>('/admin/api-keys', data),
   updateApiKey: (id: string, data: {
+    key?: string;
     name?: string;
     company_id?: string;
     provider?: string;
   }) => apiClient.patch<ApiKey>(`/admin/api-keys/${id}`, data),
   deleteApiKey: (id: string) => apiClient.delete(`/admin/api-keys/${id}`),
   toggleApiKeyStatus: (id: string) => apiClient.patch(`/admin/api-keys/${id}/toggle`),
+
+  // OpenRouter Models Management
+  getOpenRouterModels: (keyId: string, filters?: {
+    modality?: string;
+    provider?: string;
+    maxContextLength?: number;
+  }) => {
+    const params = new URLSearchParams();
+    if (filters?.modality) params.append('modality', filters.modality);
+    if (filters?.provider) params.append('provider', filters.provider);
+    if (filters?.maxContextLength) params.append('maxContextLength', filters.maxContextLength.toString());
+    
+    return apiClient.get<OpenRouterModelsResponse>(`/admin/api-keys/${keyId}/openrouter/models?${params.toString()}`);
+  },
+  getOpenRouterProviders: (keyId: string) => 
+    apiClient.get<string[]>(`/admin/api-keys/${keyId}/openrouter/providers`),
+  getOpenRouterModelById: (keyId: string, modelId: string) => 
+    apiClient.get<OpenRouterModel>(`/admin/api-keys/${keyId}/openrouter/models/${encodeURIComponent(modelId)}`),
+
+  // Model Configuration Management
+  getModelConfig: (keyId: string) => 
+    apiClient.get<ModelConfig>(`/admin/api-keys/${keyId}/model-config`),
+  createModelConfig: (keyId: string, config: {
+    primaryModel: string;
+    fallbackModel1?: string;
+    fallbackModel2?: string;
+    fallbackModel3?: string;
+    notes?: string;
+  }) => apiClient.post<ModelConfig>(`/admin/api-keys/${keyId}/model-config`, config),
+  updateModelConfig: (keyId: string, config: {
+    primaryModel?: string;
+    fallbackModel1?: string;
+    fallbackModel2?: string;
+    fallbackModel3?: string;
+    notes?: string;
+  }) => apiClient.patch<ModelConfig>(`/admin/api-keys/${keyId}/model-config`, config),
+  deleteModelConfig: (keyId: string) => 
+    apiClient.delete(`/admin/api-keys/${keyId}/model-config`),
+  getAllModelConfigs: () => 
+    apiClient.get<ModelConfig[]>('/admin/model-configs'),
+  getModelConfigStats: () => 
+    apiClient.get<ModelConfigStats>('/admin/model-configs/stats'),
 
   // System Settings
   getSystemSettings: () => apiClient.get('/admin/settings'),
