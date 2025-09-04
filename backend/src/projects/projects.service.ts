@@ -6,7 +6,7 @@ import { Candidate } from '../candidates/entities/candidate.entity';
 import { Analysis } from '../analysis/entities/analysis.entity';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
-import { AzureStorageService } from '../storage/azure-storage.service';
+import { StorageService } from '../storage/storage.service';
 import { AutomationTriggerService } from '../mail-automation/services/automation-trigger.service';
 import { AutomationTrigger, AutomationEntityType } from '../mail-automation/entities/mail-automation.entity';
 import { randomBytes } from 'crypto';
@@ -26,7 +26,7 @@ export class ProjectsService {
     private analysisRepository: Repository<Analysis>,
     @InjectDataSource()
     private dataSource: DataSource,
-    private azureStorageService: AzureStorageService,
+    private storageService: StorageService,
     private automationTriggerService: AutomationTriggerService,
   ) {}
 
@@ -486,7 +486,7 @@ export class ProjectsService {
 
         // 2. Sauvegarder le fichier CV
         try {
-          fileUrl = await this.azureStorageService.uploadFile(
+          fileUrl = await this.storageService.uploadFile(
             file.buffer, 
             file.originalname, 
             file.mimetype,
@@ -533,7 +533,7 @@ export class ProjectsService {
         if (fileUrl) {
           try {
             // TODO: Implémenter la suppression du fichier Azure si nécessaire
-            // await this.azureStorageService.deleteFile(fileUrl);
+            // await this.storageService.deleteFile(fileUrl);
           } catch (cleanupError) {
             this.logger.error('Error cleaning up uploaded file:', cleanupError);
           }
@@ -560,7 +560,7 @@ export class ProjectsService {
 
     try {
       // Upload du fichier vers Azure Storage
-      const documentUrl = await this.azureStorageService.uploadOfferDocument(
+      const documentUrl = await this.storageService.uploadOfferDocument(
         file.buffer,
         file.originalname
       );

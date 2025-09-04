@@ -63,6 +63,11 @@ interface SharedProject {
   createdAt: string;
   candidates: Candidate[];
   analyses: Analysis[];
+  offerDocumentUrl?: string;
+  offerDocumentFileName?: string;
+  offerDescription?: string;
+  startDate?: string;
+  endDate?: string;
   company: {
     id: string;
     name: string;
@@ -339,6 +344,33 @@ export default function SharedProjectPage() {
             </Button>
           </div>
         </Card>
+
+        {/* Offer Document Preview */}
+        {project.offerDocumentUrl && (
+          <Card className="p-6 mb-6">
+            <h2 className="text-lg font-semibold mb-3">Document d'offre</h2>
+            <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
+              <div className="flex items-center gap-3">
+                <FileText className="h-6 w-6 text-blue-600" />
+                <div>
+                  <p className="font-medium text-foreground">
+                    {project.offerDocumentFileName || "Document d'offre"}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Cliquez pour consulter le document complet
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={() => window.open(project.offerDocumentUrl, '_blank')}
+                className="gap-2"
+              >
+                <Eye className="h-4 w-4" />
+                Consulter le document
+              </Button>
+            </div>
+          </Card>
+        )}
 
         {/* Job Description */}
         <Card className="p-6 mb-6">
