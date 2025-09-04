@@ -73,6 +73,43 @@ export class ApiKeysService {
     return activeKeys.map(k => k.key);
   }
 
+  // Nouvelle méthode pour récupérer les objets complets avec IDs
+  async findActiveWithIds(): Promise<{ id: string; key: string }[]> {
+    const activeKeys = await this.apiKeyRepository.find({
+      where: { isActive: true },
+      select: ['id', 'key'],
+      order: { requestCount: 'ASC' },
+    });
+    
+    return activeKeys.map(keyObj => ({ id: keyObj.id, key: keyObj.key }));
+  }
+
+  async findActiveByCompanyWithIds(companyId: string): Promise<{ id: string; key: string }[]> {
+    const activeKeys = await this.apiKeyRepository.find({
+      where: { 
+        isActive: true,
+        company_id: companyId 
+      },
+      select: ['id', 'key'],
+      order: { requestCount: 'ASC' },
+    });
+    
+    return activeKeys.map(keyObj => ({ id: keyObj.id, key: keyObj.key }));
+  }
+
+  async findActiveGlobalWithIds(): Promise<{ id: string; key: string }[]> {
+    const activeKeys = await this.apiKeyRepository.find({
+      where: { 
+        isActive: true,
+        company_id: null
+      },
+      select: ['id', 'key'],
+      order: { requestCount: 'ASC' },
+    });
+    
+    return activeKeys.map(keyObj => ({ id: keyObj.id, key: keyObj.key }));
+  }
+
   async findOne(id: string): Promise<Omit<ApiKey, 'key'>> {
     const apiKey = await this.apiKeyRepository.findOne({ 
       where: { id } 

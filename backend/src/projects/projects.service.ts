@@ -7,8 +7,9 @@ import { Analysis } from '../analysis/entities/analysis.entity';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { StorageService } from '../storage/storage.service';
-import { AutomationTriggerService } from '../mail-automation/services/automation-trigger.service';
-import { AutomationTrigger, AutomationEntityType } from '../mail-automation/entities/mail-automation.entity';
+// ✅ Imports supprimés - automatisations gérées par AutomationSubscriber
+// import { AutomationTriggerService } from '../mail-automation/services/automation-trigger.service';
+// import { AutomationTrigger, AutomationEntityType } from '../mail-automation/entities/mail-automation.entity';
 import { randomBytes } from 'crypto';
 import * as pdf from 'pdf-parse';
 import { CandidateFilters, PaginatedResponse } from '../candidates/candidates.service';
@@ -27,7 +28,8 @@ export class ProjectsService {
     @InjectDataSource()
     private dataSource: DataSource,
     private storageService: StorageService,
-    private automationTriggerService: AutomationTriggerService,
+    // ✅ Service supprimé - automatisations gérées par AutomationSubscriber
+    // private automationTriggerService: AutomationTriggerService,
   ) {}
 
   async create(createProjectDto: CreateProjectDto, companyId: string, userId: string): Promise<Project> {
@@ -38,24 +40,8 @@ export class ProjectsService {
     });
     const savedProject = await this.projectRepository.save(project);
     
-    // Déclencher les automatisations lors de la création d'un projet
-    try {
-      // Charger les relations nécessaires pour les automatisations
-      const projectWithRelations = await this.projectRepository.findOne({
-        where: { id: savedProject.id },
-        relations: ['company', 'createdBy']
-      });
-      
-      if (projectWithRelations) {
-        await this.automationTriggerService.triggerProjectAutomations(
-          AutomationTrigger.ON_CREATE,
-          projectWithRelations
-        );
-      }
-    } catch (error) {
-      this.logger.warn('Error triggering automations for project creation:', error);
-      // Ne pas faire échouer la création du projet si les automatisations échouent
-    }
+    // ✅ Automatisations désormais gérées automatiquement par AutomationSubscriber
+    // Les triggers ON_CREATE sont déclenchés automatiquement lors de la sauvegarde
     
     return savedProject;
   }
@@ -518,6 +504,10 @@ export class ProjectsService {
         const savedCandidate = await manager.save(candidate);
         
         this.logger.log(`✅ New job application saved atomically for ${project.name}: ${candidateName}`);
+
+        // ✅ Automatisations désormais gérées automatiquement par AutomationSubscriber
+        // Les triggers ON_CREATE sont déclenchés automatiquement lors de la sauvegarde du candidat
+        this.logger.log(`📧 Automation triggers will be executed automatically for candidate: ${candidateName}`);
 
         return {
           success: true,

@@ -236,4 +236,83 @@ export class AdminController {
   async getMailTemplates() {
     return this.adminService.getMailTemplates();
   }
+
+  // OpenRouter Models Management
+  @Get('api-keys/:keyId/openrouter/models')
+  async getOpenRouterModels(
+    @Param('keyId') keyId: string,
+    @Query('modality') modality?: string,
+    @Query('provider') provider?: string,
+    @Query('maxContextLength') maxContextLength?: string
+  ) {
+    const filters = {
+      ...(modality && { modality }),
+      ...(provider && { provider }),
+      ...(maxContextLength && { maxContextLength: parseInt(maxContextLength) }),
+    };
+
+    return this.adminService.getOpenRouterModels(keyId, Object.keys(filters).length > 0 ? filters : undefined);
+  }
+
+  @Get('api-keys/:keyId/openrouter/providers')
+  async getOpenRouterProviders(@Param('keyId') keyId: string) {
+    return this.adminService.getOpenRouterProviders(keyId);
+  }
+
+  @Get('api-keys/:keyId/openrouter/models/:modelId')
+  async getOpenRouterModelById(
+    @Param('keyId') keyId: string,
+    @Param('modelId') modelId: string
+  ) {
+    return this.adminService.getOpenRouterModelById(keyId, modelId);
+  }
+
+  // API Key Model Configuration Management
+  @Get('api-keys/:keyId/model-config')
+  async getApiKeyModelConfig(@Param('keyId') keyId: string) {
+    return this.adminService.getApiKeyModelConfig(keyId);
+  }
+
+  @Post('api-keys/:keyId/model-config')
+  async createModelConfig(
+    @Param('keyId') keyId: string,
+    @Body() configData: {
+      primaryModel: string;
+      fallbackModel1?: string;
+      fallbackModel2?: string;
+      fallbackModel3?: string;
+      notes?: string;
+    }
+  ) {
+    return this.adminService.createOrUpdateModelConfig(keyId, configData);
+  }
+
+  @Patch('api-keys/:keyId/model-config')
+  async updateModelConfig(
+    @Param('keyId') keyId: string,
+    @Body() configData: {
+      primaryModel?: string;
+      fallbackModel1?: string;
+      fallbackModel2?: string;
+      fallbackModel3?: string;
+      notes?: string;
+    }
+  ) {
+    return this.adminService.createOrUpdateModelConfig(keyId, configData);
+  }
+
+  @Delete('api-keys/:keyId/model-config')
+  async deleteModelConfig(@Param('keyId') keyId: string) {
+    return this.adminService.deleteModelConfig(keyId);
+  }
+
+  @Get('model-configs')
+  async getAllModelConfigs() {
+    return this.adminService.getAllModelConfigs();
+  }
+
+  @Get('model-configs/stats')
+  async getModelConfigStats() {
+    return this.adminService.getModelConfigStats();
+  }
 }

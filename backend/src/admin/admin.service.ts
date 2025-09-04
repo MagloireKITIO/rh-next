@@ -12,6 +12,8 @@ import { ApiKey } from '../api-keys/entities/api-key.entity';
 import { MailService } from '../mail-configuration/mail.service';
 import { MailTemplateService } from '../mail-configuration/mail-template.service';
 import { MailAutomation, AutomationStatus } from '../mail-automation/entities/mail-automation.entity';
+import { OpenRouterService } from '../openrouter/openrouter.service';
+import { ApiKeyModelConfigService, ModelConfigData } from '../api-keys/api-key-model-config.service';
 
 @Injectable()
 export class AdminService {
@@ -35,6 +37,8 @@ export class AdminService {
     private configService: ConfigService,
     private mailService: MailService,
     private mailTemplateService: MailTemplateService,
+    private openRouterService: OpenRouterService,
+    private apiKeyModelConfigService: ApiKeyModelConfigService,
   ) {
     this.supabase = createClient(
       this.configService.get('SUPABASE_URL'),
@@ -875,5 +879,97 @@ export class AdminService {
 
   async getMailTemplates() {
     return this.mailTemplateService.findAll();
+  }
+
+  // OpenRouter Models Management
+  async getOpenRouterModels(apiKeyId: string, filters?: {
+    modality?: string;
+    provider?: string;
+    maxContextLength?: number;
+  }) {
+    const apiKey = await this.apiKeyRepository.findOne({ where: { id: apiKeyId } });
+    
+    if (!apiKey) {
+      throw new NotFoundException('Clé API introuvable');
+    }
+
+    if (apiKey.provider !== 'openrouter') {
+      throw new BadRequestException('Cette clé API n\'est pas pour OpenRouter');
+    }
+
+    if (!apiKey.isActive) {
+      throw new BadRequestException('Cette clé API est inactive');
+    }
+
+    return this.openRouterService.getFilteredModels(apiKey.key, filters);
+  }
+
+  async getOpenRouterProviders(apiKeyId: string) {
+    const apiKey = await this.apiKeyRepository.findOne({ where: { id: apiKeyId } });
+    
+    if (!apiKey) {
+      throw new NotFoundException('Clé API introuvable');
+    }
+
+    if (apiKey.provider !== 'openrouter') {
+      throw new BadRequestException('Cette clé API n\'est pas pour OpenRouter');
+    }
+
+    if (!apiKey.isActive) {
+      throw new BadRequestException('Cette clé API est inactive');
+    }
+
+    return this.openRouterService.getProviders(apiKey.key);
+  }
+
+  async getOpenRouterModelById(apiKeyId: string, modelId: string) {
+    const apiKey = await this.apiKeyRepository.findOne({ where: { id: apiKeyId } });
+    
+    if (!apiKey) {
+      throw new NotFoundException('Clé API introuvable');
+    }
+
+    if (apiKey.provider !== 'openrouter') {
+      throw new BadRequestException('Cette clé API n\'est pas pour OpenRouter');
+    }
+
+    if (!apiKey.isActive) {
+      throw new BadRequestException('Cette clé API est inactive');
+    }
+
+    const model = await this.openRouterService.getModelById(apiKey.key, modelId);
+    
+    if (!model) {
+      throw new NotFoundException('Modèle introuvable');
+    }
+
+    return model;
+  }
+
+  // API Key Model Configuration Management
+  async getApiKeyModelConfig(apiKeyId: string) {
+    return this.apiKeyModelConfigService.findByApiKeyId(apiKeyId);
+  }
+
+  async createOrUpdateModelConfig(apiKeyId: string, configData: ModelConfigData) {
+    const apiKey = await this.apiKeyRepository.findOne({ where: { id: apiKeyId } });
+    
+    if (!apiKey) {
+      throw new NotFoundException('Clé API introuvable');
+    }
+
+    return this.apiKeyModelConfigService.createOrUpdateConfig(apiKeyId, configData);
+  }
+
+  async deleteModelConfig(apiKeyId: string) {
+    return this.apiKeyModelConfigService.deleteConfig(apiKeyId);
+  }
+
+  async getAllModelConfigs() {
+    return this.apiKeyModelConfigService.getAllConfigs();
+  }
+
+  async getModelConfigStats() {
+    return this.apiKeyModelConfigService.getModelStats();
   }
 }

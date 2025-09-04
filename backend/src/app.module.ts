@@ -16,6 +16,7 @@ import { HealthModule } from './health/health.module';
 import { CommonModule } from './common/common.module';
 import { MailConfigurationModule } from './mail-configuration/mail-configuration.module';
 import { MailAutomationModule } from './mail-automation/mail-automation.module';
+import { OpenRouterModule } from './openrouter/openrouter.module';
 import { StaticController } from './common/static.controller';
 
 @Module({
@@ -27,13 +28,17 @@ import { StaticController } from './common/static.controller';
       type: 'postgres',
       url: process.env.DATABASE_URL,
       autoLoadEntities: true,
-      synchronize: true, // Force synchronize temporairement pour debug
-      migrationsRun: process.env.NODE_ENV !== 'development', // Migrations en production
-      migrations: ['dist/migrations/*.js'],
+      synchronize: process.env.NODE_ENV === 'development', // Sync uniquement en dev
+      migrationsRun: process.env.NODE_ENV !== 'development', // Migrations en prod/test
+      migrations: [
+        process.env.NODE_ENV === 'development' 
+          ? 'src/migrations/*.ts'
+          : 'dist/migrations/*.js'
+      ],
       ssl: {
         rejectUnauthorized: false,
       },
-      logging: process.env.NODE_ENV === 'development' ? true : ['error'], // Logs conditionnels
+      logging: process.env.NODE_ENV === 'development' ? true : ['error'],
     }),
     CommonModule,
     AuthModule,
@@ -50,6 +55,7 @@ import { StaticController } from './common/static.controller';
     HealthModule,
     MailConfigurationModule,
     MailAutomationModule,
+    OpenRouterModule,
   ],
   controllers: [StaticController],
 })

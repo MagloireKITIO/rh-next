@@ -7,6 +7,7 @@ import { ConditionEvaluatorService } from './services/condition-evaluator.servic
 import { AutomationTriggerService } from './services/automation-trigger.service';
 import { MailAutomationController } from './mail-automation.controller';
 import { MailConfigurationModule } from '../mail-configuration/mail-configuration.module';
+import { AutomationSubscriber } from './subscribers/automation.subscriber';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { MailConfigurationModule } from '../mail-configuration/mail-configuratio
     MailAutomationService,
     ConditionEvaluatorService,
     AutomationTriggerService,
+    AutomationSubscriber, // Ajout du subscriber pour les automatisations automatiques
   ],
   exports: [
     MailAutomationService,

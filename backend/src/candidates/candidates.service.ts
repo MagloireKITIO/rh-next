@@ -8,8 +8,9 @@ import { AnalysisService } from '../analysis/analysis.service';
 import { StorageService } from '../storage/storage.service';
 import { ProjectWebSocketGateway } from '../websocket/websocket.gateway';
 import { AnalysisQueueService } from './analysis-queue.service';
-import { AutomationTriggerService } from '../mail-automation/services/automation-trigger.service';
-import { AutomationTrigger, AutomationEntityType } from '../mail-automation/entities/mail-automation.entity';
+// ✅ Imports supprimés - automatisations gérées par AutomationSubscriber
+// import { AutomationTriggerService } from '../mail-automation/services/automation-trigger.service';
+// import { AutomationTrigger, AutomationEntityType } from '../mail-automation/entities/mail-automation.entity';
 import * as pdf from 'pdf-parse';
 import * as fs from 'fs';
 
@@ -43,7 +44,8 @@ export class CandidatesService {
     private storageService: StorageService,
     private webSocketGateway: ProjectWebSocketGateway,
     private analysisQueueService: AnalysisQueueService,
-    private automationTriggerService: AutomationTriggerService,
+    // ✅ Service supprimé - automatisations gérées par AutomationSubscriber
+    // private automationTriggerService: AutomationTriggerService,
   ) {}
 
   private extractNameFromFilename(filename: string): string | null {
@@ -85,24 +87,8 @@ export class CandidatesService {
     const candidate = this.candidateRepository.create(createCandidateDto);
     const savedCandidate = await this.candidateRepository.save(candidate);
     
-    // Déclencher les automatisations lors de la création d'un candidat
-    try {
-      // Charger les relations nécessaires pour les automatisations
-      const candidateWithRelations = await this.candidateRepository.findOne({
-        where: { id: savedCandidate.id },
-        relations: ['project', 'project.company', 'project.createdBy']
-      });
-      
-      if (candidateWithRelations) {
-        await this.automationTriggerService.triggerCandidateAutomations(
-          AutomationTrigger.ON_CREATE,
-          candidateWithRelations
-        );
-      }
-    } catch (error) {
-      this.logger.warn('Error triggering automations for candidate creation:', error);
-      // Ne pas faire échouer la création du candidat si les automatisations échouent
-    }
+    // ✅ Automatisations désormais gérées automatiquement par AutomationSubscriber
+    // Les triggers ON_CREATE sont déclenchés automatiquement lors de la sauvegarde
     
     return savedCandidate;
   }
@@ -420,24 +406,8 @@ export class CandidatesService {
         phone: aiAnalysis.extractedData?.phone || candidate.phone,
       });
 
-      // Déclencher les automatisations après mise à jour
-      try {
-        const updatedCandidateWithRelations = await this.candidateRepository.findOne({
-          where: { id: candidateId },
-          relations: ['project', 'project.company', 'project.createdBy']
-        });
-        
-        if (updatedCandidateWithRelations) {
-          await this.automationTriggerService.triggerCandidateAutomations(
-            AutomationTrigger.ON_UPDATE,
-            updatedCandidateWithRelations,
-            previousCandidate
-          );
-        }
-      } catch (error) {
-        this.logger.warn('Error triggering automations for candidate update:', error);
-        // Ne pas faire échouer l'analyse si les automatisations échouent
-      }
+      // ✅ Automatisations désormais gérées automatiquement par AutomationSubscriber
+      // Les triggers ON_UPDATE sont déclenchés automatiquement lors de la sauvegarde
 
       // Sauvegarder l'analyse complète
       await this.analysisService.create({
