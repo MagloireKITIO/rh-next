@@ -22,7 +22,10 @@ import {
   RefreshCw, 
   AlertTriangle,
   Users,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  Upload,
+  FileText,
+  X
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -49,13 +52,17 @@ export function ProjectSettings({
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [clearConfirmation, setClearConfirmation] = useState("");
+  const [uploadingDocument, setUploadingDocument] = useState(false);
   
   // Form states
   const [formData, setFormData] = useState({
     name: project.name,
     jobDescription: project.jobDescription,
     customPrompt: project.customPrompt || "",
-    status: project.status
+    status: project.status,
+    startDate: project.startDate ? new Date(project.startDate).toISOString().slice(0, 16) : "",
+    endDate: project.endDate ? new Date(project.endDate).toISOString().slice(0, 16) : "",
+    offerDescription: project.offerDescription || ""
   });
 
   const handleSaveGeneral = async () => {
@@ -136,6 +143,61 @@ export function ProjectSettings({
     } catch (error) {
       console.error("Error clearing candidates:", error);
       toast.error("Error clearing candidates");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleOfferDocumentUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== 'application/pdf') {
+      toast.error("Please select a PDF file");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) { // 10MB limit
+      toast.error("File size must be less than 10MB");
+      return;
+    }
+
+    setUploadingDocument(true);
+    try {
+      const formData = new FormData();
+      formData.append('document', file);
+
+      const response = await apiClient.post(`/projects/${project.id}/offer-document`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      onProjectUpdate(response.data);
+      toast.success("Offer document uploaded successfully");
+      
+      // Reset the file input
+      event.target.value = '';
+    } catch (error) {
+      console.error("Error uploading offer document:", error);
+      toast.error("Error uploading offer document");
+    } finally {
+      setUploadingDocument(false);
+    }
+  };
+
+  const handleRemoveOfferDocument = async () => {
+    setIsLoading(true);
+    try {
+      const response = await projectsApi.update(project.id, {
+        offerDocumentUrl: null,
+        offerDocumentFileName: null
+      });
+      onProjectUpdate(response.data);
+      toast.success("Offer document removed successfully");
+    } catch (error) {
+      console.error("Error removing offer document:", error);
+      toast.error("Error removing offer document");
     } finally {
       setIsLoading(false);
     }
@@ -252,6 +314,93 @@ export function ProjectSettings({
                         placeholder="Enter job description"
                         rows={4}
                       />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="offer-description">Offer Description</Label>
+                      <Textarea
+                        id="offer-description"
+                        value={formData.offerDescription}
+                        onChange={(e) => setFormData(prev => ({ ...prev, offerDescription: e.target.value }))}
+                        placeholder="Enter offer description"
+                        rows={4}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="start-date">Start Date</Label>
+                        <Input
+                          id="start-date"
+                          type="datetime-local"
+                          value={formData.startDate}
+                          onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="end-date">End Date</Label>
+                        <Input
+                          id="end-date"
+                          type="datetime-local"
+                          value={formData.endDate}
+                          onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label>Offer Document</Label>
+                      <div className="space-y-3">
+                        {project.offerDocumentUrl ? (
+                          <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/50">
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-4 w-4 text-blue-600" />
+                              <span className="text-sm font-medium">
+                                {project.offerDocumentFileName || "Offer Document"}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => window.open(project.offerDocumentUrl, '_blank')}
+                              >
+                                <Download className="h-4 w-4" />
+                                View
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleRemoveOfferDocument}
+                                disabled={isLoading}
+                              >
+                                <X className="h-4 w-4" />
+                                Remove
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                            <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
+                            <div className="text-sm text-gray-600 mb-2">
+                              Upload offer document (PDF only, max 10MB)
+                            </div>
+                            <Input
+                              type="file"
+                              accept=".pdf"
+                              onChange={handleOfferDocumentUpload}
+                              disabled={uploadingDocument}
+                              className="max-w-xs mx-auto"
+                            />
+                            {uploadingDocument && (
+                              <div className="mt-2">
+                                <LoadingSpinner size="sm" />
+                                <span className="ml-2 text-sm">Uploading...</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     <div>

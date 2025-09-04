@@ -9,6 +9,16 @@ import { ConfigService } from '@nestjs/config';
 import { createClient } from '@supabase/supabase-js';
 import * as crypto from 'crypto';
 
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+}
+
 @Injectable()
 export class CompaniesService {
   private supabase;
@@ -83,11 +93,28 @@ export class CompaniesService {
     return this.companiesRepository.save(company);
   }
 
-  async getUsers(companyId: string): Promise<User[]> {
-    return this.usersRepository.find({
+  async getUsers(companyId: string, page: number = 1, limit: number = 50): Promise<PaginatedResponse<User>> {
+    const skip = (page - 1) * limit;
+    
+    const [data, total] = await this.usersRepository.findAndCount({
       where: { company_id: companyId },
       select: ['id', 'email', 'name', 'avatar_url', 'role', 'is_active', 'is_invited', 'created_at'],
+      skip,
+      take: limit,
+      order: { created_at: 'DESC' },
     });
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages,
+      hasNext: page < totalPages,
+      hasPrevious: page > 1,
+    };
   }
 
   async inviteUser(companyId: string, inviteUserDto: InviteUserDto): Promise<{ message: string; invitation_sent: boolean }> {

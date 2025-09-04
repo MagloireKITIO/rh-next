@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { Candidate } from './entities/candidate.entity';
 import { CreateCandidateDto } from './dto/create-candidate.dto';
 import { TogetherAIService } from '../ai/together-ai.service';
@@ -8,8 +8,27 @@ import { AnalysisService } from '../analysis/analysis.service';
 import { StorageService } from '../storage/storage.service';
 import { ProjectWebSocketGateway } from '../websocket/websocket.gateway';
 import { AnalysisQueueService } from './analysis-queue.service';
+// ✅ Imports supprimés - automatisations gérées par AutomationSubscriber
+// import { AutomationTriggerService } from '../mail-automation/services/automation-trigger.service';
+// import { AutomationTrigger, AutomationEntityType } from '../mail-automation/entities/mail-automation.entity';
 import * as pdf from 'pdf-parse';
 import * as fs from 'fs';
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+}
+
+export interface CandidateFilters {
+  search?: string;
+  status?: string;
+  scoreFilter?: string;
+}
 
 @Injectable()
 export class CandidatesService {
@@ -18,11 +37,15 @@ export class CandidatesService {
   constructor(
     @InjectRepository(Candidate)
     private candidateRepository: Repository<Candidate>,
+    @InjectDataSource()
+    private dataSource: DataSource,
     private togetherAIService: TogetherAIService,
     private analysisService: AnalysisService,
     private storageService: StorageService,
     private webSocketGateway: ProjectWebSocketGateway,
     private analysisQueueService: AnalysisQueueService,
+    // ✅ Service supprimé - automatisations gérées par AutomationSubscriber
+    // private automationTriggerService: AutomationTriggerService,
   ) {}
 
   private extractNameFromFilename(filename: string): string | null {
@@ -62,23 +85,144 @@ export class CandidatesService {
 
   async create(createCandidateDto: CreateCandidateDto): Promise<Candidate> {
     const candidate = this.candidateRepository.create(createCandidateDto);
-    return await this.candidateRepository.save(candidate);
+    const savedCandidate = await this.candidateRepository.save(candidate);
+    
+    // ✅ Automatisations désormais gérées automatiquement par AutomationSubscriber
+    // Les triggers ON_CREATE sont déclenchés automatiquement lors de la sauvegarde
+    
+    return savedCandidate;
   }
 
-  async findAll(companyId: string): Promise<Candidate[]> {
-    return await this.candidateRepository.find({
-      relations: ['project'],
-      where: { project: { company_id: companyId } },
-      order: { score: 'DESC' },
-    });
+  async findAll(companyId: string, page: number = 1, limit: number = 50, filters?: CandidateFilters): Promise<PaginatedResponse<Candidate>> {
+    const skip = (page - 1) * limit;
+    
+    // Construction dynamique des conditions WHERE
+    const queryBuilder = this.candidateRepository.createQueryBuilder('candidate')
+      .leftJoinAndSelect('candidate.project', 'project')
+      .leftJoinAndSelect('candidate.analyses', 'analyses')
+      .where('project.company_id = :companyId', { companyId });
+
+    // Filtrage par recherche (nom, email, résumé, texte extrait)
+    if (filters?.search) {
+      const searchTerm = `%${filters.search.toLowerCase()}%`;
+      queryBuilder.andWhere(
+        '(LOWER(candidate.name) LIKE :search OR LOWER(candidate.email) LIKE :search OR LOWER(candidate.summary) LIKE :search OR LOWER(candidate.extractedText) LIKE :search)',
+        { search: searchTerm }
+      );
+    }
+
+    // Filtrage par statut
+    if (filters?.status) {
+      queryBuilder.andWhere('candidate.status = :status', { status: filters.status });
+    }
+
+    // Filtrage par score
+    if (filters?.scoreFilter && filters.scoreFilter !== 'all') {
+      switch (filters.scoreFilter) {
+        case 'excellent':
+          queryBuilder.andWhere('candidate.score >= 80');
+          break;
+        case 'good':
+          queryBuilder.andWhere('candidate.score >= 60 AND candidate.score < 80');
+          break;
+        case 'average':
+          queryBuilder.andWhere('candidate.score >= 40 AND candidate.score < 60');
+          break;
+        case 'poor':
+          queryBuilder.andWhere('candidate.score < 40');
+          break;
+      }
+    }
+
+    // Ordre et pagination
+    queryBuilder
+      .orderBy('candidate.score', 'DESC')
+      .skip(skip)
+      .take(limit);
+
+    const [data, total] = await queryBuilder.getManyAndCount();
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages,
+      hasNext: page < totalPages,
+      hasPrevious: page > 1,
+    };
   }
 
-  async findByProject(projectId: string, companyId: string): Promise<Candidate[]> {
+  // Méthode pour récupérer tous les candidats d'un projet (pour usage interne)
+  async findAllByProject(projectId: string, companyId: string): Promise<Candidate[]> {
     return await this.candidateRepository.find({
       where: { projectId, project: { company_id: companyId } },
       relations: ['project', 'analyses'],
       order: { score: 'DESC' },
     });
+  }
+
+  async findByProject(projectId: string, companyId: string, page: number = 1, limit: number = 50, filters?: CandidateFilters): Promise<PaginatedResponse<Candidate>> {
+    const skip = (page - 1) * limit;
+    
+    // Construction dynamique des conditions WHERE
+    const queryBuilder = this.candidateRepository.createQueryBuilder('candidate')
+      .leftJoinAndSelect('candidate.project', 'project')
+      .leftJoinAndSelect('candidate.analyses', 'analyses')
+      .where('candidate.projectId = :projectId', { projectId })
+      .andWhere('project.company_id = :companyId', { companyId });
+
+    // Filtrage par recherche (nom, email, résumé, texte extrait)
+    if (filters?.search) {
+      const searchTerm = `%${filters.search.toLowerCase()}%`;
+      queryBuilder.andWhere(
+        '(LOWER(candidate.name) LIKE :search OR LOWER(candidate.email) LIKE :search OR LOWER(candidate.summary) LIKE :search OR LOWER(candidate.extractedText) LIKE :search)',
+        { search: searchTerm }
+      );
+    }
+
+    // Filtrage par statut
+    if (filters?.status) {
+      queryBuilder.andWhere('candidate.status = :status', { status: filters.status });
+    }
+
+    // Filtrage par score
+    if (filters?.scoreFilter && filters.scoreFilter !== 'all') {
+      switch (filters.scoreFilter) {
+        case 'excellent':
+          queryBuilder.andWhere('candidate.score >= 80');
+          break;
+        case 'good':
+          queryBuilder.andWhere('candidate.score >= 60 AND candidate.score < 80');
+          break;
+        case 'average':
+          queryBuilder.andWhere('candidate.score >= 40 AND candidate.score < 60');
+          break;
+        case 'poor':
+          queryBuilder.andWhere('candidate.score < 40');
+          break;
+      }
+    }
+
+    // Ordre et pagination
+    queryBuilder
+      .orderBy('candidate.score', 'DESC')
+      .skip(skip)
+      .take(limit);
+
+    const [data, total] = await queryBuilder.getManyAndCount();
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages,
+      hasNext: page < totalPages,
+      hasPrevious: page > 1,
+    };
   }
 
   async findOne(id: string, companyId: string): Promise<Candidate> {
@@ -123,6 +267,12 @@ export class CandidatesService {
         throw new Error('Only PDF files are supported');
       }
 
+      // Limite critique de taille : 10MB max
+      const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+      if (file.buffer.length > MAX_FILE_SIZE) {
+        throw new Error(`File too large. Maximum size is ${MAX_FILE_SIZE / 1024 / 1024}MB, got ${Math.round(file.buffer.length / 1024 / 1024 * 10) / 10}MB`);
+      }
+
       // Extraire le texte du PDF
       let extractedText = '';
       let candidateName = 'Candidat Inconnu';
@@ -130,6 +280,12 @@ export class CandidatesService {
       try {
         const pdfData = await pdf(file.buffer);
         extractedText = pdfData.text?.trim() || '';
+        
+        // Forcer le nettoyage de la mémoire après traitement PDF
+        delete pdfData.text;
+        if (global.gc) {
+          global.gc();
+        }
         
         // Vérifier si l'extraction a réussi
         if (!extractedText || extractedText.length < 10) {
@@ -228,15 +384,18 @@ export class CandidatesService {
       // Émettre l'événement de début d'analyse
       this.webSocketGateway.emitAnalysisStarted(project.id, candidateId);
 
-      // Analyser avec Together AI
+      // Analyser avec Together AI en utilisant les clés de l'entreprise
       const aiAnalysis = await this.togetherAIService.analyzeCV(
         candidate.extractedText,
         project.jobDescription,
-        project.customPrompt
+        project.customPrompt,
+        project.company_id
       );
 
       // Mettre à jour le candidat avec les résultats
       const previousScore = candidate.score;
+      const previousCandidate = { ...candidate }; // Sauvegarder l'état précédent
+      
       await this.candidateRepository.update(candidateId, {
         score: aiAnalysis.score,
         previousScore,
@@ -246,6 +405,9 @@ export class CandidatesService {
         email: aiAnalysis.extractedData?.email || candidate.email,
         phone: aiAnalysis.extractedData?.phone || candidate.phone,
       });
+
+      // ✅ Automatisations désormais gérées automatiquement par AutomationSubscriber
+      // Les triggers ON_UPDATE sont déclenchés automatiquement lors de la sauvegarde
 
       // Sauvegarder l'analyse complète
       await this.analysisService.create({
@@ -288,7 +450,7 @@ export class CandidatesService {
   }
 
   async updateRankings(projectId: string, companyId: string): Promise<void> {
-    const candidates = await this.findByProject(projectId, companyId);
+    const candidates = await this.findAllByProject(projectId, companyId);
     
     // Trier par score décroissant
     candidates.sort((a, b) => Number(b.score) - Number(a.score));
@@ -302,7 +464,7 @@ export class CandidatesService {
   }
 
   async getRankingChanges(projectId: string, companyId: string) {
-    const candidates = await this.findByProject(projectId, companyId);
+    const candidates = await this.findAllByProject(projectId, companyId);
     
     return candidates.map(candidate => {
       const currentScore = Number(candidate.score);
@@ -326,25 +488,104 @@ export class CandidatesService {
   }
 
   async remove(id: string): Promise<void> {
-    // Vérifier que le candidat existe
-    const candidate = await this.candidateRepository.findOne({
-      where: { id },
-      relations: ['analyses']
+    // Transaction atomique pour supprimer candidat + analyses
+    return await this.dataSource.transaction(async manager => {
+      
+      // 1. Vérifier que le candidat existe
+      const candidate = await manager.findOne(Candidate, {
+        where: { id },
+        select: ['id', 'name', 'projectId'] // Optimiser la requête
+      });
+
+      if (!candidate) {
+        throw new NotFoundException(`Candidate with ID ${id} not found`);
+      }
+
+      this.logger.log(`Starting transactional deletion of candidate ${candidate.name} (${id})`);
+
+      // 2. Compter les analyses à supprimer
+      const analysisCount = await manager.count('Analysis', { where: { candidateId: id } });
+      
+      if (analysisCount > 0) {
+        this.logger.log(`Found ${analysisCount} analyses to delete`);
+        
+        // 3. Supprimer les analyses en premier (dépendance)
+        await manager.delete('Analysis', { candidateId: id });
+        this.logger.log(`✅ Deleted ${analysisCount} analyses atomically`);
+      }
+
+      // 4. Supprimer le candidat
+      const result = await manager.delete(Candidate, { id });
+      if (result.affected === 0) {
+        throw new NotFoundException(`Candidate with ID ${id} not found during deletion`);
+      }
+
+      this.logger.log(`✅ Successfully deleted candidate ${candidate.name} and all analyses atomically`);
+      
+      // 🎯 Notifier via WebSocket du changement (après commit)
+      // On utilisera un hook post-transaction pour cela
+      setImmediate(() => {
+        this.webSocketGateway.emitToProject(candidate.projectId, 'candidate:deleted', {
+          candidateId: id,
+          projectId: candidate.projectId
+        });
+      });
     });
+  }
 
-    if (!candidate) {
-      throw new NotFoundException(`Candidate with ID ${id} not found`);
+  /**
+   * Suppression en lot avec transaction (pour les opérations de nettoyage)
+   */
+  async removeBulk(candidateIds: string[], companyId?: string): Promise<{ deleted: number; errors: string[] }> {
+    if (!candidateIds || candidateIds.length === 0) {
+      return { deleted: 0, errors: [] };
     }
 
-    // Supprimer toutes les analyses liées d'abord
-    if (candidate.analyses && candidate.analyses.length > 0) {
-      await this.analysisService.removeByCandidate(id);
-    }
+    return await this.dataSource.transaction(async manager => {
+      const results = { deleted: 0, errors: [] };
+      
+      // 1. Vérifier que tous les candidats existent et appartiennent à l'entreprise
+      const whereCondition: any = { id: candidateIds };
+      if (companyId) {
+        // Join avec project pour vérifier company_id si nécessaire
+        const candidates = await manager
+          .createQueryBuilder(Candidate, 'candidate')
+          .innerJoin('candidate.project', 'project')
+          .where('candidate.id IN (:...ids)', { ids: candidateIds })
+          .andWhere('project.company_id = :companyId', { companyId })
+          .select(['candidate.id', 'candidate.name'])
+          .getMany();
+          
+        if (candidates.length !== candidateIds.length) {
+          const foundIds = candidates.map(c => c.id);
+          const missingIds = candidateIds.filter(id => !foundIds.includes(id));
+          results.errors.push(...missingIds.map(id => `Candidate ${id} not found or access denied`));
+        }
+        
+        const validIds = candidates.map(c => c.id);
+        if (validIds.length === 0) {
+          return results;
+        }
+        whereCondition.id = validIds;
+      }
 
-    // Maintenant supprimer le candidat
-    const result = await this.candidateRepository.delete(id);
-    if (result.affected === 0) {
-      throw new NotFoundException(`Candidate with ID ${id} not found`);
-    }
+      try {
+        // 2. Supprimer toutes les analyses en lot
+        const analysisResult = await manager.delete('Analysis', { candidateId: whereCondition.id });
+        this.logger.log(`✅ Deleted ${analysisResult.affected} analyses in bulk`);
+
+        // 3. Supprimer tous les candidats en lot  
+        const candidateResult = await manager.delete(Candidate, whereCondition);
+        results.deleted = candidateResult.affected || 0;
+        
+        this.logger.log(`✅ Successfully deleted ${results.deleted} candidates and their analyses atomically`);
+        
+      } catch (error) {
+        this.logger.error('Error during bulk deletion:', error);
+        results.errors.push(`Bulk deletion failed: ${error.message}`);
+      }
+      
+      return results;
+    });
   }
 }

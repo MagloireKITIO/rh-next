@@ -6,13 +6,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { ScoreIndicator } from '@/components/ui/score-indicator';
+import { Pagination } from '@/components/ui/pagination';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Share2, User, Calendar, Building, Users, Eye, Download, Mail, Phone, FileText, TrendingUp } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Share2, User, Calendar, Building, Users, Eye, Download, Mail, Phone, FileText, TrendingUp, Search, Filter, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { publicApi, PaginatedResponse } from '@/lib/api-client';
+import { useSharedProjectCandidates } from '@/hooks/queries/useCandidates';
 
 interface Candidate {
   id: string;
@@ -59,6 +63,11 @@ interface SharedProject {
   createdAt: string;
   candidates: Candidate[];
   analyses: Analysis[];
+  offerDocumentUrl?: string;
+  offerDocumentFileName?: string;
+  offerDescription?: string;
+  startDate?: string;
+  endDate?: string;
   company: {
     id: string;
     name: string;
@@ -79,18 +88,38 @@ export default function SharedProjectPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [showCandidateDetail, setShowCandidateDetail] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [scoreFilter, setScoreFilter] = useState("all");
+  const [showFilters, setShowFilters] = useState(false);
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Debounce pour la recherche (500ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+  
+  // Réinitialiser la page quand on change les filtres
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchQuery, statusFilter, scoreFilter]);
 
   useEffect(() => {
     const fetchSharedProject = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'}/api/public/projects/shared/${token}`);
-        if (!response.ok) {
-          throw new Error('Projet non trouvé ou lien expiré');
-        }
-        const data = await response.json();
-        setProject(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Une erreur est survenue');
+        const response = await publicApi.getSharedProject(token);
+        // On garde seulement les infos du projet, pas les candidats
+        setProject({
+          ...response.data,
+          candidates: [] // Les candidats seront chargés séparément
+        });
+      } catch (err: any) {
+        setError(err.response?.data?.message || 'Projet non trouvé ou lien expiré');
       } finally {
         setLoading(false);
       }
@@ -98,6 +127,15 @@ export default function SharedProjectPage() {
 
     fetchSharedProject();
   }, [token]);
+
+  // Hook pour charger les candidats avec recherche et pagination
+  const candidatesQuery = useSharedProjectCandidates(token, {
+    search: debouncedSearchQuery,
+    statusFilter,
+    scoreFilter,
+    page: currentPage,
+    limit: 20
+  });
 
   const requestToJoinTeam = () => {
     setShowJoinDialog(true);
@@ -231,25 +269,14 @@ export default function SharedProjectPage() {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'}/api/public/team-requests`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...joinFormData,
-          project_share_token: token,
-        }),
+      await publicApi.submitTeamRequest({
+        ...joinFormData,
+        project_share_token: token,
       });
 
-      if (response.ok) {
-        // Rediriger vers la page de confirmation
-        const companyName = encodeURIComponent(project?.company.name || '');
-        window.location.href = `/team-request-submitted?company=${companyName}`;
-      } else {
-        const errorData = await response.json();
-        toast.error(errorData.message || 'Erreur lors de l\'envoi de la demande');
-      }
+      // Rediriger vers la page de confirmation
+      const companyName = encodeURIComponent(project?.company.name || '');
+      window.location.href = `/team-request-submitted?company=${companyName}`;
     } catch (error) {
       toast.error('Erreur lors de l\'envoi de la demande');
     } finally {
@@ -280,7 +307,10 @@ export default function SharedProjectPage() {
     return null;
   }
 
-  const sortedCandidates = [...project.candidates].sort((a, b) => (b.score || 0) - (a.score || 0));
+  // Récupérer les candidats depuis le nouveau hook (déjà filtrés et triés côté serveur)
+  const candidatesData = candidatesQuery.data;
+  const sortedCandidates = candidatesData?.data || [];
+  const paginationInfo = candidatesData;
 
   return (
     <div className="min-h-screen bg-background py-8">
@@ -314,6 +344,33 @@ export default function SharedProjectPage() {
             </Button>
           </div>
         </Card>
+
+        {/* Offer Document Preview */}
+        {project.offerDocumentUrl && (
+          <Card className="p-6 mb-6">
+            <h2 className="text-lg font-semibold mb-3">Document d'offre</h2>
+            <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
+              <div className="flex items-center gap-3">
+                <FileText className="h-6 w-6 text-blue-600" />
+                <div>
+                  <p className="font-medium text-foreground">
+                    {project.offerDocumentFileName || "Document d'offre"}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Cliquez pour consulter le document complet
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={() => window.open(project.offerDocumentUrl, '_blank')}
+                className="gap-2"
+              >
+                <Eye className="h-4 w-4" />
+                Consulter le document
+              </Button>
+            </div>
+          </Card>
+        )}
 
         {/* Job Description */}
         <Card className="p-6 mb-6">
@@ -355,9 +412,142 @@ export default function SharedProjectPage() {
 
         {/* Candidates List */}
         <Card className="p-6">
-          <h2 className="text-lg font-semibold mb-4">Classement des candidats</h2>
-          {sortedCandidates.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">Aucun candidat pour ce projet</p>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold">Classement des candidats</h2>
+          </div>
+          
+          {/* Recherche et filtres */}
+          <div className="mb-6 space-y-4">
+            <div className="flex flex-col sm:flex-row gap-4">
+              {/* Barre de recherche */}
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  placeholder="Rechercher par nom, email ou résumé..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+                {searchQuery && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-gray-100"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+              
+              {/* Bouton pour afficher/masquer les filtres */}
+              <Button
+                variant="outline"
+                onClick={() => setShowFilters(!showFilters)}
+                className="gap-2"
+              >
+                <Filter className="h-4 w-4" />
+                Filtres
+                {(statusFilter !== "all" || scoreFilter !== "all") && (
+                  <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 flex items-center justify-center text-xs">
+                    {(statusFilter !== "all" ? 1 : 0) + (scoreFilter !== "all" ? 1 : 0)}
+                  </Badge>
+                )}
+              </Button>
+            </div>
+            
+            {/* Filtres détaillés */}
+            {showFilters && (
+              <div className="flex flex-col sm:flex-row gap-4 p-4 bg-muted/50 rounded-lg">
+                <div className="flex-1">
+                  <label className="text-sm font-medium mb-2 block">Statut</label>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Tous les statuts" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tous les statuts</SelectItem>
+                      <SelectItem value="analyzed">Analysé</SelectItem>
+                      <SelectItem value="pending">En attente</SelectItem>
+                      <SelectItem value="error">Erreur</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="flex-1">
+                  <label className="text-sm font-medium mb-2 block">Score</label>
+                  <Select value={scoreFilter} onValueChange={setScoreFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Tous les scores" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tous les scores</SelectItem>
+                      <SelectItem value="excellent">Excellent (80+)</SelectItem>
+                      <SelectItem value="good">Bon (60-79)</SelectItem>
+                      <SelectItem value="average">Moyen (40-59)</SelectItem>
+                      <SelectItem value="poor">Faible (&lt;40)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {/* Bouton pour réinitialiser les filtres */}
+                {(statusFilter !== "all" || scoreFilter !== "all") && (
+                  <div className="flex items-end">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setStatusFilter("all");
+                        setScoreFilter("all");
+                      }}
+                      className="gap-2"
+                    >
+                      <X className="h-4 w-4" />
+                      Réinitialiser
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {/* Résultats */}
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <span>
+                {paginationInfo
+                  ? `${paginationInfo.total} résultat${paginationInfo.total > 1 ? 's' : ''} trouvé${paginationInfo.total > 1 ? 's' : ''}`
+                  : `${sortedCandidates.length} candidat${sortedCandidates.length > 1 ? 's' : ''}`
+                }
+              </span>
+              {(searchQuery || statusFilter !== "all" || scoreFilter !== "all") && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setStatusFilter("all");
+                    setScoreFilter("all");
+                    setShowFilters(false);
+                  }}
+                  className="gap-2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3 w-3" />
+                  Effacer tous les filtres
+                </Button>
+              )}
+            </div>
+          </div>
+          {candidatesQuery.isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <LoadingSpinner />
+              <span className="ml-2">Chargement des candidats...</span>
+            </div>
+          ) : sortedCandidates.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">
+              {(debouncedSearchQuery || statusFilter !== "all" || scoreFilter !== "all")
+                ? "Aucun candidat ne correspond aux critères de recherche"
+                : "Aucun candidat pour ce projet"
+              }
+            </p>
           ) : (
             <div className="space-y-4">
               {sortedCandidates.map((candidate, index) => (
@@ -404,6 +594,20 @@ export default function SharedProjectPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+          
+          {/* Pagination */}
+          {paginationInfo && paginationInfo.totalPages > 1 && (
+            <div className="mt-6 border-t pt-6">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={paginationInfo.totalPages}
+                onPageChange={setCurrentPage}
+                showInfo={true}
+                totalItems={paginationInfo.total}
+                itemsPerPage={paginationInfo.limit}
+              />
             </div>
           )}
         </Card>

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
 import { useAuth } from '@/contexts/auth-context';
+import { authApi } from '@/lib/api-client';
 
 export const useOnboarding = () => {
   const { user, refreshProfile } = useAuth();
@@ -97,19 +98,8 @@ export const useOnboarding = () => {
 
   const markAsOnboarded = async () => {
     try {
-      const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
-      const token = localStorage.getItem('token');
-      
-      const response = await fetch(`${API_BASE_URL}/api/auth/mark-onboarded`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        console.log('✅ Utilisateur marqué comme onboardé');
-      }
+      await authApi.markOnboarded();
+      console.log('✅ Utilisateur marqué comme onboardé');
     } catch (error) {
       console.error('❌ Erreur lors du marquage onboarding:', error);
     }

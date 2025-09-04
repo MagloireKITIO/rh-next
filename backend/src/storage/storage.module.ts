@@ -4,6 +4,6 @@ import { AzureStorageService } from './azure-storage.service';
 
 @Module({
   providers: [StorageService, AzureStorageService],
-  exports: [StorageService],
+  exports: [StorageService, AzureStorageService],
 })
 export class StorageModule {}

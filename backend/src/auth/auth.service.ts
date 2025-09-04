@@ -156,6 +156,73 @@ export class AuthService {
     };
   }
 
+  // Méthode spéciale pour l'authentification admin (sans vérification d'email)
+  async adminSignIn(loginDto: LoginDto) {
+    const { email, password } = loginDto;
+
+    // Sign in with Supabase
+    const { data, error } = await this.supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    // Get user from our database
+    let user = await this.userRepository.findOne({ where: { email } });
+
+    // If user doesn't exist in our DB, create them
+    if (!user) {
+      user = this.userRepository.create({
+        email: data.user.email,
+        name: data.user.user_metadata?.name || data.user.email,
+        google_id: data.user.id,
+        avatar_url: data.user.user_metadata?.avatar_url,
+        email_verified: data.user.email_confirmed_at ? true : false,
+        is_active: true, // Les admins sont toujours actifs
+        role: UserRole.SUPER_ADMIN,
+      });
+      await this.userRepository.save(user);
+    }
+
+    // Pour les super admins, pas de vérification d'email nécessaire
+    if (user.role === UserRole.SUPER_ADMIN) {
+      console.log('🔑 Connexion super admin - bypass vérification email');
+      
+      // S'assurer que l'admin est actif
+      if (!user.is_active) {
+        user.is_active = true;
+        await this.userRepository.save(user);
+      }
+    } else {
+      // Vérifications normales pour les autres rôles
+      if (!user.email_verified) {
+        throw new UnauthorizedException('Please verify your email before signing in. Check your inbox for verification email.');
+      }
+
+      if (!user.is_active) {
+        throw new UnauthorizedException('Your account is not active. Please contact support.');
+      }
+    }
+
+    const payload = { sub: user.id, email: user.email };
+    const access_token = this.jwtService.sign(payload);
+
+    return {
+      access_token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        avatar_url: user.avatar_url,
+        email_verified: user.email_verified,
+        role: user.role,
+      },
+    };
+  }
+
   async googleAuth(googleAuthDto: GoogleAuthDto) {
     const { access_token } = googleAuthDto;
 

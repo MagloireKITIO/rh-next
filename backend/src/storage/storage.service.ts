@@ -28,10 +28,10 @@ export class StorageService {
       .replace(/^_|_$/g, '');
   }
 
-  async uploadFile(file: Buffer, fileName: string, mimeType: string): Promise<string> {
+  async uploadFile(file: Buffer, fileName: string, mimeType: string, fileType: 'cv' | 'offer' = 'cv'): Promise<string> {
     // Prioriser Azure Storage si configuré
     if (this.azureStorageService.isAzureStorageConfigured()) {
-      return this.azureStorageService.uploadFile(file, fileName, mimeType);
+      return this.azureStorageService.uploadFile(file, fileName, mimeType, fileType);
     }
 
     // Fallback vers Supabase
@@ -41,7 +41,8 @@ export class StorageService {
 
     try {
       const sanitizedFileName = this.sanitizeFileName(fileName);
-      const filePath = `cvs/${Date.now()}-${sanitizedFileName}`;
+      const folder = fileType === 'cv' ? 'cvs' : 'offer-documents';
+      const filePath = `${folder}/${Date.now()}-${sanitizedFileName}`;
       
       const { data, error } = await this.supabase.storage
         .from('cv-documents')
@@ -65,6 +66,10 @@ export class StorageService {
       this.logger.error('Error uploading file to Supabase:', error);
       throw error;
     }
+  }
+
+  async uploadOfferDocument(file: Buffer, fileName: string): Promise<string> {
+    return this.uploadFile(file, fileName, 'application/pdf', 'offer');
   }
 
   async deleteFile(filePath: string): Promise<void> {

@@ -114,6 +114,75 @@ export default function Landing() {
         <Work />
         <Stats />
         
+        {/* Job Offers section */}
+        <section className="w-full py-24 bg-gradient-to-br from-gray-dark-1 to-gray-dark-2">
+          <div className="2xl:container mx-auto xl:px-20 md:px-12 px-4">
+            <div className="text-center mb-16">
+              <h2 className="text-5xl md:text-6xl font-bold text-white mb-6">
+                Offres d'<span className="text-gradient">Emploi</span>
+              </h2>
+              <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-8">
+                Découvrez nos opportunités de carrière et rejoignez une équipe innovante
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <button 
+                  onClick={() => router.push('/jobs')}
+                  className="px-8 py-4 bg-gradient-to-r from-indigo-light to-indigo-dark text-white rounded-lg font-semibold hover:scale-105 transition-all duration-300"
+                >
+                  Voir toutes les offres
+                </button>
+                <button className="px-8 py-4 border-2 border-indigo-light text-indigo-light rounded-lg font-semibold hover:bg-indigo-light hover:text-white transition-all duration-300">
+                  Candidature spontanée
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="bg-gradient-to-br from-gray-dark-2 to-gray-dark-3 rounded-2xl p-6 border border-gray-dark-1 hover:border-indigo-dark transition-colors">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-10 h-10 bg-gradient-to-r from-indigo-light to-indigo-dark rounded-lg flex items-center justify-center">
+                    <span className="text-white font-bold text-sm">DEV</span>
+                  </div>
+                  <span className="text-xs text-gray-400 bg-gray-dark-1 px-2 py-1 rounded">CDI</span>
+                </div>
+                <h3 className="text-lg font-bold text-white mb-2">Développement & Tech</h3>
+                <p className="text-gray-300 text-sm mb-4">Rejoignez notre équipe technique et participez au développement de solutions IA innovantes</p>
+                <div className="flex items-center text-xs text-gray-400">
+                  <span>• Frontend • Backend • DevOps</span>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-gray-dark-2 to-gray-dark-3 rounded-2xl p-6 border border-gray-dark-1 hover:border-indigo-dark transition-colors">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
+                    <span className="text-white font-bold text-sm">RH</span>
+                  </div>
+                  <span className="text-xs text-gray-400 bg-gray-dark-1 px-2 py-1 rounded">CDI</span>
+                </div>
+                <h3 className="text-lg font-bold text-white mb-2">Ressources Humaines</h3>
+                <p className="text-gray-300 text-sm mb-4">Expertise RH et passion pour l'innovation ? Aidez-nous à révolutionner le recrutement</p>
+                <div className="flex items-center text-xs text-gray-400">
+                  <span>• Recrutement • SIRH • Formation</span>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-gray-dark-2 to-gray-dark-3 rounded-2xl p-6 border border-gray-dark-1 hover:border-indigo-dark transition-colors">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
+                    <span className="text-white font-bold text-sm">IA</span>
+                  </div>
+                  <span className="text-xs text-gray-400 bg-gray-dark-1 px-2 py-1 rounded">CDI</span>
+                </div>
+                <h3 className="text-lg font-bold text-white mb-2">Intelligence Artificielle</h3>
+                <p className="text-gray-300 text-sm mb-4">Passionné par l'IA ? Contribuez à l'amélioration de nos algorithmes d'analyse</p>
+                <div className="flex items-center text-xs text-gray-400">
+                  <span>• Machine Learning • NLP • Data</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Features section placeholder */}
         <section id="features" className="w-full py-24 2xl:container mx-auto xl:px-20 md:px-12 px-4">
           <div className="text-center">

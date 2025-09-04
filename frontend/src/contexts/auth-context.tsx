@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { authApi } from '@/lib/api-client';
 import { toast } from 'sonner';
 
 interface Company {
@@ -50,22 +51,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (token) {
         try {
           // Récupérer le profil utilisateur via notre backend
-          const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
-          const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-            },
-          });
-
-          if (response.ok) {
-            const userData = await response.json();
-            setUser(userData);
-            setLoading(false);
-            return;
-          } else {
-            // Token invalide, le supprimer
-            localStorage.removeItem('token');
-          }
+          const response = await authApi.getProfile();
+          setUser(response.data);
+          setLoading(false);
+          return;
         } catch (error) {
           console.error('Error fetching profile:', error);
           localStorage.removeItem('token');
@@ -112,28 +101,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     try {
       // Connexion via notre backend pour obtenir le token JWT
-      const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
-      const response = await fetch(`${API_BASE_URL}/api/auth/signin`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Email ou mot de passe incorrect');
-      }
-
+      const response = await authApi.signin(email, password);
+      
       // Stocker le token JWT
-      if (data.access_token) {
-        localStorage.setItem('token', data.access_token);
-        setUser(data.user);
+      if (response.data.access_token) {
+        localStorage.setItem('token', response.data.access_token);
+        setUser(response.data.user);
       }
       
       toast.success('Connexion réussie!');
@@ -172,32 +145,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     try {
       // Utiliser l'approche standard avec apiClient mais pour l'auth
-      const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
-      const response = await fetch(`${API_BASE_URL}/api/auth/company-signup`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          password,
-          name,
-          companyName,
-          companyDomain,
-        }),
+      const response = await authApi.companySignup({
+        email,
+        password,
+        name,
+        companyName,
+        companyDomain,
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Erreur lors de l\'inscription');
-      }
 
       // Plus de token - l'utilisateur doit vérifier son email
       // Le message du backend indique qu'il faut vérifier l'email
-      toast.success('Entreprise créée avec succès! ' + data.message);
+      toast.success('Entreprise créée avec succès! ' + response.data.message);
     } catch (error: any) {
-      toast.error(error.message || 'Erreur lors de l\'inscription de l\'entreprise');
+      toast.error(error.response?.data?.message || 'Erreur lors de l\'inscription de l\'entreprise');
       throw error;
     } finally {
       setLoading(false);
@@ -207,33 +167,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const acceptInvitation = async (token: string, password: string) => {
     setLoading(true);
     try {
-      const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
-      const response = await fetch(`${API_BASE_URL}/api/auth/accept-invitation`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          invitation_token: token,
-          password,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Erreur lors de l\'acceptation de l\'invitation');
-      }
+      const response = await authApi.acceptInvitation(token, password);
 
       // Connexion automatique après acceptation
-      if (data.access_token) {
-        localStorage.setItem('token', data.access_token);
-        setUser(data.user);
+      if (response.data.access_token) {
+        localStorage.setItem('token', response.data.access_token);
+        setUser(response.data.user);
       }
 
       toast.success('Invitation acceptée avec succès!');
     } catch (error: any) {
-      toast.error(error.message || 'Erreur lors de l\'acceptation de l\'invitation');
+      toast.error(error.response?.data?.message || 'Erreur lors de l\'acceptation de l\'invitation');
       throw error;
     } finally {
       setLoading(false);
@@ -285,17 +229,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!token) return;
 
     try {
-      const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
-      const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const userData = await response.json();
-        setUser(userData);
-      }
+      const response = await authApi.getProfile();
+      setUser(response.data);
     } catch (error) {
       console.error('Error refreshing profile:', error);
     }
@@ -308,27 +243,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
-      const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to update profile');
-      }
-
-      const result = await response.json();
-      setUser(prev => prev ? { ...prev, ...result.user } : null);
+      const response = await authApi.updateProfile(data);
+      setUser(prev => prev ? { ...prev, ...response.data.user } : null);
       
-      return result;
+      return response.data;
     } catch (error: any) {
-      throw new Error(error.message || 'Failed to update profile');
+      throw new Error(error.response?.data?.message || 'Failed to update profile');
     }
   };
 

@@ -11,7 +11,12 @@ import { WebSocketModule } from './websocket/websocket.module';
 import { AuthModule } from './auth/auth.module';
 import { CompaniesModule } from './companies/companies.module';
 import { TeamRequestsModule } from './team-requests/team-requests.module';
+import { AdminModule } from './admin/admin.module';
 import { HealthModule } from './health/health.module';
+import { CommonModule } from './common/common.module';
+import { MailConfigurationModule } from './mail-configuration/mail-configuration.module';
+import { MailAutomationModule } from './mail-automation/mail-automation.module';
+import { OpenRouterModule } from './openrouter/openrouter.module';
 import { StaticController } from './common/static.controller';
 
 @Module({
@@ -23,11 +28,19 @@ import { StaticController } from './common/static.controller';
       type: 'postgres',
       url: process.env.DATABASE_URL,
       autoLoadEntities: true,
-      synchronize: true, // À désactiver en production
+      synchronize: process.env.NODE_ENV === 'development', // Sync uniquement en dev
+      migrationsRun: process.env.NODE_ENV !== 'development', // Migrations en prod/test
+      migrations: [
+        process.env.NODE_ENV === 'development' 
+          ? 'src/migrations/*.ts'
+          : 'dist/migrations/*.js'
+      ],
       ssl: {
         rejectUnauthorized: false,
       },
+      logging: process.env.NODE_ENV === 'development' ? true : ['error'],
     }),
+    CommonModule,
     AuthModule,
     CompaniesModule,
     ProjectsModule,
@@ -38,7 +51,11 @@ import { StaticController } from './common/static.controller';
     ApiKeysModule,
     WebSocketModule,
     TeamRequestsModule,
+    AdminModule,
     HealthModule,
+    MailConfigurationModule,
+    MailAutomationModule,
+    OpenRouterModule,
   ],
   controllers: [StaticController],
 })

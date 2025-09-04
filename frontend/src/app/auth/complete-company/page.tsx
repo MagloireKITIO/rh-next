@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { authApi } from "@/lib/api-client";
 import { Building, User } from "lucide-react";
 
 export default function CompleteCompanyPage() {
@@ -49,26 +50,10 @@ export default function CompleteCompanyPage() {
     
     try {
       // Call API to complete company setup
-      const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
-      const token = localStorage.getItem('token');
-      
-      const response = await fetch(`${API_BASE_URL}/api/auth/complete-company-google`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          companyName,
-          companyDomain,
-        }),
+      await authApi.completeCompanyGoogle({
+        companyName,
+        companyDomain,
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Erreur lors de la création de l\'entreprise');
-      }
 
       localStorage.removeItem('google_company_signup');
       router.push('/dashboard');

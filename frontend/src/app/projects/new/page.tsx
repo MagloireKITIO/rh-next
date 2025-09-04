@@ -12,7 +12,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useCreateProject } from "@/hooks/mutations";
-import { ArrowLeft, Briefcase, Save } from "lucide-react";
+import { projectsApi } from "@/lib/api-client";
+import { ArrowLeft, Briefcase, Save, Upload, Calendar, FileText } from "lucide-react";
 import { toast } from "sonner";
 
 export default function NewProjectPage() {
@@ -30,8 +31,13 @@ export default function NewProjectPage() {
   const [formData, setFormData] = useState({
     name: "",
     jobDescription: "",
-    customPrompt: ""
+    customPrompt: "",
+    startDate: "",
+    endDate: "",
+    offerDescription: ""
   });
+  
+  const [offerDocument, setOfferDocument] = useState<File | null>(null);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -58,7 +64,22 @@ export default function NewProjectPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.type !== 'application/pdf') {
+        toast.error('Seuls les fichiers PDF sont acceptés');
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) { // 10MB
+        toast.error('Le fichier ne doit pas dépasser 10MB');
+        return;
+      }
+      setOfferDocument(file);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateForm()) {
@@ -67,26 +88,44 @@ export default function NewProjectPage() {
 
     setIsSubmitting(true);
     
-    createProjectMutation.mutate(
-      {
+    try {
+      // Créer le projet d'abord
+      const projectData = {
         name: formData.name.trim(),
         jobDescription: formData.jobDescription.trim(),
-        customPrompt: formData.customPrompt.trim() || undefined
-      },
-      {
-        onSuccess: (project) => {
-          toast.success("Project created successfully!");
-          router.push(`/projects/${project.id}`);
-        },
-        onError: (error) => {
-          console.error("Error creating project:", error);
-          toast.error("Failed to create project");
-        },
-        onSettled: () => {
-          setIsSubmitting(false);
+        customPrompt: formData.customPrompt.trim() || undefined,
+        startDate: formData.startDate || undefined,
+        endDate: formData.endDate || undefined,
+        offerDescription: formData.offerDescription.trim() || undefined
+      };
+
+      const project = await new Promise<any>((resolve, reject) => {
+        createProjectMutation.mutate(projectData, {
+          onSuccess: resolve,
+          onError: reject
+        });
+      });
+
+      // Si un document PDF est fourni, l'uploader
+      if (offerDocument && project.id) {
+        try {
+          const formData = new FormData();
+          formData.append('document', offerDocument);
+          
+          await projectsApi.uploadOfferDocument(project.id, formData);
+        } catch (error) {
+          console.warn('Erreur lors de l\'upload du document, mais projet créé avec succès');
         }
       }
-    );
+
+      toast.success("Offre d'emploi créée avec succès!");
+      router.push(`/projects/${project.id}`);
+    } catch (error) {
+      console.error("Error creating project:", error);
+      toast.error("Erreur lors de la création de l'offre");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const defaultPrompt = `You are an expert HR recruiter. Analyze the provided CV against the job description and rate the candidate's fit for the position. Consider skills match, experience relevance, education background, and overall profile alignment.
@@ -133,9 +172,9 @@ Be objective and focus on job-relevant criteria.`;
           Back to Dashboard
         </Button>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Create New Project</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Créer une nouvelle offre d'emploi</h1>
           <p className="text-muted-foreground">
-            Set up a new recruitment project for CV analysis
+            Configurez votre offre d'emploi et système d'analyse des candidatures
           </p>
         </div>
       </motion.div>
@@ -150,22 +189,22 @@ Be objective and focus on job-relevant criteria.`;
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Briefcase className="h-5 w-5" />
-              Project Details
+              Détails de l'offre
             </CardTitle>
             <CardDescription>
-              Configure your recruitment project settings and AI analysis parameters
+              Configurez les détails de votre offre d'emploi et les paramètres d'analyse IA
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Project Name */}
               <div className="space-y-2">
-                <Label htmlFor="name">Project Name *</Label>
+                <Label htmlFor="name">Titre de l'offre *</Label>
                 <Input
                   id="name"
                   value={formData.name}
                   onChange={(e) => handleInputChange("name", e.target.value)}
-                  placeholder="e.g., Senior Frontend Developer - 2024"
+                  placeholder="ex: Développeur Frontend Senior - CDI"
                   className={errors.name ? "border-red-500" : ""}
                 />
                 {errors.name && (
@@ -173,14 +212,85 @@ Be objective and focus on job-relevant criteria.`;
                 )}
               </div>
 
-              {/* Job Description */}
+              {/* Job Dates */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="startDate">Date de début de l'offre</Label>
+                  <Input
+                    id="startDate"
+                    type="date"
+                    value={formData.startDate}
+                    onChange={(e) => handleInputChange("startDate", e.target.value)}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Date à partir de laquelle l'offre sera visible
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="endDate">Date de fin de l'offre</Label>
+                  <Input
+                    id="endDate"
+                    type="date"
+                    value={formData.endDate}
+                    onChange={(e) => handleInputChange("endDate", e.target.value)}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Date limite pour postuler
+                  </p>
+                </div>
+              </div>
+
+              {/* Offer Description for Public */}
               <div className="space-y-2">
-                <Label htmlFor="jobDescription">Job Description *</Label>
+                <Label htmlFor="offerDescription">Description publique de l'offre</Label>
+                <Textarea
+                  id="offerDescription"
+                  value={formData.offerDescription}
+                  onChange={(e) => handleInputChange("offerDescription", e.target.value)}
+                  placeholder="Description de l'offre qui sera visible par les candidats sur le site public..."
+                  rows={6}
+                />
+                <p className="text-sm text-muted-foreground">
+                  Cette description sera affichée aux candidats. Vous pouvez aussi télécharger un PDF détaillé ci-dessous.
+                </p>
+              </div>
+
+              {/* Offer Document */}
+              <div className="space-y-2">
+                <Label htmlFor="offerDocument">Document descriptif de l'offre (PDF)</Label>
+                <div className="border-2 border-dashed border-border rounded-lg p-4">
+                  <input
+                    id="offerDocument"
+                    type="file"
+                    accept=".pdf"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                  <Label htmlFor="offerDocument" className="cursor-pointer">
+                    <div className="flex flex-col items-center gap-2">
+                      <Upload className="w-8 h-8 text-muted-foreground" />
+                      <p className="text-sm text-center">
+                        {offerDocument ? 
+                          `Fichier sélectionné: ${offerDocument.name}` : 
+                          'Cliquez pour télécharger le PDF descriptif de l\'offre'
+                        }
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        PDF uniquement, max 10MB. Ce document sera consultable par les candidats.
+                      </p>
+                    </div>
+                  </Label>
+                </div>
+              </div>
+
+              {/* Job Description for AI */}
+              <div className="space-y-2">
+                <Label htmlFor="jobDescription">Description du poste (pour l'analyse IA) *</Label>
                 <Textarea
                   id="jobDescription"
                   value={formData.jobDescription}
                   onChange={(e) => handleInputChange("jobDescription", e.target.value)}
-                  placeholder="Describe the position, required skills, experience, and qualifications..."
+                  placeholder="Décrivez précisément le poste, les compétences requises, l'expérience nécessaire..."
                   rows={8}
                   className={errors.jobDescription ? "border-red-500" : ""}
                 />
@@ -188,13 +298,13 @@ Be objective and focus on job-relevant criteria.`;
                   <p className="text-sm text-red-600">{errors.jobDescription}</p>
                 )}
                 <p className="text-sm text-muted-foreground">
-                  Be specific about requirements, skills, and experience needed. This will be used by AI to score candidates.
+                  Cette description sera utilisée par l'IA pour évaluer les candidats. Soyez précis sur les exigences.
                 </p>
               </div>
 
               {/* Custom AI Prompt */}
               <div className="space-y-2">
-                <Label htmlFor="customPrompt">Custom AI Prompt (Optional)</Label>
+                <Label htmlFor="customPrompt">Prompt IA personnalisé (Optionnel)</Label>
                 <Textarea
                   id="customPrompt"
                   value={formData.customPrompt}
@@ -203,7 +313,7 @@ Be objective and focus on job-relevant criteria.`;
                   rows={10}
                 />
                 <p className="text-sm text-muted-foreground">
-                  Customize how the AI analyzes CVs. Leave empty to use the default prompt.
+                  Personnalisez la façon dont l'IA analyse les CV. Laissez vide pour utiliser le prompt par défaut.
                 </p>
               </div>
 
@@ -231,7 +341,7 @@ Be objective and focus on job-relevant criteria.`;
                   ) : (
                     <>
                       <Save className="h-4 w-4" />
-                      Create Project
+                      Créer l'offre
                     </>
                   )}
                 </Button>

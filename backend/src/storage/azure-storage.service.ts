@@ -45,14 +45,15 @@ export class AzureStorageService {
       .replace(/^_|_$/g, '');
   }
 
-  async uploadFile(file: Buffer, fileName: string, mimeType: string): Promise<string> {
+  async uploadFile(file: Buffer, fileName: string, mimeType: string, fileType: 'cv' | 'offer' = 'cv'): Promise<string> {
     if (!this.containerClient) {
       throw new Error('Azure Storage not configured');
     }
 
     try {
       const sanitizedFileName = this.sanitizeFileName(fileName);
-      const blobName = `cvs/${Date.now()}-${sanitizedFileName}`;
+      const folder = fileType === 'cv' ? 'cvs' : 'offer-documents';
+      const blobName = `${folder}/${Date.now()}-${sanitizedFileName}`;
       
       const blockBlobClient = this.containerClient.getBlockBlobClient(blobName);
       
@@ -68,6 +69,10 @@ export class AzureStorageService {
       this.logger.error('Error uploading file to Azure Storage:', error);
       throw new Error(`Upload failed: ${error.message}`);
     }
+  }
+
+  async uploadOfferDocument(file: Buffer, fileName: string): Promise<string> {
+    return this.uploadFile(file, fileName, 'application/pdf', 'offer');
   }
 
   async deleteFile(blobName: string): Promise<void> {

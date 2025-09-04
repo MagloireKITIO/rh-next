@@ -1,8 +1,9 @@
-import { Controller, Post, Get, Put, Delete, Body, UseGuards, Request, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Body, UseGuards, Request, UseInterceptors, UploadedFile, BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthService } from './auth.service';
 import { LoginDto, GoogleAuthDto, SignUpDto, CompanySignUpDto, AcceptInvitationDto, CompleteCompanyGoogleDto, UpdateProfileDto, ChangePasswordDto, DeleteAccountDto } from './dto/login.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { UserRole } from './entities/user.entity';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 
@@ -72,6 +73,19 @@ export class AuthController {
   async resendVerification(@Body() body: { email: string }) {
     console.log('📧 POST /auth/resend-verification called for:', body.email);
     return this.authService.resendVerificationEmail(body.email);
+  }
+
+  @Post('admin/login')
+  async adminLogin(@Body() loginDto: LoginDto) {
+    const result = await this.authService.adminSignIn(loginDto);
+    
+    // Vérifier que l'utilisateur est super admin
+    const user = await this.authService.validateUser({ sub: result.user.id });
+    if (user.role !== UserRole.SUPER_ADMIN) {
+      throw new UnauthorizedException('Accès refusé : Vous devez être super administrateur');
+    }
+    
+    return result;
   }
 
   // Endpoint temporaire pour debug - À SUPPRIMER en production

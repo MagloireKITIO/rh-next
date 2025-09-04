@@ -1,8 +1,47 @@
 {
   "permissions": {
     "allow": [
-      "Bash(rm:*)"
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\frontend-admin\\src\\app\\api-keys/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\frontend-admin\\src\\lib/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\backend\\src/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\backend\\src\\admin/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\backend\\src\\admin/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next/**)",
+      "Write(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\backend\\src\\admin/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\backend\\src\\admin/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\backend\\src\\admin/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\backend\\src\\admin/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\backend\\src\\admin/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\backend\\src/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\backend\\src\\ai/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\backend\\src\\ai/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\backend\\src\\ai/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\backend\\src\\ai/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\backend\\src\\api-keys/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\backend\\src\\ai/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\backend\\src\\api-keys/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\backend\\src\\api-keys/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\backend\\src\\ai/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\backend\\src\\ai/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\backend\\src\\mail-automation\\subscribers/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\backend\\src\\mail-automation\\subscribers/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\backend\\src\\mail-automation/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\frontend-admin\\src\\components\\ui/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\frontend-admin\\src\\app\\api-keys/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\frontend-admin\\src\\app\\api-keys/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\frontend-admin\\src/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\frontend-admin\\src\\components\\admin\\api-keys/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\frontend\\src\\components\\upload/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\backend\\src\\ai/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\backend\\src\\ai/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\backend\\src\\ai/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\backend\\src\\ai/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\frontend-admin\\src\\app\\api-keys/**)",
+      "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\frontend-admin\\src\\components\\admin\\api-keys/**)"
     ],
-    "deny": []
+    "deny": [],
+    "ask": []
   }
 }
