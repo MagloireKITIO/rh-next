@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi, Company } from '@/lib/api-client';
 import AdminLayout from '@/components/layout/admin-layout';
@@ -18,7 +18,7 @@ import {
   FolderOpen, 
   Plus, 
   Search, 
-  MoreHorizontal, 
+ 
   Shield, 
   Edit, 
   Trash2,
@@ -55,55 +55,88 @@ export default function CompaniesPage() {
 
   const createCompanyMutation = useMutation({
     mutationFn: adminApi.createCompany,
-    onSuccess: () => {
+  });
+
+  // Handle create success
+  useEffect(() => {
+    if (createCompanyMutation.isSuccess) {
       queryClient.invalidateQueries({ queryKey: ['admin', 'companies'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'companies', 'stats'] });
       setIsCreateDialogOpen(false);
       setNewCompany({ name: '', domain: '', description: '' });
       toast.success('Entreprise créée avec succès');
-    },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.message || 'Erreur lors de la création');
-    },
-  });
+    }
+  }, [createCompanyMutation.isSuccess, queryClient]);
 
   const updateCompanyMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<Company> }) =>
       adminApi.updateCompany(id, data),
-    onSuccess: () => {
+  });
+
+  // Handle update success
+  useEffect(() => {
+    if (updateCompanyMutation.isSuccess) {
       queryClient.invalidateQueries({ queryKey: ['admin', 'companies'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'companies', 'stats'] });
       setIsEditDialogOpen(false);
       setSelectedCompany(null);
       toast.success('Entreprise modifiée avec succès');
-    },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.message || 'Erreur lors de la modification');
-    },
-  });
+    }
+  }, [updateCompanyMutation.isSuccess, queryClient]);
 
   const deleteCompanyMutation = useMutation({
     mutationFn: adminApi.deleteCompany,
-    onSuccess: () => {
+  });
+
+  // Handle delete success
+  useEffect(() => {
+    if (deleteCompanyMutation.isSuccess) {
       queryClient.invalidateQueries({ queryKey: ['admin', 'companies'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'companies', 'stats'] });
       toast.success('Entreprise supprimée avec succès');
-    },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.message || 'Erreur lors de la suppression');
-    },
-  });
+    }
+  }, [deleteCompanyMutation.isSuccess, queryClient]);
 
   const toggleStatusMutation = useMutation({
     mutationFn: adminApi.toggleCompanyStatus,
-    onSuccess: () => {
+  });
+
+  // Handle toggle success
+  useEffect(() => {
+    if (toggleStatusMutation.isSuccess) {
       queryClient.invalidateQueries({ queryKey: ['admin', 'companies'] });
       toast.success('Statut de l\'entreprise modifié');
-    },
-    onError: (error: any) => {
+    }
+  }, [toggleStatusMutation.isSuccess, queryClient]);
+
+  // Handle mutation errors
+  useEffect(() => {
+    if (createCompanyMutation.error) {
+      const error = createCompanyMutation.error as Error & { response?: { data?: { message?: string } } };
+      toast.error(error?.response?.data?.message || 'Erreur lors de la création');
+    }
+  }, [createCompanyMutation.error]);
+
+  useEffect(() => {
+    if (updateCompanyMutation.error) {
+      const error = updateCompanyMutation.error as Error & { response?: { data?: { message?: string } } };
       toast.error(error?.response?.data?.message || 'Erreur lors de la modification');
-    },
-  });
+    }
+  }, [updateCompanyMutation.error]);
+
+  useEffect(() => {
+    if (deleteCompanyMutation.error) {
+      const error = deleteCompanyMutation.error as Error & { response?: { data?: { message?: string } } };
+      toast.error(error?.response?.data?.message || 'Erreur lors de la suppression');
+    }
+  }, [deleteCompanyMutation.error]);
+
+  useEffect(() => {
+    if (toggleStatusMutation.error) {
+      const error = toggleStatusMutation.error as Error & { response?: { data?: { message?: string } } };
+      toast.error(error?.response?.data?.message || 'Erreur lors du changement de statut');
+    }
+  }, [toggleStatusMutation.error]);
 
   const handleCreateCompany = async () => {
     if (!newCompany.name || !newCompany.domain) {
@@ -143,7 +176,7 @@ export default function CompaniesPage() {
   ) || [];
 
   const getCompanyStats = (companyId: string) => {
-    return companiesStats?.data?.find((stat: any) => stat.id === companyId);
+    return companiesStats?.data?.find((stat: { id: string }) => stat.id === companyId);
   };
 
   return (
@@ -175,7 +208,7 @@ export default function CompaniesPage() {
                 
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name">Nom de l'entreprise *</Label>
+                    <Label htmlFor="name">Nom de l&apos;entreprise *</Label>
                     <Input
                       id="name"
                       placeholder="Mon Entreprise"
@@ -198,7 +231,7 @@ export default function CompaniesPage() {
                     <Label htmlFor="description">Description (optionnelle)</Label>
                     <Input
                       id="description"
-                      placeholder="Description de l'entreprise..."
+                      placeholder="Description de l&apos;entreprise..."
                       value={newCompany.description}
                       onChange={(e) => setNewCompany({ ...newCompany, description: e.target.value })}
                     />
@@ -377,16 +410,16 @@ export default function CompaniesPage() {
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Modifier l'entreprise</DialogTitle>
+              <DialogTitle>Modifier l&apos;entreprise</DialogTitle>
               <DialogDescription>
-                Modifiez les informations de l'entreprise
+                Modifiez les informations de l&apos;entreprise
               </DialogDescription>
             </DialogHeader>
             
             {selectedCompany && (
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="edit-name">Nom de l'entreprise *</Label>
+                  <Label htmlFor="edit-name">Nom de l&apos;entreprise *</Label>
                   <Input
                     id="edit-name"
                     value={selectedCompany.name}

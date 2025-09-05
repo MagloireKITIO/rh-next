@@ -1,16 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Eye, BarChart3, Building2, Users, Mail, AlertTriangle, CheckCircle, XCircle, Search, Filter, ToggleLeft, ToggleRight, Plus, Edit, Trash2, Loader2 } from 'lucide-react';
+import { Eye, BarChart3, Building2, Mail, AlertTriangle, CheckCircle, XCircle, Search, ToggleLeft, ToggleRight, Plus, Edit, Trash2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { adminApi } from '@/lib/api-client';
 
@@ -103,11 +104,13 @@ export default function MailAutomationsTab() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [companyFilter, setCompanyFilter] = useState<string>('all');
 
-  useEffect(() => {
-    loadData();
-  }, [activeView]);
+  // Fetch basic companies for forms (separate from stats companies)
+  const { data: basicCompanies } = useQuery({
+    queryKey: ['admin', 'companies', 'basic'],
+    queryFn: () => adminApi.getAllCompanies(),
+  });
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       if (activeView === 'overview' || activeView === 'automations') {
@@ -120,7 +123,8 @@ export default function MailAutomationsTab() {
 
         setGlobalStats(statsResponse.data);
         setAutomations(automationsResponse.data);
-        setCompanies(allCompaniesResponse.data);
+        // Pour les formulaires, on n'utilise pas setCompanies car le type ne correspond pas
+        // Les entreprises de base sont stockées séparément via useQuery
       }
 
       if (activeView === 'companies') {
@@ -128,13 +132,16 @@ export default function MailAutomationsTab() {
         const companiesResponse = await adminApi.getCompaniesAutomationStats();
         setCompanies(companiesResponse.data);
       }
-    } catch (error) {
-      console.error('Error loading data:', error);
+    } catch {
       toast.error('Erreur lors du chargement des données');
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeView]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleToggleAutomation = async (automationId: string, currentStatus: string) => {
     setLoadingAutomations(prev => ({ ...prev, [automationId]: true }));
@@ -142,7 +149,7 @@ export default function MailAutomationsTab() {
       await adminApi.toggleMailAutomation(automationId);
       toast.success(`Automatisation ${currentStatus === 'active' ? 'désactivée' : 'activée'}`);
       await loadData();
-    } catch (error) {
+    } catch {
       toast.error('Erreur lors de la modification');
     } finally {
       setLoadingAutomations(prev => ({ ...prev, [automationId]: false }));
@@ -179,8 +186,7 @@ export default function MailAutomationsTab() {
         recipients: []
       });
       await loadData();
-    } catch (error) {
-      console.error('Create automation error:', error);
+    } catch {
       toast.error('Erreur lors de la création');
     } finally {
       setIsCreating(false);
@@ -197,7 +203,7 @@ export default function MailAutomationsTab() {
       setIsEditDialogOpen(false);
       setSelectedAutomation(null);
       await loadData();
-    } catch (error) {
+    } catch {
       toast.error('Erreur lors de la modification');
     } finally {
       setIsUpdating(false);
@@ -214,7 +220,7 @@ export default function MailAutomationsTab() {
       await adminApi.deleteMailAutomation(id);
       toast.success('Automatisation supprimée avec succès');
       await loadData();
-    } catch (error) {
+    } catch {
       toast.error('Erreur lors de la suppression');
     } finally {
       setLoadingAutomations(prev => ({ ...prev, [id]: false }));
@@ -304,11 +310,11 @@ export default function MailAutomationsTab() {
         </Button>
       </div>
 
-      <Tabs value={activeView} onValueChange={(value) => setActiveView(value as any)} className="space-y-6">
+      <Tabs value={activeView} onValueChange={(value) => setActiveView(value as 'overview' | 'automations' | 'companies')} className="space-y-6">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <BarChart3 className="w-4 h-4" />
-            Vue d'ensemble
+            Vue d&apos;ensemble
           </TabsTrigger>
           <TabsTrigger value="automations" className="flex items-center gap-2">
             <Mail className="w-4 h-4" />
@@ -379,7 +385,7 @@ export default function MailAutomationsTab() {
           {/* Automations by Type Chart */}
           <Card>
             <CardHeader>
-              <CardTitle>Répartition par Type d'Entité</CardTitle>
+              <CardTitle>Répartition par Type d&apos;Entité</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -704,7 +710,7 @@ export default function MailAutomationsTab() {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="entity">Type d'entité *</Label>
+                <Label htmlFor="entity">Type d&apos;entité *</Label>
                 <Select 
                   value={createForm.entity_type}
                   onValueChange={(value) => setCreateForm(prev => ({ ...prev, entity_type: value }))}
@@ -731,7 +737,7 @@ export default function MailAutomationsTab() {
                   <SelectValue placeholder="Choisir une entreprise" />
                 </SelectTrigger>
                 <SelectContent>
-                  {companies.map((company) => (
+                  {(basicCompanies?.data || []).map((company: any) => (
                     <SelectItem key={company.id} value={company.id}>
                       {company.name} ({company.domain})
                     </SelectItem>
@@ -777,9 +783,9 @@ export default function MailAutomationsTab() {
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Modifier l'automatisation</DialogTitle>
+            <DialogTitle>Modifier l&apos;automatisation</DialogTitle>
             <DialogDescription>
-              Modifiez les paramètres de l'automatisation
+              Modifiez les paramètres de l&apos;automatisation
             </DialogDescription>
           </DialogHeader>
           {selectedAutomation && (
@@ -820,7 +826,7 @@ export default function MailAutomationsTab() {
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="edit-entity">Type d'entité</Label>
+                  <Label htmlFor="edit-entity">Type d&apos;entité</Label>
                   <Select 
                     value={editForm.entity_type}
                     onValueChange={(value) => setEditForm(prev => ({ ...prev, entity_type: value }))}
@@ -849,7 +855,7 @@ export default function MailAutomationsTab() {
                   }))}
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Séparez plusieurs emails par des virgules. Utilisez 'company_hr' pour l'équipe RH ou 'candidate_email' pour le candidat.
+                  Séparez plusieurs emails par des virgules. Utilisez &apos;company_hr&apos; pour l&apos;équipe RH ou &apos;candidate_email&apos; pour le candidat.
                 </p>
               </div>
               <div className="flex gap-2 justify-end pt-4">

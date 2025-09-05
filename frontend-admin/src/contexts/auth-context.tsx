@@ -69,13 +69,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(userData);
       toast.success(`Bienvenue ${userData.name} !`);
       console.log('✅ Login context terminé avec succès');
-    } catch (error: any) {
-      console.error('❌ Erreur dans login context:', error);
-      console.error('❌ Error response dans context:', error?.response);
-      console.error('❌ Error data dans context:', error?.response?.data);
-      const message = error?.response?.data?.message || error?.message || 'Erreur de connexion';
+    } catch (error: unknown) {
+      const err = error as Error & { response?: { data?: { message?: string } } };
+      console.error('❌ Erreur dans login context:', err);
+      console.error('❌ Error response dans context:', err?.response);
+      console.error('❌ Error data dans context:', err?.response?.data);
+      const message = err?.response?.data?.message || err?.message || 'Erreur de connexion';
       toast.error(message);
-      throw error;
+      throw err;
     }
   };
 

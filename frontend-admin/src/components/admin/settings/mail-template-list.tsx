@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +15,7 @@ import {
 import { 
   Plus, 
   Search, 
-  Mail, 
+ 
   Edit3, 
   Trash2, 
   Copy, 
@@ -178,7 +178,7 @@ export default function MailTemplateList({ onEdit, onAdd }: MailTemplateListProp
         <div>
           <h3 className="text-lg font-medium">Templates de Mail</h3>
           <p className="text-sm text-muted-foreground">
-            Gérez les templates d'emails de votre plateforme
+            Gérez les templates d&apos;emails de votre plateforme
           </p>
         </div>
         <Button onClick={onAdd} className="bg-gradient-to-r from-admin-light to-admin-dark">

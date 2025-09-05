@@ -4,7 +4,6 @@ import { useState } from 'react';
 import AdminLayout from '@/components/layout/admin-layout';
 import ProtectedRoute from '@/components/layout/protected-route';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { 
   Settings, 

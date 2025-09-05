@@ -20,7 +20,6 @@ import {
   ArrowLeft, 
   Save, 
   Eye, 
-  FileText,
   Code,
   Type,
   Settings
@@ -103,7 +102,7 @@ export default function MailTemplateForm({ template, onCancel, onSuccess }: Mail
     }
   };
 
-  const handleInputChange = (field: keyof MailTemplate, value: any) => {
+  const handleInputChange = (field: keyof MailTemplate, value: string | boolean) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -158,9 +157,10 @@ export default function MailTemplateForm({ template, onCancel, onSuccess }: Mail
       }
       
       onSuccess();
-    } catch (error: any) {
-      console.error('Erreur lors de la sauvegarde:', error);
-      toast.error(error.response?.data?.message || 'Erreur lors de la sauvegarde');
+    } catch (error: unknown) {
+      const err = error as Error & { response?: { data?: { message?: string } } };
+      console.error('Erreur lors de la sauvegarde:', err);
+      toast.error(err.response?.data?.message || 'Erreur lors de la sauvegarde');
     } finally {
       setLoading(false);
     }
@@ -202,7 +202,7 @@ export default function MailTemplateForm({ template, onCancel, onSuccess }: Mail
     }
   };
 
-  const getPreviewVariables = (type: string): Record<string, any> => {
+  const getPreviewVariables = (type: string): Record<string, string> => {
     switch (type) {
       case 'invitation':
         return {
@@ -280,7 +280,7 @@ export default function MailTemplateForm({ template, onCancel, onSuccess }: Mail
               {isEditing ? 'Modifier le template' : 'Nouveau template'}
             </h3>
             <p className="text-sm text-muted-foreground">
-              {isEditing ? `Modification de "${template?.name}"` : 'Créez un nouveau template d\'email'}
+              {isEditing ? `Modification de "${template?.name}"` : 'Créez un nouveau template d&apos;email'}
             </p>
           </div>
         </div>
@@ -409,12 +409,12 @@ export default function MailTemplateForm({ template, onCancel, onSuccess }: Mail
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="subject">Sujet de l'email *</Label>
+                  <Label htmlFor="subject">Sujet de l&apos;email *</Label>
                   <Input
                     id="subject"
                     value={formData.subject}
                     onChange={(e) => handleInputChange('subject', e.target.value)}
-                    placeholder="Sujet de l'email"
+                    placeholder="Sujet de l&apos;email"
                     required
                   />
                 </div>

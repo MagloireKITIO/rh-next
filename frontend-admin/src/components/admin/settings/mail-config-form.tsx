@@ -7,7 +7,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Separator } from '@/components/ui/separator';
@@ -30,7 +29,7 @@ import { toast } from 'sonner';
 
 interface MailConfiguration {
   id?: string;
-  provider_type: 'smtp' | 'sendgrid' | 'mailgun' | 'aws_ses' | 'supabase';
+  provider_type: 'smtp' | 'sendgrid' | 'mailgun' | 'aws_ses' | 'supabase' | 'gmail' | 'outlook';
   company_id?: string;
   configurationCompanies?: Array<{
     id: string;
@@ -86,29 +85,45 @@ export default function MailConfigForm({ config, onCancel, onSuccess }: MailConf
   const isEditing = !!config;
 
   // Charger les compagnies
-  const { data: companies, isLoading: companiesLoading, error: companiesError } = useQuery({
+  const { data: companies, isLoading: companiesLoading, isSuccess: companiesSuccess, isError: companiesError } = useQuery({
     queryKey: ['admin', 'companies'],
     queryFn: () => adminApi.getCompanies(),
-    onSuccess: (data) => {
-      console.log('📥 [FRONTEND] Entreprises reçues:', data);
-      console.log('📥 [FRONTEND] Nombre d\'entreprises:', data?.data?.length || 0);
-    },
-    onError: (error) => {
-      console.error('❌ [FRONTEND] Erreur chargement entreprises:', error);
-    }
   });
 
+  // Handle companies success and error
+  useEffect(() => {
+    if (companiesSuccess && companies) {
+      console.log('📥 [FRONTEND] Entreprises reçues:', companies);
+      console.log('📥 [FRONTEND] Nombre d\'entreprises:', companies?.data?.length || 0);
+    }
+  }, [companiesSuccess, companies]);
+
+  useEffect(() => {
+    if (companiesError) {
+      console.error('❌ [FRONTEND] Erreur chargement entreprises:', companiesError);
+    }
+  }, [companiesError]);
+
   // Charger les entreprises affectées si on édite
-  const { data: assignedCompanies, isLoading: assignedLoading, refetch: refetchAssignedCompanies } = useQuery({
+  const { isSuccess: assignedSuccess } = useQuery({
     queryKey: ['admin', 'mail-config-companies', config?.id],
-    queryFn: () => config?.id ? adminApi.getConfigurationCompanies(config.id) : Promise.resolve({ data: [] }),
+    queryFn: async () => {
+      if (config?.id) {
+        return await adminApi.getConfigurationCompanies(config.id);
+      }
+      return { data: [] };
+    },
     enabled: !!config?.id,
     staleTime: 0, // Toujours considérer les données comme périmées
-    cacheTime: 0, // Ne pas garder en cache
-    onSuccess: (data) => {
-      console.log('📥 [FRONTEND] Entreprises affectées:', data);
-    }
+    gcTime: 0, // Ne pas garder en cache
   });
+
+  // Handle assigned companies success
+  useEffect(() => {
+    if (assignedSuccess) {
+      console.log('📥 [FRONTEND] Entreprises affectées chargées');
+    }
+  }, [assignedSuccess]);
 
   // Initialiser le formulaire si on édite
   useEffect(() => {
@@ -122,7 +137,7 @@ export default function MailConfigForm({ config, onCancel, onSuccess }: MailConf
         setIsGlobal(false);
         setSelectedCompanies([config.company_id]);
       } else if (config.configurationCompanies && config.configurationCompanies.length > 0) {
-        // Configuration avec assignations d'entreprises
+        // Configuration avec assignations d&apos;entreprises
         const companyIds = config.configurationCompanies.map(cc => cc.company_id);
         setSelectedCompanies(companyIds);
         setIsGlobal(false);
@@ -145,27 +160,43 @@ export default function MailConfigForm({ config, onCancel, onSuccess }: MailConf
         return adminApi.createMailConfiguration(data);
       }
     },
-    onSuccess: () => {
+  });
+
+  // Handle save success and error
+  useEffect(() => {
+    if (saveConfigMutation.isSuccess) {
       // L'invalidation est gérée dans handleSave après les affectations
       toast.success(`Configuration ${isEditing ? 'mise à jour' : 'créée'} avec succès`);
-    },
-    onError: (error: any) => {
+    }
+  }, [saveConfigMutation.isSuccess, isEditing]);
+
+  useEffect(() => {
+    if (saveConfigMutation.isError) {
+      const error = saveConfigMutation.error as Error & { response?: { data?: { message?: string } } };
       toast.error(error.response?.data?.message || 'Erreur lors de la sauvegarde');
-    },
-  });
+    }
+  }, [saveConfigMutation.isError, saveConfigMutation.error]);
 
   // Tester la configuration
   const testConfigMutation = useMutation({
     mutationFn: (email: string) => adminApi.testMailConfiguration(email, isGlobal ? undefined : selectedCompanies[0]),
-    onSuccess: () => {
+  });
+
+  // Handle test success and error
+  useEffect(() => {
+    if (testConfigMutation.isSuccess) {
       toast.success('Email de test envoyé avec succès');
       setIsTestMode(false);
       setTestEmail('');
-    },
-    onError: (error: any) => {
+    }
+  }, [testConfigMutation.isSuccess]);
+
+  useEffect(() => {
+    if (testConfigMutation.isError) {
+      const error = testConfigMutation.error as Error & { response?: { data?: { message?: string } } };
       toast.error(error.response?.data?.message || 'Erreur lors de l\'envoi du test');
-    },
-  });
+    }
+  }, [testConfigMutation.isError, testConfigMutation.error]);
 
   const providers = [
     {
@@ -217,8 +248,8 @@ export default function MailConfigForm({ config, onCancel, onSuccess }: MailConf
     }
 
     const configToSave = {
-      provider_type: selectedProvider as any,
-      company_id: null, // Toujours null pour les nouvelles configs
+      provider_type: selectedProvider as 'smtp' | 'gmail' | 'outlook' | 'sendgrid',
+      company_id: undefined, // Toujours undefined pour les nouvelles configs
       smtp_host: configuration.smtp_host,
       smtp_port: configuration.smtp_port,
       smtp_user: configuration.smtp_user,
@@ -238,10 +269,10 @@ export default function MailConfigForm({ config, onCancel, onSuccess }: MailConf
       const result = await saveConfigMutation.mutateAsync(configToSave);
       const savedConfigId = result.data?.id || config?.id;
 
-      // 2. Gérer les affectations d'entreprises
+      // 2. Gérer les affectations d&apos;entreprises
       if (savedConfigId) {
         if (isGlobal) {
-          // Si c'est global, supprimer toutes les affectations d'entreprises
+          // Si c&apos;est global, supprimer toutes les affectations d&apos;entreprises
           await adminApi.assignCompaniesToConfiguration(savedConfigId, []);
         } else if (selectedCompanies.length > 0) {
           // Affecter les entreprises sélectionnées
@@ -259,8 +290,9 @@ export default function MailConfigForm({ config, onCancel, onSuccess }: MailConf
       
       toast.success('Configuration sauvegardée avec succès');
       onSuccess();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Erreur lors de la sauvegarde');
+    } catch (error: unknown) {
+      const err = error as Error & { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || 'Erreur lors de la sauvegarde');
     }
   };
 
@@ -312,7 +344,7 @@ export default function MailConfigForm({ config, onCancel, onSuccess }: MailConf
               </div>
             </div>
             <div>
-              <Label htmlFor="smtp_user">Nom d'utilisateur</Label>
+              <Label htmlFor="smtp_user">Nom d&apos;utilisateur</Label>
               <Input
                 id="smtp_user"
                 placeholder="votre-email@gmail.com"
@@ -403,7 +435,7 @@ export default function MailConfigForm({ config, onCancel, onSuccess }: MailConf
             Portée de la Configuration
           </CardTitle>
           <CardDescription>
-            Choisissez si cette configuration s'applique globalement ou à des entreprises spécifiques
+            Choisissez si cette configuration s&apos;applique globalement ou à des entreprises spécifiques
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -432,7 +464,7 @@ export default function MailConfigForm({ config, onCancel, onSuccess }: MailConf
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      {(companies?.data?.data || companies?.data || []).map((company: any) => (
+                      {(companies?.data || []).map((company: { id: string; name: string }) => (
                         <div key={company.id} className="flex items-center space-x-2">
                           <Checkbox
                             id={`company-${company.id}`}
@@ -504,7 +536,7 @@ export default function MailConfigForm({ config, onCancel, onSuccess }: MailConf
                     setSelectedProvider(provider.id);
                     setConfiguration({
                       ...configuration,
-                      provider_type: provider.id as any
+                      provider_type: provider.id as 'smtp' | 'gmail' | 'outlook' | 'sendgrid'
                     });
                   }}
                   className={`

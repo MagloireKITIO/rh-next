@@ -6,13 +6,12 @@ import { adminApi } from '@/lib/api-client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import AdminLayout from '@/components/layout/admin-layout';
 import ProtectedRoute from '@/components/layout/protected-route';
 import { Building, Users, FolderOpen, FileText, TrendingUp, Settings } from 'lucide-react';
 
 export default function AdminDashboard() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
 
   const { data: globalStats, isLoading: statsLoading } = useQuery({
     queryKey: ['admin', 'stats'],
@@ -47,7 +46,7 @@ export default function AdminDashboard() {
             Bienvenue, <span className="text-gradient">{user?.name}</span>
           </h2>
           <p className="text-muted-foreground">
-            Gérez l'ensemble de la plateforme RH Analytics Pro depuis cette interface d'administration
+            Gérez l&apos;ensemble de la plateforme RH Analytics Pro depuis cette interface d&apos;administration
           </p>
         </div>
 
@@ -157,7 +156,7 @@ export default function AdminDashboard() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {companiesStats?.data?.slice(0, 3).map((company: any) => (
+                  {companiesStats?.data?.slice(0, 3).map((company) => (
                     <div key={company.id} className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 bg-gradient-to-r from-admin-light to-admin-dark rounded-lg flex items-center justify-center">

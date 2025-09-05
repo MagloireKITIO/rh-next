@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '@/lib/api-client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -61,56 +61,84 @@ export default function MailConfigList({ onEdit, onAdd }: MailConfigListProps) {
   });
 
   // Récupérer toutes les configurations
-  const { data: configs, isLoading, refetch } = useQuery({
+  const { data: configs, isLoading, isSuccess } = useQuery({
     queryKey: ['admin', 'mail-configs'],
     queryFn: () => adminApi.getAllMailConfigurations(),
     staleTime: 0, // Toujours considérer les données comme périmées
-    onSuccess: (data) => {
-      console.log('📥 [FRONTEND] Configurations reçues:', data);
-      console.log('📥 [FRONTEND] Type de data:', typeof data);
-      console.log('📥 [FRONTEND] Structure data:', Object.keys(data || {}));
-      console.log('📥 [FRONTEND] Première config détaillée:', JSON.stringify(data?.data?.[0], null, 2));
-      console.log('📥 [FRONTEND] Toutes les configs:', JSON.stringify(data?.data, null, 2));
-    },
   });
+
+  // Handle query success
+  useEffect(() => {
+    if (isSuccess && configs) {
+      console.log('📥 [FRONTEND] Configurations reçues:', configs);
+      console.log('📥 [FRONTEND] Type de data:', typeof configs);
+      console.log('📥 [FRONTEND] Structure data:', Object.keys(configs || {}));
+      console.log('📥 [FRONTEND] Première config détaillée:', JSON.stringify(configs?.data?.[0], null, 2));
+      console.log('📥 [FRONTEND] Toutes les configs:', JSON.stringify(configs?.data, null, 2));
+    }
+  }, [isSuccess, configs]);
 
   // Supprimer une configuration
   const deleteMutation = useMutation({
     mutationFn: (id: string) => adminApi.deleteMailConfiguration(id),
-    onSuccess: () => {
+  });
+
+  // Handle delete success and error
+  useEffect(() => {
+    if (deleteMutation.isSuccess) {
       queryClient.invalidateQueries({ queryKey: ['admin', 'mail-configs'] });
       toast.success('Configuration supprimée avec succès');
-    },
-    onError: (error: any) => {
+    }
+  }, [deleteMutation.isSuccess, queryClient]);
+
+  useEffect(() => {
+    if (deleteMutation.isError) {
+      const error = deleteMutation.error as Error & { response?: { data?: { message?: string } } };
       toast.error(error.response?.data?.message || 'Erreur lors de la suppression');
-    },
-  });
+    }
+  }, [deleteMutation.isError, deleteMutation.error]);
 
   // Activer/Désactiver une configuration
   const toggleMutation = useMutation({
     mutationFn: ({ id, is_active }: { id: string; is_active: boolean }) => 
       adminApi.toggleMailConfiguration(id, is_active),
-    onSuccess: () => {
+  });
+
+  // Handle toggle success and error
+  useEffect(() => {
+    if (toggleMutation.isSuccess) {
       queryClient.invalidateQueries({ queryKey: ['admin', 'mail-configs'] });
       toast.success('Statut mis à jour avec succès');
-    },
-    onError: (error: any) => {
+    }
+  }, [toggleMutation.isSuccess, queryClient]);
+
+  useEffect(() => {
+    if (toggleMutation.isError) {
+      const error = toggleMutation.error as Error & { response?: { data?: { message?: string } } };
       toast.error(error.response?.data?.message || 'Erreur lors de la mise à jour');
-    },
-  });
+    }
+  }, [toggleMutation.isError, toggleMutation.error]);
 
   // Dupliquer une configuration
   const duplicateMutation = useMutation({
     mutationFn: ({ id, name }: { id: string; name?: string }) => 
       adminApi.duplicateMailConfiguration(id, name),
-    onSuccess: () => {
+  });
+
+  // Handle duplicate success and error
+  useEffect(() => {
+    if (duplicateMutation.isSuccess) {
       queryClient.invalidateQueries({ queryKey: ['admin', 'mail-configs'] });
       toast.success('Configuration dupliquée avec succès');
-    },
-    onError: (error: any) => {
+    }
+  }, [duplicateMutation.isSuccess, queryClient]);
+
+  useEffect(() => {
+    if (duplicateMutation.isError) {
+      const error = duplicateMutation.error as Error & { response?: { data?: { message?: string } } };
       toast.error(error.response?.data?.message || 'Erreur lors de la duplication');
-    },
-  });
+    }
+  }, [duplicateMutation.isError, duplicateMutation.error]);
 
   const getProviderIcon = (provider: string) => {
     switch (provider) {

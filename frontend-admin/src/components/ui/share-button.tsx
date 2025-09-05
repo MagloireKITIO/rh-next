@@ -81,7 +81,7 @@ export function ShareButton({
       toast.success('Lien copié dans le presse-papier !');
       
       setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
+    } catch {
       toast.error('Impossible de copier le lien');
     }
   };
@@ -98,7 +98,7 @@ export function ShareButton({
           text: description,
           url: fullUrl,
         });
-      } catch (error) {
+      } catch {
         // L'utilisateur a annulé ou erreur
         console.log('Partage annulé');
       }
@@ -131,7 +131,7 @@ export function ShareButton({
           <div className="space-y-4">
             {/* URL Copy */}
             <div className="space-y-2">
-              <Label>Lien de l'offre</Label>
+              <Label>Lien de l&apos;offre</Label>
               <div className="flex gap-2">
                 <Input
                   value={fullUrl}

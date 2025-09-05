@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useIsFetching, useIsMutating } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 

@@ -26,7 +26,7 @@ export default function Home() {
           <span className="text-white font-bold text-2xl">RH</span>
         </div>
         <LoadingSpinner className="w-8 h-8 mx-auto mb-4" />
-        <p className="text-muted-foreground">Chargement de l'interface d'administration...</p>
+        <p className="text-muted-foreground">Chargement de l&apos;interface d&apos;administration...</p>
       </div>
     </div>
   );

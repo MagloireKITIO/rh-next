@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi, User, Company } from '@/lib/api-client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AdminLayout from '@/components/layout/admin-layout';
 import ProtectedRoute from '@/components/layout/protected-route';
-import { Plus, Search, Edit, Trash2, UserCheck, UserX, Building, Mail, Shield, Eye, Send } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, UserCheck, UserX, Building, Mail, Shield, Send } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function UsersPage() {
@@ -49,66 +49,106 @@ export default function UsersPage() {
   // Create user mutation
   const createUserMutation = useMutation({
     mutationFn: adminApi.createUser,
-    onSuccess: () => {
+  });
+
+  // Handle create success and error
+  useEffect(() => {
+    if (createUserMutation.isSuccess) {
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
       setIsCreateDialogOpen(false);
       setNewUser({ email: '', name: '', role: 'user', company_id: '' });
       toast.success('Utilisateur créé avec succès');
-    },
-    onError: (error: any) => {
+    }
+  }, [createUserMutation.isSuccess, queryClient]);
+
+  useEffect(() => {
+    if (createUserMutation.isError) {
+      const error = createUserMutation.error as Error & { response?: { data?: { message?: string } } };
       toast.error(error.response?.data?.message || 'Erreur lors de la création');
-    },
-  });
+    }
+  }, [createUserMutation.isError, createUserMutation.error]);
 
   // Update user mutation
   const updateUserMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<User> }) =>
       adminApi.updateUser(id, data),
-    onSuccess: () => {
+  });
+
+  // Handle update success and error
+  useEffect(() => {
+    if (updateUserMutation.isSuccess) {
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
       setIsEditDialogOpen(false);
       setSelectedUser(null);
       toast.success('Utilisateur modifié avec succès');
-    },
-    onError: (error: any) => {
+    }
+  }, [updateUserMutation.isSuccess, queryClient]);
+
+  useEffect(() => {
+    if (updateUserMutation.isError) {
+      const error = updateUserMutation.error as Error & { response?: { data?: { message?: string } } };
       toast.error(error.response?.data?.message || 'Erreur lors de la modification');
-    },
-  });
+    }
+  }, [updateUserMutation.isError, updateUserMutation.error]);
 
   // Delete user mutation
   const deleteUserMutation = useMutation({
     mutationFn: adminApi.deleteUser,
-    onSuccess: () => {
+  });
+
+  // Handle delete success and error
+  useEffect(() => {
+    if (deleteUserMutation.isSuccess) {
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
       toast.success('Utilisateur supprimé avec succès');
-    },
-    onError: (error: any) => {
+    }
+  }, [deleteUserMutation.isSuccess, queryClient]);
+
+  useEffect(() => {
+    if (deleteUserMutation.isError) {
+      const error = deleteUserMutation.error as Error & { response?: { data?: { message?: string } } };
       toast.error(error.response?.data?.message || 'Erreur lors de la suppression');
-    },
-  });
+    }
+  }, [deleteUserMutation.isError, deleteUserMutation.error]);
 
   // Toggle user status mutation
   const toggleStatusMutation = useMutation({
     mutationFn: adminApi.toggleUserStatus,
-    onSuccess: () => {
+  });
+
+  // Handle toggle success and error
+  useEffect(() => {
+    if (toggleStatusMutation.isSuccess) {
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
       toast.success('Statut utilisateur modifié');
-    },
-    onError: (error: any) => {
+    }
+  }, [toggleStatusMutation.isSuccess, queryClient]);
+
+  useEffect(() => {
+    if (toggleStatusMutation.isError) {
+      const error = toggleStatusMutation.error as Error & { response?: { data?: { message?: string } } };
       toast.error(error.response?.data?.message || 'Erreur lors du changement de statut');
-    },
-  });
+    }
+  }, [toggleStatusMutation.isError, toggleStatusMutation.error]);
 
   // Resend invitation mutation
   const resendInvitationMutation = useMutation({
     mutationFn: adminApi.resendUserInvitation,
-    onSuccess: () => {
-      toast.success('Invitation renvoyée avec succès');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Erreur lors du renvoi de l\'invitation');
-    },
   });
+
+  // Handle resend success and error
+  useEffect(() => {
+    if (resendInvitationMutation.isSuccess) {
+      toast.success('Invitation renvoyée avec succès');
+    }
+  }, [resendInvitationMutation.isSuccess]);
+
+  useEffect(() => {
+    if (resendInvitationMutation.isError) {
+      const error = resendInvitationMutation.error as Error & { response?: { data?: { message?: string } } };
+      toast.error(error.response?.data?.message || 'Erreur lors du renvoi de l\'invitation');
+    }
+  }, [resendInvitationMutation.isError, resendInvitationMutation.error]);
 
   // Filter users
   const filteredUsers = users?.data?.filter((user: User) => {
@@ -185,7 +225,7 @@ export default function UsersPage() {
                 <DialogHeader>
                   <DialogTitle>Créer un Utilisateur</DialogTitle>
                   <DialogDescription>
-                    L'utilisateur recevra un email d'invitation pour créer son mot de passe
+                    L&apos;utilisateur recevra un email d&apos;invitation pour créer son mot de passe
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
@@ -210,7 +250,7 @@ export default function UsersPage() {
                   </div>
                   <div>
                     <Label htmlFor="role">Rôle</Label>
-                    <Select value={newUser.role} onValueChange={(value) => setNewUser({ ...newUser, role: value })}>
+                    <Select value={newUser.role} onValueChange={(value) => setNewUser({ ...newUser, role: value as "super_admin" | "admin" | "hr" | "user" })}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -380,7 +420,7 @@ export default function UsersPage() {
                               setSelectedUser(user);
                               setIsEditDialogOpen(true);
                             }}
-                            title="Modifier l'utilisateur"
+                            title="Modifier l&apos;utilisateur"
                           >
                             <Edit className="w-4 h-4" />
                           </Button>
@@ -390,7 +430,7 @@ export default function UsersPage() {
                               size="sm"
                               onClick={() => resendInvitationMutation.mutate(user.id)}
                               disabled={resendInvitationMutation.isPending}
-                              title="Renvoyer l'invitation"
+                              title="Renvoyer l&apos;invitation"
                               className="text-blue-600 hover:text-blue-800"
                             >
                               {resendInvitationMutation.isPending ? (
@@ -405,7 +445,7 @@ export default function UsersPage() {
                             size="sm"
                             onClick={() => toggleStatusMutation.mutate(user.id)}
                             disabled={toggleStatusMutation.isPending}
-                            title={user.is_active ? "Désactiver l'utilisateur" : "Activer l'utilisateur"}
+                            title={user.is_active ? "Désactiver l&apos;utilisateur" : "Activer l&apos;utilisateur"}
                           >
                             {user.is_active ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
                           </Button>
@@ -417,7 +457,7 @@ export default function UsersPage() {
                               setIsDeleteDialogOpen(true);
                             }}
                             disabled={deleteUserMutation.isPending}
-                            title="Supprimer l'utilisateur"
+                            title="Supprimer l&apos;utilisateur"
                             className="text-red-600 hover:text-red-800"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -435,9 +475,9 @@ export default function UsersPage() {
           <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
             <DialogContent className="max-w-md">
               <DialogHeader>
-                <DialogTitle>Modifier l'Utilisateur</DialogTitle>
+                <DialogTitle>Modifier l&apos;Utilisateur</DialogTitle>
                 <DialogDescription>
-                  Modifiez les informations de l'utilisateur
+                  Modifiez les informations de l&apos;utilisateur
                 </DialogDescription>
               </DialogHeader>
               {selectedUser && (
@@ -463,7 +503,7 @@ export default function UsersPage() {
                     <Label htmlFor="edit-role">Rôle</Label>
                     <Select 
                       value={selectedUser.role} 
-                      onValueChange={(value: any) => setSelectedUser({ ...selectedUser, role: value })}
+                      onValueChange={(value) => setSelectedUser({ ...selectedUser, role: value as "super_admin" | "admin" | "hr" | "user" })}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -480,7 +520,7 @@ export default function UsersPage() {
                     <Label htmlFor="edit-company">Entreprise</Label>
                     <Select 
                       value={selectedUser.company_id || 'none'} 
-                      onValueChange={(value) => setSelectedUser({ ...selectedUser, company_id: value === 'none' ? null : value })}
+                      onValueChange={(value) => setSelectedUser({ ...selectedUser, company_id: value === 'none' ? undefined : value })}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Sélectionner une entreprise" />
@@ -516,9 +556,9 @@ export default function UsersPage() {
           <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Supprimer l'utilisateur</DialogTitle>
+                <DialogTitle>Supprimer l&apos;utilisateur</DialogTitle>
                 <DialogDescription>
-                  Êtes-vous sûr de vouloir supprimer l'utilisateur <strong>{userToDelete?.name}</strong> ({userToDelete?.email}) ?
+                  Êtes-vous sûr de vouloir supprimer l&apos;utilisateur <strong>{userToDelete?.name}</strong> ({userToDelete?.email}) ?
                   Cette action est irréversible.
                 </DialogDescription>
               </DialogHeader>

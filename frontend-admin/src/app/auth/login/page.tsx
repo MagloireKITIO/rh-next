@@ -44,12 +44,13 @@ export default function AdminLoginPage() {
       await login(email, password);
       console.log('✅ Login réussi, redirection...');
       router.push('/dashboard');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Erreur de connexion complète:', error);
-      console.error('❌ Error response:', error?.response);
-      console.error('❌ Error message:', error?.message);
-      const message = error?.response?.data?.message || 
-                     error?.message || 
+      const err = error as Error & { response?: { data?: { message?: string } } };
+      console.error('❌ Error response:', err?.response);
+      console.error('❌ Error message:', err?.message);
+      const message = err?.response?.data?.message || 
+                     err?.message || 
                      'Erreur de connexion. Vérifiez vos identifiants.';
       setError(message);
     } finally {
@@ -77,7 +78,7 @@ export default function AdminLoginPage() {
               Administration
             </CardTitle>
             <CardDescription className="text-muted-foreground">
-              Connectez-vous à l'interface d'administration de RH Analytics Pro
+              Connectez-vous à l&apos;interface d&apos;administration de RH Analytics Pro
             </CardDescription>
           </CardHeader>
           
@@ -158,7 +159,7 @@ export default function AdminLoginPage() {
             </form>
             
             <div className="text-center text-xs text-muted-foreground">
-              <p>Interface d'administration sécurisée</p>
+              <p>Interface d&apos;administration sécurisée</p>
               <p className="mt-1">Seuls les super administrateurs peuvent accéder à cette interface</p>
             </div>
           </CardContent>

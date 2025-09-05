@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { adminApi, ApiKey, OpenRouterModel, ModelConfig } from '@/lib/api-client';
+import { adminApi, ApiKey } from '@/lib/api-client';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Settings, Zap, Shield, DollarSign, Clock, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Settings, Zap, Shield, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ModelConfigDialogProps {
@@ -70,20 +70,32 @@ export default function ModelConfigDialog({
         return adminApi.createModelConfig(apiKey.id, configData);
       }
     },
-    onSuccess: () => {
+  });
+
+  // Handle save success and error
+  useEffect(() => {
+    if (saveConfigMutation.isSuccess) {
       queryClient.invalidateQueries({ queryKey: ['model-config', apiKey.id] });
       toast.success('Configuration des modèles sauvegardée');
       onOpenChange(false);
-    },
-    onError: (error: any) => {
+    }
+  }, [saveConfigMutation.isSuccess, queryClient, apiKey.id, onOpenChange]);
+
+  useEffect(() => {
+    if (saveConfigMutation.isError) {
+      const error = saveConfigMutation.error as Error & { response?: { data?: { message?: string } } };
       toast.error(error.response?.data?.message || 'Erreur lors de la sauvegarde');
-    },
-  });
+    }
+  }, [saveConfigMutation.isError, saveConfigMutation.error]);
 
   // Delete config mutation
   const deleteConfigMutation = useMutation({
     mutationFn: () => adminApi.deleteModelConfig(apiKey.id),
-    onSuccess: () => {
+  });
+
+  // Handle delete success and error
+  useEffect(() => {
+    if (deleteConfigMutation.isSuccess) {
       queryClient.invalidateQueries({ queryKey: ['model-config', apiKey.id] });
       setConfig({
         primaryModel: '',
@@ -93,11 +105,15 @@ export default function ModelConfigDialog({
         notes: '',
       });
       toast.success('Configuration supprimée');
-    },
-    onError: (error: any) => {
+    }
+  }, [deleteConfigMutation.isSuccess, queryClient, apiKey.id]);
+
+  useEffect(() => {
+    if (deleteConfigMutation.isError) {
+      const error = deleteConfigMutation.error as Error & { response?: { data?: { message?: string } } };
       toast.error(error.response?.data?.message || 'Erreur lors de la suppression');
-    },
-  });
+    }
+  }, [deleteConfigMutation.isError, deleteConfigMutation.error]);
 
   const models = modelsResponse?.data?.data || [];
 
@@ -158,7 +174,7 @@ export default function ModelConfigDialog({
           <DialogHeader>
             <DialogTitle>Configuration des Modèles</DialogTitle>
             <DialogDescription>
-              Cette fonctionnalité n'est disponible que pour les clés OpenRouter.
+              Cette fonctionnalité n&apos;est disponible que pour les clés OpenRouter.
             </DialogDescription>
           </DialogHeader>
         </DialogContent>
@@ -175,7 +191,7 @@ export default function ModelConfigDialog({
             Configuration des Modèles
           </DialogTitle>
           <DialogDescription>
-            Configurez les modèles à utiliser pour l'analyse CV avec cette clé API
+            Configurez les modèles à utiliser pour l&apos;analyse CV avec cette clé API
           </DialogDescription>
         </DialogHeader>
 

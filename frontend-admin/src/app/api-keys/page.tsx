@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi, ApiKey, Company } from '@/lib/api-client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,10 +28,8 @@ import {
   Clock,
   Power,
   PowerOff,
-  TrendingUp,
   Eye,
   EyeOff,
-  Users,
   List,
   Settings
 } from 'lucide-react';
@@ -80,58 +78,90 @@ export default function ApiKeysPage() {
   // Create API key mutation
   const createApiKeyMutation = useMutation({
     mutationFn: adminApi.createApiKey,
-    onSuccess: () => {
+  });
+
+  // Handle create success and error
+  useEffect(() => {
+    if (createApiKeyMutation.isSuccess) {
       queryClient.invalidateQueries({ queryKey: ['admin', 'api-keys'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'api-keys', 'stats'] });
       setIsCreateDialogOpen(false);
       setNewApiKey({ key: '', name: '', provider: 'openrouter', company_id: 'unassigned' });
       toast.success('Clé API créée avec succès');
-    },
-    onError: (error: any) => {
+    }
+  }, [createApiKeyMutation.isSuccess, queryClient]);
+
+  useEffect(() => {
+    if (createApiKeyMutation.isError) {
+      const error = createApiKeyMutation.error as Error & { response?: { data?: { message?: string } } };
       toast.error(error.response?.data?.message || 'Erreur lors de la création');
-    },
-  });
+    }
+  }, [createApiKeyMutation.isError, createApiKeyMutation.error]);
 
   // Update API key mutation
   const updateApiKeyMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<ApiKey> }) =>
       adminApi.updateApiKey(id, data),
-    onSuccess: () => {
+  });
+
+  // Handle update success and error
+  useEffect(() => {
+    if (updateApiKeyMutation.isSuccess) {
       queryClient.invalidateQueries({ queryKey: ['admin', 'api-keys'] });
       setIsEditDialogOpen(false);
       setSelectedApiKey(null);
       toast.success('Clé API modifiée avec succès');
-    },
-    onError: (error: any) => {
+    }
+  }, [updateApiKeyMutation.isSuccess, queryClient]);
+
+  useEffect(() => {
+    if (updateApiKeyMutation.isError) {
+      const error = updateApiKeyMutation.error as Error & { response?: { data?: { message?: string } } };
       toast.error(error.response?.data?.message || 'Erreur lors de la modification');
-    },
-  });
+    }
+  }, [updateApiKeyMutation.isError, updateApiKeyMutation.error]);
 
   // Delete API key mutation
   const deleteApiKeyMutation = useMutation({
     mutationFn: adminApi.deleteApiKey,
-    onSuccess: () => {
+  });
+
+  // Handle delete success and error
+  useEffect(() => {
+    if (deleteApiKeyMutation.isSuccess) {
       queryClient.invalidateQueries({ queryKey: ['admin', 'api-keys'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'api-keys', 'stats'] });
       toast.success('Clé API supprimée avec succès');
-    },
-    onError: (error: any) => {
+    }
+  }, [deleteApiKeyMutation.isSuccess, queryClient]);
+
+  useEffect(() => {
+    if (deleteApiKeyMutation.isError) {
+      const error = deleteApiKeyMutation.error as Error & { response?: { data?: { message?: string } } };
       toast.error(error.response?.data?.message || 'Erreur lors de la suppression');
-    },
-  });
+    }
+  }, [deleteApiKeyMutation.isError, deleteApiKeyMutation.error]);
 
   // Toggle API key status mutation
   const toggleStatusMutation = useMutation({
     mutationFn: adminApi.toggleApiKeyStatus,
-    onSuccess: () => {
+  });
+
+  // Handle toggle success and error
+  useEffect(() => {
+    if (toggleStatusMutation.isSuccess) {
       queryClient.invalidateQueries({ queryKey: ['admin', 'api-keys'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'api-keys', 'stats'] });
       toast.success('Statut de la clé API modifié');
-    },
-    onError: (error: any) => {
+    }
+  }, [toggleStatusMutation.isSuccess, queryClient]);
+
+  useEffect(() => {
+    if (toggleStatusMutation.isError) {
+      const error = toggleStatusMutation.error as Error & { response?: { data?: { message?: string } } };
       toast.error(error.response?.data?.message || 'Erreur lors du changement de statut');
-    },
-  });
+    }
+  }, [toggleStatusMutation.isError, toggleStatusMutation.error]);
 
   // Filter API keys
   const filteredApiKeys = apiKeys?.data?.filter((apiKey: ApiKey) => {

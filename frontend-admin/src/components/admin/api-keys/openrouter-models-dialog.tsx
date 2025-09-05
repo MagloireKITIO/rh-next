@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { adminApi, ApiKey, OpenRouterModel } from '@/lib/api-client';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Search, Cpu, DollarSign, Layers, Eye } from 'lucide-react';
 import { toast } from 'sonner';
@@ -36,10 +36,15 @@ export default function OpenRouterModelsDialog({
       ...(providerFilter !== 'all' && { provider: providerFilter }),
     }),
     enabled: isOpen && apiKey.provider === 'openrouter' && apiKey.isActive,
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Erreur lors du chargement des modèles');
-    },
   });
+
+  // Handle error with useEffect
+  useEffect(() => {
+    if (modelsError) {
+      const error = modelsError as any;
+      toast.error(error?.response?.data?.message || 'Erreur lors du chargement des modèles');
+    }
+  }, [modelsError]);
 
   // Fetch providers for filter
   const { data: providersResponse } = useQuery({
@@ -79,13 +84,13 @@ export default function OpenRouterModelsDialog({
           <DialogHeader>
             <DialogTitle>Modèles OpenRouter</DialogTitle>
             <DialogDescription>
-              Cette fonctionnalité n'est disponible que pour les clés OpenRouter.
+              Cette fonctionnalité n&apos;est disponible que pour les clés OpenRouter.
             </DialogDescription>
           </DialogHeader>
           <div className="text-center py-8">
             <Cpu className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
             <p className="text-muted-foreground">
-              La clé sélectionnée n'est pas une clé OpenRouter.
+              La clé sélectionnée n&apos;est pas une clé OpenRouter.
             </p>
           </div>
         </DialogContent>

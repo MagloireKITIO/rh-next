@@ -209,7 +209,7 @@ export interface ModelConfigStats {
 
 export interface MailConfiguration {
   id?: string;
-  provider_type: 'smtp' | 'sendgrid' | 'mailgun' | 'aws_ses' | 'supabase';
+  provider_type: 'smtp' | 'sendgrid' | 'mailgun' | 'aws_ses' | 'supabase' | 'gmail' | 'outlook';
   company_id?: string;
   // Configuration SMTP
   smtp_host?: string;

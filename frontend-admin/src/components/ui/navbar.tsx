@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { UserMenu } from "./user-menu";
-import { Button } from "./button";
 import { NotificationBell } from "./notification-bell";
 import { useNotifications } from "@/hooks/use-notifications";
 import { cn } from "@/lib/utils";
@@ -86,7 +85,7 @@ export function NavBar({
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-6">
             {finalNavItems.map((item) => {
-              const isActive = pathname === item.href || item.active;
+              const isActive = pathname === item.href;
               const isJobsLink = item.href === "/jobs";
               
               return (
@@ -143,7 +142,7 @@ export function NavBar({
           )}>
             <div className="space-y-2">
               {finalNavItems.map((item) => {
-                const isActive = pathname === item.href || item.active;
+                const isActive = pathname === item.href;
                 const isJobsLink = item.href === "/jobs";
                 
                 return (
@@ -178,7 +177,7 @@ export function NavBar({
                 <div className="px-3 py-2 flex items-center justify-between">
                   <span className={cn(
                     "text-sm font-medium",
-                    variant === "landing" ? "text-white" : "text-slate-700 dark:text-slate-300"
+                    "text-slate-700 dark:text-slate-300"
                   )}>Notifications</span>
                   <NotificationBell count={notificationsCount} />
                 </div>

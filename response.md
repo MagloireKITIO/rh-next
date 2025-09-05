@@ -1,132 +1,190 @@
-[Nest] 21612  - 04/09/2025 12:11:55    WARN [TogetherAIService] ❌ Failed to parse AI response as JSON, returning raw response
-[Nest] 21612  - 04/09/2025 12:11:55    WARN [TogetherAIService] Parse error details: Expected ',' or '}' after property value in JSON at position 1831 (line 38 column 21)
-[Nest] 21612  - 04/09/2025 12:11:55    WARN [TogetherAIService] 🔍 Raw JSON that failed to parse:
-[Nest] 21612  - 04/09/2025 12:11:55    WARN [TogetherAIService] Voici l'évaluation du CV de Magloire KITIO KENFACK :
 
-```json
-{
-  "score": 85,
-  "summary": "Développeur senior/architecte avec une expérience significative en conception de SI, automatisation de processus et développement d'APIs REST. Spécialisé en orchestration de systèmes complexes, optimisation PostgreSQL et Python Flask.",
-  "strengths": [
-    "Expérience significative en conception de SI et automatisation de processus",
-    "Compétences en développement d'APIs REST et orchestration de systèmes complexes",
-    "Connaissance approfondie de PostgreSQL et Python Flask",
-    "Formation en architecture de solutions digitales et systèmes d'information"
-  ],
-  "weaknesses": [
-    "Manque de connaissance en certaines technologies (par exemple,.NET, PHP)",
-    "Taux de satisfaction de 95% en résolution d'incidents techniques, mais pas de détails sur les types d'incidents"
-  ],
-  "recommendations": [
-    "Recommander pour un entretien pour discuter de la compatibilité culturelle et des soft skills",
-    "Suggérer une formation ou un atelier pour améliorer les compétences en.NET et PHP"
-  ],
-  "hrDecision": {
-    "recommendation": "ENTRETIEN",
-    "confidence": 80,
-    "reasoning": "Le candidat présente une expérience significative et des compétences pertinentes pour le poste, mais il faudrait discuter de la compatibilité culturelle et des soft skills pour confirmer son adaptation à l'équipe.",
-    "priority": "MEDIUM"
-  },
-  "skillsMatch": {
-    "technical": 90,
-    "experience": 80,
-    "cultural": 60,
-    "overall": 80
-  },
-  "risks": [
-    "Manque de connaissance en certaines technologies",
-    "Taux de satisfaction de 95% en résolution d'incidents techniques, mais pas de détails sur les types d'incidents"
-  ],
-  "extractedData": {
-    "name": "Magloire KITIO KENFACK",
-    "email": "rmagloirekitio1@gmail.com",
-    "phone": "+237 693 937 344",
-    "experience": 5 ans,
-    "skills": [
-      "Développement Python (Flask, Django)",
-      "PostgreSQL (expertise)",
-      "J
-[Nest] 21612  - 04/09/2025 12:11:55    WARN [TogetherAIService] 🔧 Fixed JSON attempt:
-[Nest] 21612  - 04/09/2025 12:11:55    WARN [TogetherAIService] Voici l'évaluation du CV de Magloire KITIO KENFACK :
+./src/app/users/page.tsx:506:92
+Type error: Type 'string' is not assignable to type '"super_admin" | "admin" | "hr" | "user"'.
 
-```json
-{
-  "score": 85,
-  "summary": "Développeur senior/architecte avec une expérience significative en conception de SI, automatisation de processus et développement d'APIs REST. Spécialisé en orchestration de systèmes complexes, optimisation PostgreSQL et Python Flask.",
-  "strengths": [
-    "Expérience significative en conception de SI et automatisation de processus",
-    "Compétences en développement d'APIs REST et orchestration de systèmes complexes",
-    "Connaissance approfondie de PostgreSQL et Python Flask",
-    "Formation en architecture de solutions digitales et systèmes d'information"
-  ],
-  "weaknesses": [
-    "Manque de connaissance en certaines technologies (par exemple,.NET, PHP)",
-    "Taux de satisfaction de 95% en résolution d'incidents techniques, mais pas de détails sur les types d'incidents"
-  ],
-  "recommendations": [
-    "Recommander pour un entretien pour discuter de la compatibilité culturelle et des soft skills",
-    "Suggérer une formation ou un atelier pour améliorer les compétences en.NET et PHP"
-  ],
-  "hrDecision": {
-    "recommendation": "ENTRETIEN",
-    "confidence": 80,
-    "reasoning": "Le candidat présente une expérience significative et des compétences pertinentes pour le poste, mais il faudrait discuter de la compatibilité culturelle et des soft skills pour confirmer son adaptation à l'équipe.",
-    "priority": "MEDIUM"
-  },
-  "skillsMatch": {
-    "technical": 90,
-    "experience": 80,
-    "cultural": 60,
-    "overall": 80
-  },
-  "risks": [
-    "Manque de connaissance en certaines technologies",
-    "Taux de satisfaction de 95% en résolution d'incidents techniques, mais pas de détails sur les types d'incidents"
-  ],
-  "extractedData": {
-    "name": "Magloire KITIO KENFACK",
-    "email": "rmagloirekitio1@gmail.com",
-    "phone": "+237 693 937 344",
-    "experience": 5 ans,
-    "skills": [
-      "Développement Python (Flask, Django)",
-      "PostgreSQL (expertise)",
-      "J
-[Nest] 21612  - 04/09/2025 12:11:55    WARN [TogetherAIService] 🔄 Returning fallback result with score: 25
-[Nest] 21612  - 04/09/2025 12:11:58     LOG [TogetherAIService] 🔍 Starting CV analysis for company: d7ea7dce-7183-4975-a2ba-23ecce600eac
-[Nest] 21612  - 04/09/2025 12:11:58     LOG [TogetherAIService] 📄 CV text length: 1614 characters
-[Nest] 21612  - 04/09/2025 12:11:58     LOG [TogetherAIService] 💼 Job description length: 63 characters
-[Nest] 21612  - 04/09/2025 12:11:58     LOG [TogetherAIService] 🔑 Using API key: sk-or-v1...
-[Nest] 21612  - 04/09/2025 12:11:58     LOG [TogetherAIService] 📊 Account usage: 0/1000 requests
-[Nest] 21612  - 04/09/2025 12:11:58     LOG [TogetherAIService] 🎯 Using configured models for key sk-or-v1...: meta-llama/llama-3.2-11b-vision-instruct, anthropic/claude-3-haiku
-[Nest] 21612  - 04/09/2025 12:11:58     LOG [TogetherAIService] 🤖 Configured models: meta-llama/llama-3.2-11b-vision-instruct, anthropic/claude-3-haiku
-[Nest] 21612  - 04/09/2025 12:11:58     LOG [TogetherAIService] ✨ Selected primary model: meta-llama/llama-3.2-11b-vision-instruct
-[Nest] 21612  - 04/09/2025 12:11:58     LOG [TogetherAIService] 🤖 Making AI request with model: meta-llama/llama-3.2-11b-vision-instruct
-[Nest] 21612  - 04/09/2025 12:11:58     LOG [TogetherAIService] ⏱️ Request started at: 2025-09-04T11:11:58.797Z
-[Nest] 21612  - 04/09/2025 12:12:23     LOG [TogetherAIService] ✅ AI request completed successfully
-[Nest] 21612  - 04/09/2025 12:12:23     LOG [TogetherAIService] ⏱️ Response received at: 2025-09-04T11:12:23.041Z
-[Nest] 21612  - 04/09/2025 12:12:23     LOG [TogetherAIService] 📈 Response status: 200 OK
-[Nest] 21612  - 04/09/2025 12:12:23     LOG [TogetherAIService] 💾 API key usage updated in database
-[Nest] 21612  - 04/09/2025 12:12:23     LOG [TogetherAIService] 📝 AI response length: 2211 characters
-[Nest] 21612  - 04/09/2025 12:12:23     LOG [TogetherAIService] 🎯 Successfully parsed AI response - Score: 70
-[Nest] 21612  - 04/09/2025 12:12:23     LOG [TogetherAIService] 📊 HR Decision: ENTRETIEN (Confidence: 60%)
-[Nest] 21612  - 04/09/2025 12:12:23     LOG [TogetherAIService] 👤 Extracted candidate: Nemzou Nyamsi Philippe (pnemzou@gmail.com)
-[Nest] 21612  - 04/09/2025 12:12:26     LOG [TogetherAIService] 🔍 Starting CV analysis for company: d7ea7dce-7183-4975-a2ba-23ecce600eac
-[Nest] 21612  - 04/09/2025 12:12:26     LOG [TogetherAIService] 📄 CV text length: 4239 characters
-[Nest] 21612  - 04/09/2025 12:12:26     LOG [TogetherAIService] 💼 Job description length: 63 characters
-[Nest] 21612  - 04/09/2025 12:12:27     LOG [TogetherAIService] 🔑 Using API key: sk-or-v1...
-[Nest] 21612  - 04/09/2025 12:12:27     LOG [TogetherAIService] 📊 Account usage: 0/1000 requests
-[Nest] 21612  - 04/09/2025 12:12:27     LOG [TogetherAIService] 🎯 Using configured models for key sk-or-v1...: meta-llama/llama-3.2-11b-vision-instruct, anthropic/claude-3-haiku
-[Nest] 21612  - 04/09/2025 12:12:27     LOG [TogetherAIService] 🤖 Configured models: meta-llama/llama-3.2-11b-vision-instruct, anthropic/claude-3-haiku
-[Nest] 21612  - 04/09/2025 12:12:27     LOG [TogetherAIService] ✨ Selected primary model: meta-llama/llama-3.2-11b-vision-instruct
-[Nest] 21612  - 04/09/2025 12:12:27     LOG [TogetherAIService] 🤖 Making AI request with model: meta-llama/llama-3.2-11b-vision-instruct
-[Nest] 21612  - 04/09/2025 12:12:27     LOG [TogetherAIService] ⏱️ Request started at: 2025-09-04T11:12:27.799Z
-[Nest] 21612  - 04/09/2025 12:12:43     LOG [TogetherAIService] ✅ AI request completed successfully
-[Nest] 21612  - 04/09/2025 12:12:43     LOG [TogetherAIService] ⏱️ Response received at: 2025-09-04T11:12:43.945Z
-[Nest] 21612  - 04/09/2025 12:12:43     LOG [TogetherAIService] 📈 Response status: 200 OK
-[Nest] 21612  - 04/09/2025 12:12:45     LOG [TogetherAIService] 💾 API key usage updated in database
-[Nest] 21612  - 04/09/2025 12:12:45     LOG [TogetherAIService] 📝 AI response length: 2882 characters
-[Nest] 21612  - 04/09/2025 12:12:45     LOG [TogetherAIService] 🎯 Successfully parsed AI response - Score: 70
-[Nest] 21612  - 04/09/2025 12:12:45     LOG [TogetherAIService] 📊 HR Decision: ENTRETIEN (Confidence: 80%)
-[Nest] 21612  - 04/09/2025 12:12:45     LOG [TogetherAIService] 👤 Extracted candidate: Charles-Eric Heuna (charlesricheuna@gmail.com)
-[Nest] 21612  - 04/09/2025 12:12:47     LOG [AnalysisQueueService] All workers completed for project 8ca75e45-143f-43ad-96ba-b98ef1ec352e
+  504 |                     <Select
+  505 |                       value={selectedUser.role}
+> 506 |                       onValueChange={(value: string) => setSelectedUser({ ...selectedUser, role: value })}
+      |                                                                                            ^
+  507 |                     >
+  508 |                       <SelectTrigger>
+  509 |                         <SelectValue />
+Next.js build worker exited with code: 1 and signal: null
+PS C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin>   npx tsc --noEmit
+src/components/admin/api-keys/openrouter-models-dialog.tsx:44:31 - error TS2339: Property 'response' does not exist on type 'Error'.
+
+44       toast.error(modelsError.response?.data?.message || 'Erreur lors du chargement des modèles');
+                                 ~~~~~~~~
+
+src/components/admin/settings/mail-automations-tab.tsx:108:19 - error TS2448: Block-scoped variable 'loadData' used before its declaration.
+
+108   }, [activeView, loadData]);
+                      ~~~~~~~~
+
+  src/components/admin/settings/mail-automations-tab.tsx:110:9
+    110   const loadData = useCallback(async () => {
+                ~~~~~~~~
+    'loadData' is declared here.
+
+src/components/admin/settings/mail-automations-tab.tsx:108:19 - error TS2454: Variable 'loadData' is used before being assigned.
+
+108   }, [activeView, loadData]);
+                      ~~~~~~~~
+
+src/components/admin/settings/mail-automations-tab.tsx:123:22 - error TS2345: Argument of type 'Company[]' is not assignable to parameter of type 'SetStateAction<Company[]>'.
+  Type 'import("C:/Users/stage.dsi.pmo/Desktop/dev/rh-next/frontend-admin/src/lib/api-client").Company[]' is not assignable to type 'Company[]'.
+    Type 'Company' is missing the following properties from type 'Company': users_count, automations_count, total_sent, success_rate
+
+123         setCompanies(allCompaniesResponse.data);
+                         ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+src/components/admin/settings/mail-automations-tab.tsx:305:72 - error TS2345: Argument of type '"templates" | "overview" | "configs"' is not assignable to parameter of type 'SetStateAction<"companies" | "overview" | "automations">'.
+  Type '"templates"' is not assignable to type 'SetStateAction<"companies" | "overview" | "automations">'.       
+
+305       <Tabs value={activeView} onValueChange={(value) => setActiveView(value as 'overview' | 'templates' | 'configs')} className="space-y-6">
+                                                                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+src/components/admin/settings/mail-config-form.tsx:108:42 - error TS2769: No overload matches this call.
+  Overload 1 of 3, '(options: DefinedInitialDataOptions<unknown, Error, unknown, (string | undefined)[]>, queryClient?: QueryClient | undefined): DefinedUseQueryResult<unknown, Error>', gave the following error.
+    Object literal may only specify known properties, and 'cacheTime' does not exist in type 'DefinedInitialDataOptions<unknown, Error, unknown, (string | undefined)[]>'.
+  Overload 2 of 3, '(options: UndefinedInitialDataOptions<AxiosResponse<any, any>, Error, AxiosResponse<any, any>, (string | undefined)[]>, queryClient?: QueryClient | undefined): UseQueryResult<...>', gave the following error.
+    Type '() => Promise<AxiosResponse<any, any>> | Promise<{ data: never[]; }>' is not assignable to type 'unique symbol | QueryFunction<AxiosResponse<any, any>, (string | undefined)[], never> | undefined'.
+      Type '() => Promise<AxiosResponse<any, any>> | Promise<{ data: never[]; }>' is not assignable to type 'QueryFunction<AxiosResponse<any, any>, (string | undefined)[], never>'.
+        Type 'Promise<AxiosResponse<any, any>> | Promise<{ data: never[]; }>' is not assignable to type 'AxiosResponse<any, any> | Promise<AxiosResponse<any, any>>'.
+          Type 'Promise<{ data: never[]; }>' is not assignable to type 'AxiosResponse<any, any> | Promise<AxiosResponse<any, any>>'.
+            Type 'Promise<{ data: never[]; }>' is not assignable to type 'Promise<AxiosResponse<any, any>>'.     
+              Type '{ data: never[]; }' is missing the following properties from type 'AxiosResponse<any, any>': status, statusText, headers, config
+  Overload 3 of 3, '(options: UseQueryOptions<AxiosResponse<any, any>, Error, AxiosResponse<any, any>, (string | undefined)[]>, queryClient?: QueryClient | undefined): UseQueryResult<...>', gave the following error.
+    Type '() => Promise<AxiosResponse<any, any>> | Promise<{ data: never[]; }>' is not assignable to type 'unique symbol | QueryFunction<AxiosResponse<any, any>, (string | undefined)[], never> | undefined'.
+      Type '() => Promise<AxiosResponse<any, any>> | Promise<{ data: never[]; }>' is not assignable to type 'QueryFunction<AxiosResponse<any, any>, (string | undefined)[], never>'.
+        Type 'Promise<AxiosResponse<any, any>> | Promise<{ data: never[]; }>' is not assignable to type 'AxiosResponse<any, any> | Promise<AxiosResponse<any, any>>'.
+          Type 'Promise<{ data: never[]; }>' is not assignable to type 'AxiosResponse<any, any> | Promise<AxiosResponse<any, any>>'.
+            Type 'Promise<{ data: never[]; }>' is not assignable to type 'Promise<AxiosResponse<any, any>>'.     
+              Type '{ data: never[]; }' is missing the following properties from type 'AxiosResponse<any, any>': status, statusText, headers, config
+
+108   const { isSuccess: assignedSuccess } = useQuery({
+                                             ~~~~~~~~
+
+  node_modules/@tanstack/query-core/build/modern/hydration-D0MPgBG9.d.ts:608:5
+    608     queryFn?: QueryFunction<TQueryFnData, TQueryKey, TPageParam> | SkipToken;
+            ~~~~~~~
+    The expected type comes from property 'queryFn' which is declared here on type 'UndefinedInitialDataOptions<AxiosResponse<any, any>, Error, AxiosResponse<any, any>, (string | undefined)[]>'
+  node_modules/@tanstack/query-core/build/modern/hydration-D0MPgBG9.d.ts:608:5
+    608     queryFn?: QueryFunction<TQueryFnData, TQueryKey, TPageParam> | SkipToken;
+            ~~~~~~~
+    The expected type comes from property 'queryFn' which is declared here on type 'UseQueryOptions<AxiosResponse<any, any>, Error, AxiosResponse<any, any>, (string | undefined)[]>'
+
+src/components/admin/settings/mail-config-form.tsx:264:59 - error TS2345: Argument of type '{ provider_type: "smtp" | "gmail" | "outlook" | "sendgrid"; company_id: null; smtp_host: string | undefined; smtp_port: number | undefined; smtp_user: string | undefined; smtp_password: string | undefined; ... 7 more ...; is_default: boolean; }' is not assignable to parameter of type 'MailConfiguration'.
+  Types of property 'provider_type' are incompatible.
+    Type '"smtp" | "sendgrid" | "gmail" | "outlook"' is not assignable to type '"smtp" | "sendgrid" | "mailgun" | "aws_ses" | "supabase"'.
+      Type '"gmail"' is not assignable to type '"smtp" | "sendgrid" | "mailgun" | "aws_ses" | "supabase"'.       
+
+264       const result = await saveConfigMutation.mutateAsync(configToSave);
+                                                              ~~~~~~~~~~~~
+
+src/components/admin/settings/mail-config-form.tsx:288:21 - error TS1196: Catch clause variable type annotation must be 'any' or 'unknown' if specified.
+
+288     } catch (error: Error & { response?: { data?: { message?: string } } }) {
+                        ~~~~~
+
+src/components/admin/settings/mail-config-form.tsx:461:42 - error TS2339: Property 'data' does not exist on type 'Company[]'.
+
+461                       {(companies?.data?.data || companies?.data || []).map((company: { id: string; name: string }) => (
+                                             ~~~~
+
+src/components/admin/settings/mail-config-form.tsx:533:23 - error TS2322: Type '"smtp" | "sendgrid" | "gmail" | "outlook"' is not assignable to type '"smtp" | "sendgrid" | "mailgun" | "aws_ses" | "supabase"'.
+  Type '"gmail"' is not assignable to type '"smtp" | "sendgrid" | "mailgun" | "aws_ses" | "supabase"'.
+
+533                       provider_type: provider.id as 'smtp' | 'gmail' | 'outlook' | 'sendgrid'
+                          ~~~~~~~~~~~~~
+
+src/components/admin/settings/mail-config-list.tsx:71:3 - error TS2304: Cannot find name 'useEffect'.
+
+71   useEffect(() => {
+     ~~~~~~~~~
+
+src/components/admin/settings/mail-config-list.tsx:87:3 - error TS2304: Cannot find name 'useEffect'.
+
+87   useEffect(() => {
+     ~~~~~~~~~
+
+src/components/admin/settings/mail-config-list.tsx:94:3 - error TS2304: Cannot find name 'useEffect'.
+
+94   useEffect(() => {
+     ~~~~~~~~~
+
+src/components/admin/settings/mail-config-list.tsx:108:3 - error TS2304: Cannot find name 'useEffect'.
+
+108   useEffect(() => {
+      ~~~~~~~~~
+
+src/components/admin/settings/mail-config-list.tsx:115:3 - error TS2304: Cannot find name 'useEffect'.
+
+115   useEffect(() => {
+      ~~~~~~~~~
+
+src/components/admin/settings/mail-config-list.tsx:129:3 - error TS2304: Cannot find name 'useEffect'.
+
+129   useEffect(() => {
+      ~~~~~~~~~
+
+src/components/admin/settings/mail-config-list.tsx:136:3 - error TS2304: Cannot find name 'useEffect'.
+
+136   useEffect(() => {
+      ~~~~~~~~~
+
+src/components/admin/settings/mail-template-form.tsx:160:21 - error TS1196: Catch clause variable type annotation must be 'any' or 'unknown' if specified.
+
+160     } catch (error: Error & { response?: { data?: { message?: string } } }) {
+                        ~~~~~
+
+src/components/ui/navbar.tsx:9:34 - error TS2307: Cannot find module '@/hooks/use-notifications' or its corresponding type declarations.
+
+9 import { useNotifications } from "@/hooks/use-notifications";
+                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+src/components/ui/navbar.tsx:88:63 - error TS2339: Property 'active' does not exist on type '{ href: string; label: string; id?: undefined; } | { href: string; label: string; id: string; }'.
+  Property 'active' does not exist on type '{ href: string; label: string; id?: undefined; }'.
+
+88               const isActive = pathname === item.href || item.active;
+                                                                 ~~~~~~
+
+src/components/ui/navbar.tsx:145:65 - error TS2339: Property 'active' does not exist on type '{ href: string; label: string; id?: undefined; } | { href: string; label: string; id: string; }'.
+  Property 'active' does not exist on type '{ href: string; label: string; id?: undefined; }'.
+
+145                 const isActive = pathname === item.href || item.active;
+                                                                    ~~~~~~
+
+src/components/ui/navbar.tsx:180:21 - error TS2367: This comparison appears to be unintentional because the types '"dashboard"' and '"landing"' have no overlap.
+
+180                     variant === "landing" ? "text-white" : "text-slate-700 dark:text-slate-300"
+                        ~~~~~~~~~~~~~~~~~~~~~
+
+src/components/ui/notifications-dropdown.tsx:9:34 - error TS2307: Cannot find module '@/hooks/use-notifications' or its corresponding type declarations.
+
+9 import { useNotifications } from "@/hooks/use-notifications";
+                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+src/components/ui/user-menu.tsx:25:17 - error TS2339: Property 'signOut' does not exist on type 'AuthContextType'.
+
+25   const { user, signOut, loading } = useAuth();
+                   ~~~~~~~
+
+src/contexts/auth-context.tsx:72:21 - error TS1196: Catch clause variable type annotation must be 'any' or 'unknown' if specified.
+
+72     } catch (error: Error & { response?: { data?: { message?: string } } }) {
+                       ~~~~~
+
+
+Found 25 errors in 9 files.
+
+Errors  Files
+     1  src/components/admin/api-keys/openrouter-models-dialog.tsx:44
+     4  src/components/admin/settings/mail-automations-tab.tsx:108
+     5  src/components/admin/settings/mail-config-form.tsx:108
+     7  src/components/admin/settings/mail-config-list.tsx:71
+     1  src/components/admin/settings/mail-template-form.tsx:160
+     4  src/components/ui/navbar.tsx:9
+     1  src/components/ui/notifications-dropdown.tsx:9
+     1  src/components/ui/user-menu.tsx:25
+     1  src/contexts/auth-context.tsx:72

@@ -22,17 +22,17 @@ interface UserMenuProps {
 }
 
 export function UserMenu({ showMobileMenu = false, onMobileMenuToggle }: UserMenuProps) {
-  const { user, signOut, loading } = useAuth();
+  const { user, logout, loading } = useAuth();
   const [isSigningOut, setIsSigningOut] = useState(false);
   const router = useRouter();
 
   const handleSignOut = async () => {
     setIsSigningOut(true);
     try {
-      await signOut();
+      logout();
       // La redirection se fera automatiquement via les useEffect des pages protégées
       // car user sera null après signOut
-    } catch (error) {
+    } catch {
       // Error is handled in the context
     } finally {
       setIsSigningOut(false);
@@ -93,7 +93,7 @@ export function UserMenu({ showMobileMenu = false, onMobileMenuToggle }: UserMen
             onClick={() => router.push("/auth/signup")}
             className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white"
           >
-            S'inscrire
+            S&apos;inscrire
           </Button>
         </div>
       </div>
