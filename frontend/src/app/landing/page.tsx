@@ -28,7 +28,16 @@ export default function Landing() {
   const { user, loading } = useAuth();
   const router = useRouter();
 
-  // Note: Pas de redirection automatique - permet aux utilisateurs connectés de voir le landing
+  // Redirect to appropriate page for ATS Professional mode
+  useEffect(() => {
+    if (!loading) {
+      if (user) {
+        router.push("/dashboard");
+      } else {
+        router.push("/auth/login");
+      }
+    }
+  }, [user, loading, router]);
 
   useEffect(() => {
     setTimeout(() => {

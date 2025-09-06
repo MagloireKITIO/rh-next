@@ -5,27 +5,34 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { NavBar } from "@/components/ui/navbar";
+import { Sidebar } from "@/components/ui/sidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatsCard, ProjectCard } from "@/components/ui/animated-card";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useProjects } from "@/hooks/queries";
-import { WelcomeBanner } from "@/components/onboarding/welcome-banner";
-import { useOnboarding } from "@/hooks/use-onboarding";
+// import { WelcomeBanner } from "@/components/onboarding/welcome-banner";
+// import { useOnboarding } from "@/hooks/use-onboarding";
 import { 
   Plus, 
   Users, 
   TrendingUp, 
   FileText, 
   Activity,
-  BrainCircuit
+  BrainCircuit,
+  List,
+  Grid3X3,
+  Calendar,
+  MapPin,
+  FolderOpen
 } from "lucide-react";
 
 export default function Dashboard() {
   const router = useRouter();
   const { user, loading } = useAuth();
   const { data: projects = [], isLoading, error } = useProjects();
-  const { shouldShowOnboarding } = useOnboarding();
+  // const { shouldShowOnboarding } = useOnboarding();
+  const [viewMode, setViewMode] = useState<'list' | 'cards'>('list'); // Default to list
   const [stats, setStats] = useState({
     totalProjects: 0,
     totalCandidates: 0,
@@ -99,11 +106,12 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
-      <NavBar />
+      <Sidebar />
+      <NavBar withSidebar={true} />
       
-      <div className="container mx-auto p-6 pt-24 space-y-8">
-        {/* Welcome Banner for new users */}
-        <WelcomeBanner />
+      <div className="ml-64 p-6 pt-28 space-y-8">
+        {/* Welcome Banner for new users - Disabled for ATS professional mode */}
+        {/* <WelcomeBanner /> */}
 
         {/* Header */}
         <motion.div
@@ -167,11 +175,34 @@ export default function Dashboard() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
+          className="flex items-center justify-between"
         >
-          <h2 className="text-2xl font-semibold tracking-tight">Recent Projects</h2>
-          <p className="text-muted-foreground">
-            Your latest recruitment projects and their progress
-          </p>
+          <div>
+            <h2 className="text-2xl font-semibold tracking-tight">Recent Projects</h2>
+            <p className="text-muted-foreground">
+              Your latest recruitment projects and their progress
+            </p>
+          </div>
+          
+          {/* View Mode Toggle */}
+          <div className="flex items-center space-x-2 bg-white dark:bg-slate-800 rounded-lg p-1 border border-slate-200 dark:border-slate-700">
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+              className="h-8 px-3"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'cards' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('cards')}
+              className="h-8 px-3"
+            >
+              <Grid3X3 className="h-4 w-4" />
+            </Button>
+          </div>
         </motion.div>
 
         {projects.length === 0 ? (
@@ -195,7 +226,7 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </motion.div>
-        ) : (
+        ) : viewMode === 'cards' ? (
           <div id="projects-list" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {projects.slice(0, 6).map((project, index) => {
               const candidatesCount = project.candidates?.length || 0;
@@ -220,6 +251,85 @@ export default function Dashboard() {
                 />
               );
             })}
+          </div>
+        ) : (
+          <div id="projects-list" className="space-y-4">
+            <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+              {/* Header */}
+              <div className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-600 dark:text-slate-400">
+                <div className="col-span-4">Nom du projet</div>
+                <div className="col-span-2">Candidats</div>
+                <div className="col-span-2">Score moyen</div>
+                <div className="col-span-2">Statut</div>
+                <div className="col-span-2">Créé le</div>
+              </div>
+              
+              {/* Project rows */}
+              {projects.slice(0, 6).map((project, index) => {
+                const candidatesCount = project.candidates?.length || 0;
+                const analyzedCandidates = project.candidates?.filter(c => c.status === "analyzed") || [];
+                const averageScore = analyzedCandidates.length > 0
+                  ? analyzedCandidates.reduce((sum, c) => sum + Number(c.score), 0) / analyzedCandidates.length
+                  : 0;
+
+                return (
+                  <motion.div
+                    key={project.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 + index * 0.05 }}
+                    onClick={() => handleOpenProject(project.id)}
+                    className="grid grid-cols-12 gap-4 px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition-colors border-b border-slate-100 dark:border-slate-700 last:border-b-0"
+                  >
+                    <div className="col-span-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
+                          <FolderOpen className="h-5 w-5 text-white" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-slate-900 dark:text-slate-100">
+                            {project.name}
+                          </p>
+                          <p className="text-sm text-slate-500 dark:text-slate-400">
+                            ID: {project.id.slice(-8)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="col-span-2 flex items-center">
+                      <span className="flex items-center gap-1 text-slate-700 dark:text-slate-300">
+                        <Users className="h-4 w-4" />
+                        {candidatesCount}
+                      </span>
+                    </div>
+                    
+                    <div className="col-span-2 flex items-center">
+                      <span className="text-slate-700 dark:text-slate-300">
+                        {averageScore > 0 ? `${averageScore.toFixed(1)}/10` : 'N/A'}
+                      </span>
+                    </div>
+                    
+                    <div className="col-span-2 flex items-center">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        project.status === 'active' 
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+                          : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                      }`}>
+                        {project.status === 'active' ? 'Actif' : 'Inactif'}
+                      </span>
+                    </div>
+                    
+                    <div className="col-span-2 flex items-center">
+                      <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400 text-sm">
+                        <Calendar className="h-4 w-4" />
+                        {new Date(project.createdAt).toLocaleDateString('fr-FR')}
+                      </span>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
           </div>
         )}
 

@@ -19,105 +19,58 @@ interface NavItem {
 
 interface NavBarProps {
   title?: string;
-  navItems?: NavItem[];
   className?: string;
   variant?: "dashboard" | "landing";
+  withSidebar?: boolean;
 }
 
 export function NavBar({ 
-  title = "RH Analytics Pro", 
-  navItems,
+  title = "ATS Professional", 
   className,
-  variant = "dashboard"
+  variant = "dashboard",
+  withSidebar = false
 }: NavBarProps) {
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
-  const pathname = usePathname();
   const { user } = useAuth();
   const { notificationsCount } = useNotifications();
 
-  // Default nav items based on variant and user state
-  const defaultNavItems = variant === "dashboard" && user ? [
-    { href: "/dashboard", label: "Dashboard" },
-    { href: "/projects", label: "Projets" },
-    { href: "/jobs", label: "Offres d'emploi" },
-    { href: "/settings", label: "Paramètres", id: "settings-link" },
-  ] : variant === "landing" ? [
-    { href: "#home", label: "Accueil" },
-    { href: "#services", label: "Services" },
-    { href: "#features", label: "Fonctionnalités" },
-    { href: "/jobs", label: "Offres d'emploi" },
-    { href: "#contact", label: "Contact" },
-  ] : [];
-
-  const finalNavItems = navItems || defaultNavItems;
-
-  const toggleMobileMenu = () => {
-    setShowMobileMenu(!showMobileMenu);
-  };
-
   return (
     <nav className={cn(
-      "fixed top-0 z-50 w-full",
+      "fixed top-0 z-40 w-full",
       variant === "landing" 
         ? "py-8 bg-gradient-to-b from-black/60 via-black/40 to-transparent backdrop-blur-sm border-b-0" 
         : "py-4 border-b bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-slate-200 dark:border-slate-800",
+      withSidebar && variant === "dashboard" && "pl-64", // Add left padding when sidebar is present
       className
     )}>
-      <div className="container mx-auto px-4">
+      <div className={cn(
+        "px-6",
+        withSidebar && variant === "dashboard" ? "ml-0" : "container mx-auto"
+      )}>
         <div className="flex h-16 items-center justify-between">
-          {/* Logo */}
-          <Link 
-            href={variant === "dashboard" ? "/landing" : "/dashboard"} 
-            className="flex items-center space-x-3 hover:scale-105 transition-transform"
-          >
-            <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">RH</span>
-            </div>
-            <span className={cn(
-              "font-bold text-lg",
-              variant === "landing" 
-                ? "text-white" 
-                : "bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent"
-            )}>
-              {title}
-            </span>
-          </Link>
+          {/* Logo - Only show when not using sidebar */}
+          {!withSidebar && (
+            <Link 
+              href="/dashboard"
+              className="flex items-center space-x-3 hover:scale-105 transition-transform"
+            >
+              <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-sm">ATS</span>
+              </div>
+              <span className={cn(
+                "font-bold text-lg",
+                variant === "landing" 
+                  ? "text-white" 
+                  : "bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent"
+              )}>
+                {title}
+              </span>
+            </Link>
+          )}
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-6">
-            {finalNavItems.map((item) => {
-              const isActive = pathname === item.href || item.active;
-              const isJobsLink = item.href === "/jobs";
-              
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  id={item.id}
-                  target={isJobsLink ? "_blank" : undefined}
-                  rel={isJobsLink ? "noopener noreferrer" : undefined}
-                  className={cn(
-                    "text-sm font-medium transition-colors",
-                    variant === "landing"
-                      ? cn(
-                          "hover:text-indigo-400",
-                          isActive ? "text-indigo-400" : "text-white"
-                        )
-                      : cn(
-                          "hover:text-indigo-600 dark:hover:text-indigo-400",
-                          isActive
-                            ? "text-indigo-600 dark:text-indigo-400"
-                            : "text-slate-700 dark:text-slate-300"
-                        )
-                  )}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-          </div>
+          {/* Spacer when using sidebar */}
+          {withSidebar && <div />}
 
-          {/* Notifications and User Menu */}
+          {/* Right side: Notifications and User Menu */}
           <div className="flex items-center space-x-3">
             {/* Notification Bell - Only for dashboard variant and authenticated users */}
             {variant === "dashboard" && user && (
@@ -125,67 +78,10 @@ export function NavBar({
             )}
             
             <div id="user-menu">
-              <UserMenu 
-                showMobileMenu={showMobileMenu}
-                onMobileMenuToggle={toggleMobileMenu}
-              />
+              <UserMenu />
             </div>
           </div>
         </div>
-
-        {/* Mobile Navigation */}
-        {showMobileMenu && (
-          <div className={cn(
-            "md:hidden py-4 border-t",
-            variant === "landing" 
-              ? "border-gray-600/50 bg-black/90 backdrop-blur-md" 
-              : "border-slate-200 dark:border-slate-800"
-          )}>
-            <div className="space-y-2">
-              {finalNavItems.map((item) => {
-                const isActive = pathname === item.href || item.active;
-                const isJobsLink = item.href === "/jobs";
-                
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    target={isJobsLink ? "_blank" : undefined}
-                    rel={isJobsLink ? "noopener noreferrer" : undefined}
-                    onClick={() => setShowMobileMenu(false)}
-                    className={cn(
-                      "block px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                      variant === "landing"
-                        ? cn(
-                            isActive
-                              ? "bg-indigo-500/20 text-indigo-400"
-                              : "text-white hover:bg-white/10"
-                          )
-                        : cn(
-                            isActive
-                              ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400"
-                              : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-                          )
-                    )}
-                  >
-                    {item.label}
-                  </Link>
-                );
-              })}
-              
-              {/* Mobile Notification Bell */}
-              {variant === "dashboard" && user && (
-                <div className="px-3 py-2 flex items-center justify-between">
-                  <span className={cn(
-                    "text-sm font-medium",
-                    variant === "landing" ? "text-white" : "text-slate-700 dark:text-slate-300"
-                  )}>Notifications</span>
-                  <NotificationBell count={notificationsCount} />
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
     </nav>
   );
