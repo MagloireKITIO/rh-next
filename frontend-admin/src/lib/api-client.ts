@@ -373,6 +373,48 @@ export const adminApi = {
   deleteMailTemplate: (id: string) => apiClient.delete(`/mail-templates/${id}`),
   previewMailTemplate: (id: string, variables: Record<string, unknown> = {}) => 
     apiClient.post(`/mail-templates/${id}/preview`, { variables }),
+
+  // Analytics API
+  getProjectsAnalytics: async (filters?: {
+    search?: string;
+    status?: string;
+    sortBy?: string;
+  }) => {
+    const params = new URLSearchParams();
+    if (filters?.search) params.append('search', filters.search);
+    if (filters?.status) params.append('status', filters.status);
+    if (filters?.sortBy) params.append('sortBy', filters.sortBy);
+    
+    const response = await apiClient.get(`/admin/analytics/projects?${params.toString()}`);
+    return response.data.data;
+  },
+  getProjectReport: async (projectId: string, filters?: {
+    period?: string;
+  }) => {
+    const params = new URLSearchParams();
+    if (filters?.period) params.append('period', filters.period);
+    
+    const response = await apiClient.get(`/admin/analytics/projects/${projectId}/report?${params.toString()}`);
+    return response.data.data;
+  },
+  exportProjectReport: async (projectId: string, options: {
+    format: 'pdf' | 'excel';
+    period?: string;
+  }) => {
+    const params = new URLSearchParams();
+    params.append('format', options.format);
+    if (options.period) params.append('period', options.period);
+    
+    const response = await apiClient.get(
+      `/admin/analytics/projects/${projectId}/export?${params.toString()}`,
+      { responseType: 'blob' }
+    );
+    return response.data;
+  },
+  getGlobalAnalyticsStats: async () => {
+    const response = await apiClient.get('/admin/analytics/global-stats');
+    return response.data.data;
+  },
 };
 
 // Auth API for admin

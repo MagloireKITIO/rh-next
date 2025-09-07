@@ -13,7 +13,8 @@ import {
   BarChart3,
   Settings,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  TrendingUp
 } from "lucide-react";
 
 interface SidebarProps {
@@ -47,9 +48,9 @@ export function Sidebar({ className }: SidebarProps) {
       icon: Users 
     },
     { 
-      href: "/reports", 
-      label: "Rapports", 
-      icon: BarChart3 
+      href: "/analytics", 
+      label: "Analytics & Rapports", 
+      icon: TrendingUp 
     },
     { 
       href: "/settings", 

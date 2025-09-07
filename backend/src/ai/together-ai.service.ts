@@ -345,7 +345,23 @@ Analysez ce CV et fournissez une réponse JSON avec la structure suivante :
           score: isEmptyCV ? 0 : 25, // Score minimal pour parsing échoué mais CV valide
           summary: isEmptyCV ? 'Impossible d\'analyser : échec de l\'extraction PDF' : 'Analyse terminée mais format de réponse à revoir',
           aiResponse,
-          extractedData: {}
+          extractedData: {},
+          hrDecision: {
+            recommendation: 'REJETER' as const,
+            confidence: isEmptyCV ? 95 : 50,
+            reasoning: isEmptyCV ? 'CV impossible à analyser - extraction PDF échouée' : 'Erreur de parsing - recommandation par défaut',
+            priority: 'LOW' as const
+          },
+          strengths: [],
+          weaknesses: isEmptyCV ? ['CV illisible'] : ['Réponse IA mal formatée'],
+          recommendations: ['Vérifier le fichier CV et relancer l\'analyse'],
+          skillsMatch: {
+            technical: 0,
+            experience: 0,
+            cultural: 0,
+            overall: 0
+          },
+          risks: ['Analyse incomplète']
         };
         
         this.logger.warn(`🔄 Returning fallback result with score: ${fallbackResult.score}`);
@@ -511,7 +527,23 @@ Analysez ce CV et fournissez une réponse JSON avec la structure suivante :
           score: isEmptyCV ? 0 : 25,
           summary: isEmptyCV ? 'Impossible d\'analyser : échec de l\'extraction PDF' : 'Analyse terminée mais format de réponse à revoir',
           aiResponse,
-          extractedData: {}
+          extractedData: {},
+          hrDecision: {
+            recommendation: 'REJETER' as const,
+            confidence: isEmptyCV ? 95 : 50,
+            reasoning: isEmptyCV ? 'CV impossible à analyser - extraction PDF échouée' : 'Erreur de parsing du modèle de fallback',
+            priority: 'LOW' as const
+          },
+          strengths: [],
+          weaknesses: isEmptyCV ? ['CV illisible'] : ['Réponse IA mal formatée'],
+          recommendations: ['Vérifier le fichier CV et relancer l\'analyse'],
+          skillsMatch: {
+            technical: 0,
+            experience: 0,
+            cultural: 0,
+            overall: 0
+          },
+          risks: ['Analyse incomplète']
         };
         
         this.logger.warn(`🔄 Returning fallback result from retry with score: ${fallbackResult.score}`);

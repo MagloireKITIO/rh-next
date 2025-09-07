@@ -13,12 +13,14 @@ import { MailConfigurationModule } from '../mail-configuration/mail-configuratio
 import { OpenRouterModule } from '../openrouter/openrouter.module';
 import { ApiKeyModelConfig } from '../api-keys/entities/api-key-model-config.entity';
 import { ApiKeyModelConfigService } from '../api-keys/api-key-model-config.service';
+import { AnalyticsModule } from './analytics/analytics.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Company, User, Project, Candidate, Analysis, ApiKey, MailAutomation, ApiKeyModelConfig]),
     MailConfigurationModule,
     OpenRouterModule,
+    AnalyticsModule,
   ],
   controllers: [AdminController],
   providers: [AdminService, ApiKeyModelConfigService],

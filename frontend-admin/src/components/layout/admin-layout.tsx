@@ -16,7 +16,8 @@ import {
   LogOut,
   Menu,
   X,
-  Key
+  Key,
+  TrendingUp
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -39,6 +40,11 @@ const navigation = [
     name: 'Utilisateurs',
     href: '/users',
     icon: Users,
+  },
+  {
+    name: 'Analytics',
+    href: '/analytics',
+    icon: TrendingUp,
   },
   {
     name: 'Clés API',
