@@ -2,6 +2,11 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 import { Project } from '../../projects/entities/project.entity';
 import { Analysis } from '../../analysis/entities/analysis.entity';
 
+export enum CandidateSource {
+  IMPORT = 'import',
+  APPLICATION = 'application'
+}
+
 @Entity('candidates')
 export class Candidate {
   @PrimaryGeneratedColumn('uuid')
@@ -41,6 +46,13 @@ export class Candidate {
 
   @Column({ default: 'pending' })
   status: string; // pending, analyzed, shortlisted, rejected
+
+  @Column({
+    type: 'enum',
+    enum: CandidateSource,
+    default: CandidateSource.IMPORT
+  })
+  source: CandidateSource;
 
   @Column('text', { nullable: true })
   summary?: string;

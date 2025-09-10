@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
-import { Candidate } from './entities/candidate.entity';
+import { Candidate, CandidateSource } from './entities/candidate.entity';
 import { CreateCandidateDto } from './dto/create-candidate.dto';
 import { TogetherAIService } from '../ai/together-ai.service';
 import { AnalysisService } from '../analysis/analysis.service';
@@ -359,6 +359,7 @@ export class CandidatesService {
         fileUrl: fileUrl, // URL du fichier (Supabase ou local)
         projectId,
         status: 'pending',
+        source: CandidateSource.IMPORT, // Candidat importé via upload
       });
 
       // Ajouter à la queue d'analyse

@@ -19,6 +19,7 @@ import { useWebSocketSync } from "@/hooks/useWebSocketSync";
 import { useQueryClient } from '@tanstack/react-query';
 import { TrendingUp, TrendingDown, RefreshCw, Eye, FileText, Wifi, Trash2, Search, Filter, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CandidateSourceBadge } from "@/components/ui/candidate-source-badge";
 
 interface CandidateRankingProps {
   projectId: string;
@@ -453,6 +454,7 @@ export function CandidateRanking({
                           >
                             {candidate.status}
                           </Badge>
+                          <CandidateSourceBadge source={candidate.source} />
                         </div>
                         {candidate.email && (
                           <p className="text-sm text-muted-foreground truncate">

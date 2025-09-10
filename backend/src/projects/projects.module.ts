@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProjectsService } from './projects.service';
 import { ProjectsController, PublicProjectsController, PublicJobOffersController } from './projects.controller';
@@ -8,13 +8,15 @@ import { Analysis } from '../analysis/entities/analysis.entity';
 import { StorageModule } from '../storage/storage.module';
 import { MailAutomationModule } from '../mail-automation/mail-automation.module';
 import { ProjectsAnalyticsModule } from './analytics/projects-analytics.module';
+import { CandidatesModule } from '../candidates/candidates.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Project, Candidate, Analysis]),
     StorageModule,
     MailAutomationModule,
-    ProjectsAnalyticsModule
+    ProjectsAnalyticsModule,
+    forwardRef(() => CandidatesModule)
   ],
   controllers: [ProjectsController, PublicProjectsController, PublicJobOffersController],
   providers: [ProjectsService],

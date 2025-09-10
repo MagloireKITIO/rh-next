@@ -2,11 +2,12 @@ import { Injectable, NotFoundException, Logger, BadRequestException } from '@nes
 import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
 import { Repository, LessThanOrEqual, MoreThanOrEqual, IsNull, DataSource } from 'typeorm';
 import { Project } from './entities/project.entity';
-import { Candidate } from '../candidates/entities/candidate.entity';
+import { Candidate, CandidateSource } from '../candidates/entities/candidate.entity';
 import { Analysis } from '../analysis/entities/analysis.entity';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { StorageService } from '../storage/storage.service';
+import { AnalysisQueueService } from '../candidates/analysis-queue.service';
 // ✅ Imports supprimés - automatisations gérées par AutomationSubscriber
 // import { AutomationTriggerService } from '../mail-automation/services/automation-trigger.service';
 // import { AutomationTrigger, AutomationEntityType } from '../mail-automation/entities/mail-automation.entity';
@@ -28,6 +29,7 @@ export class ProjectsService {
     @InjectDataSource()
     private dataSource: DataSource,
     private storageService: StorageService,
+    private analysisQueueService: AnalysisQueueService,
     // ✅ Service supprimé - automatisations gérées par AutomationSubscriber
     // private automationTriggerService: AutomationTriggerService,
   ) {}
@@ -494,6 +496,7 @@ export class ProjectsService {
           fileUrl: fileUrl,
           projectId: project.id,
           status: 'pending',
+          source: CandidateSource.APPLICATION, // Candidat venu via postulation
           extractedData: {
             name: candidateName,
             email: applicationData.email,
@@ -504,6 +507,10 @@ export class ProjectsService {
         const savedCandidate = await manager.save(candidate);
         
         this.logger.log(`✅ New job application saved atomically for ${project.name}: ${candidateName}`);
+
+        // Ajouter le candidat à la queue d'analyse
+        await this.analysisQueueService.addToQueue(savedCandidate.id, savedCandidate, project);
+        this.logger.log(`🔍 Candidate added to analysis queue: ${candidateName}`);
 
         // ✅ Automatisations désormais gérées automatiquement par AutomationSubscriber
         // Les triggers ON_CREATE sont déclenchés automatiquement lors de la sauvegarde du candidat

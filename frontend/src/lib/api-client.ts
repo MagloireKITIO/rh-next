@@ -52,6 +52,11 @@ export interface Project {
   updatedAt: string;
 }
 
+export enum CandidateSource {
+  IMPORT = 'import',
+  APPLICATION = 'application'
+}
+
 export interface Candidate {
   id: string;
   name: string;
@@ -64,6 +69,7 @@ export interface Candidate {
   score: number;
   previousScore?: number;
   status: string;
+  source: CandidateSource;
   summary?: string;
   ranking: number;
   projectId: string;

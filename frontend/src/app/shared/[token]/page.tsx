@@ -17,6 +17,7 @@ import { Share2, User, Calendar, Building, Users, Eye, Download, Mail, Phone, Fi
 import { toast } from 'sonner';
 import { publicApi, PaginatedResponse } from '@/lib/api-client';
 import { useSharedProjectCandidates } from '@/hooks/queries/useCandidates';
+import { CandidateSourceBadge } from '@/components/ui/candidate-source-badge';
 
 interface Candidate {
   id: string;
@@ -24,6 +25,7 @@ interface Candidate {
   score: number;
   summary: string;
   status: string;
+  source: 'import' | 'application';
   createdAt: string;
   fileUrl?: string;
   fileName?: string;
@@ -579,6 +581,7 @@ export default function SharedProjectPage() {
                       <Badge variant={candidate.status === 'analyzed' ? 'default' : 'secondary'}>
                         {candidate.status === 'analyzed' ? 'Analysé' : 'En attente'}
                       </Badge>
+                      <CandidateSourceBadge source={candidate.source as any} />
                       <span className="text-xs text-muted-foreground">
                         {new Date(candidate.createdAt).toLocaleDateString('fr-FR')}
                       </span>

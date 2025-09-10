@@ -265,12 +265,10 @@ export class AnalysisQueueService {
         if (aiAnalysis.extractedData.name && candidate.name === 'Candidat Inconnu') {
           updateData.name = aiAnalysis.extractedData.name;
         }
-        if (aiAnalysis.extractedData.email) {
-          updateData.email = aiAnalysis.extractedData.email;
-        }
-        if (aiAnalysis.extractedData.phone) {
-          updateData.phone = aiAnalysis.extractedData.phone;
-        }
+        // Préserver les données du formulaire pour les candidats APPLICATION
+        // Utiliser les données extraites seulement si pas de données existantes
+        updateData.email = candidate.email || aiAnalysis.extractedData?.email;
+        updateData.phone = candidate.phone || aiAnalysis.extractedData?.phone;
       }
 
       await this.candidateRepository.update(candidate.id, updateData);

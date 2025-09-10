@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CandidatesService } from './candidates.service';
 import { CandidatesController } from './candidates.controller';
@@ -15,7 +15,7 @@ import { MailAutomationModule } from '../mail-automation/mail-automation.module'
 @Module({
   imports: [
     TypeOrmModule.forFeature([Candidate]),
-    ProjectsModule,
+    forwardRef(() => ProjectsModule),
     AiModule,
     AnalysisModule,
     StorageModule,

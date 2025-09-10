@@ -1,4 +1,5 @@
-import { IsString, IsNotEmpty, IsOptional, IsUUID, IsNumber } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsUUID, IsNumber, IsEnum } from 'class-validator';
+import { CandidateSource } from '../entities/candidate.entity';
 
 export class CreateCandidateDto {
   @IsString()
@@ -36,6 +37,10 @@ export class CreateCandidateDto {
   @IsString()
   @IsOptional()
   status?: string;
+
+  @IsEnum(CandidateSource)
+  @IsOptional()
+  source?: CandidateSource;
 
   @IsString()
   @IsOptional()
