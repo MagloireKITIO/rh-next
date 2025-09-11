@@ -1,16 +1,11 @@
 import { DataSource } from 'typeorm';
-import { CreateMailAutomation1700000006000 } from '../migrations/1700000006000-CreateMailAutomation';
-import { InsertHRTemplates1700000008000 } from '../migrations/1700000008000-InsertHRTemplates';
 
 // Configuration de la base de données
 const AppDataSource = new DataSource({
   type: 'postgres',
   url: process.env.DATABASE_URL,
   entities: ['src/**/*.entity.ts'],
-  migrations: [
-    CreateMailAutomation1700000006000,
-    InsertHRTemplates1700000008000
-  ],
+  migrations: [],
   ssl: {
     rejectUnauthorized: false,
   },

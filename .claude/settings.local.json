@@ -164,7 +164,9 @@
       "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\frontend-admin\\src\\app\\companies/**)",
       "Read(/C:\\Users\\stage.dsi.pmo\\Desktop\\dev\\rh-next\\frontend-admin\\src\\app\\companies/**)",
       "Bash(npx tsc:*)",
-      "Bash(npm install)"
+      "Bash(npm install)",
+      "Bash(npm run test:e2e:*)",
+      "Bash(rm:*)"
     ],
     "deny": [],
     "ask": []

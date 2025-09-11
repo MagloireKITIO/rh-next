@@ -23,7 +23,6 @@ import {
   Download,
   Calendar,
   Users,
-  FileText,
   BarChart3,
   TrendingUp,
   Target,
@@ -35,61 +34,6 @@ import {
   Filter
 } from 'lucide-react';
 
-interface ProjectReport {
-  project: {
-    id: string;
-    name: string;
-    status: string;
-    companyName: string;
-    createdAt: string;
-    jobDescription: string;
-  };
-  metrics: {
-    totalCandidates: number;
-    analyzedCandidates: number;
-    pendingAnalysis: number;
-    averageScore: number;
-    topScore: number;
-    bottomScore: number;
-    conversionRate: number;
-  };
-  scoreDistribution: {
-    excellent: number; // 80-100
-    good: number;     // 60-79
-    average: number;  // 40-59
-    poor: number;     // 0-39
-  };
-  timeline: Array<{
-    date: string;
-    candidatesAdded: number;
-    candidatesAnalyzed: number;
-  }>;
-  topCandidates: Array<{
-    id: string;
-    name: string;
-    score: number;
-    summary: string;
-    status: string;
-    hrDecision?: {
-      recommendation: 'RECRUTER' | 'ENTRETIEN' | 'REJETER';
-      confidence: number;
-      priority: 'HIGH' | 'MEDIUM' | 'LOW';
-    };
-  }>;
-  skillsAnalysis: {
-    technical: number;
-    experience: number;
-    cultural: number;
-    overall: number;
-  };
-  hrRecommendations: {
-    recruit: number;
-    interview: number;
-    reject: number;
-  };
-  risks: string[];
-  insights: string[];
-}
 
 export default function ProjectReportPage() {
   const params = useParams();
@@ -97,7 +41,7 @@ export default function ProjectReportPage() {
   const projectId = params.id as string;
   
   const [periodFilter, setPeriodFilter] = useState('all');
-  const [exportFormat, setExportFormat] = useState('pdf');
+  const [exportFormat, setExportFormat] = useState<'pdf' | 'excel'>('pdf');
 
   const { data: report, isLoading, error } = useQuery({
     queryKey: ['admin', 'analytics', 'project', projectId, periodFilter],
@@ -284,7 +228,7 @@ export default function ProjectReportPage() {
           {/* Detailed Analytics Tabs */}
           <Tabs defaultValue="overview" className="space-y-6">
             <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
+              <TabsTrigger value="overview">Vue d&apos;ensemble</TabsTrigger>
               <TabsTrigger value="candidates">Top Candidats</TabsTrigger>
               <TabsTrigger value="skills">Compétences</TabsTrigger>
               <TabsTrigger value="decisions">Décisions RH</TabsTrigger>
@@ -613,9 +557,9 @@ export default function ProjectReportPage() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <TrendingUp className="w-5 h-5" />
-                      Insights & Recommandations
+                      Insights &amp; Recommandations
                     </CardTitle>
-                    <CardDescription>Points clés identifiés par l'IA</CardDescription>
+                    <CardDescription>Points clés identifiés par l&apos;IA</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-3">
@@ -635,7 +579,7 @@ export default function ProjectReportPage() {
                       <AlertTriangle className="w-5 h-5" />
                       Risques Identifiés
                     </CardTitle>
-                    <CardDescription>Points d'attention pour ce projet</CardDescription>
+                    <CardDescription>Points d&apos;attention pour ce projet</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-3">

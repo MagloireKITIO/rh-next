@@ -8,8 +8,6 @@ import { Project } from '../projects/entities/project.entity';
 import { Candidate } from '../candidates/entities/candidate.entity';
 import { Analysis } from '../analysis/entities/analysis.entity';
 import { ApiKey } from '../api-keys/entities/api-key.entity';
-import { MailAutomation } from '../mail-automation/entities/mail-automation.entity';
-import { MailConfigurationModule } from '../mail-configuration/mail-configuration.module';
 import { OpenRouterModule } from '../openrouter/openrouter.module';
 import { ApiKeyModelConfig } from '../api-keys/entities/api-key-model-config.entity';
 import { ApiKeyModelConfigService } from '../api-keys/api-key-model-config.service';
@@ -17,8 +15,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Company, User, Project, Candidate, Analysis, ApiKey, MailAutomation, ApiKeyModelConfig]),
-    MailConfigurationModule,
+    TypeOrmModule.forFeature([Company, User, Project, Candidate, Analysis, ApiKey, ApiKeyModelConfig]),
     OpenRouterModule,
     AnalyticsModule,
   ],

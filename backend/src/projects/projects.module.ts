@@ -6,7 +6,6 @@ import { Project } from './entities/project.entity';
 import { Candidate } from '../candidates/entities/candidate.entity';
 import { Analysis } from '../analysis/entities/analysis.entity';
 import { StorageModule } from '../storage/storage.module';
-import { MailAutomationModule } from '../mail-automation/mail-automation.module';
 import { ProjectsAnalyticsModule } from './analytics/projects-analytics.module';
 import { CandidatesModule } from '../candidates/candidates.module';
 
@@ -14,7 +13,6 @@ import { CandidatesModule } from '../candidates/candidates.module';
   imports: [
     TypeOrmModule.forFeature([Project, Candidate, Analysis]),
     StorageModule,
-    MailAutomationModule,
     ProjectsAnalyticsModule,
     forwardRef(() => CandidatesModule)
   ],

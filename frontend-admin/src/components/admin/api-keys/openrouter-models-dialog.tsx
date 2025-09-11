@@ -41,7 +41,9 @@ export default function OpenRouterModelsDialog({
   // Handle error with useEffect
   useEffect(() => {
     if (modelsError) {
-      const error = modelsError as any;
+      const error = modelsError as Error & { 
+        response?: { data?: { message?: string } } 
+      };
       toast.error(error?.response?.data?.message || 'Erreur lors du chargement des modèles');
     }
   }, [modelsError]);

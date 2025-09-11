@@ -7,7 +7,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { 
   Settings, 
-  Mail, 
   Globe, 
   Shield, 
   Database, 
@@ -17,20 +16,11 @@ import {
 } from 'lucide-react';
 
 // Composants pour chaque onglet (on les créera progressivement)
-import MailSettingsTab from '@/components/admin/settings/mail-settings-tab';
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState('mail');
+  const [activeTab, setActiveTab] = useState('system');
 
   const settingsTabs = [
-    {
-      id: 'mail',
-      label: 'Configuration Mail',
-      description: 'Serveurs et templates d\'emails',
-      icon: Mail,
-      component: MailSettingsTab,
-      badge: null,
-    },
     {
       id: 'system',
       label: 'Système',

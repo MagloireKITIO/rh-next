@@ -14,8 +14,6 @@ import { TeamRequestsModule } from './team-requests/team-requests.module';
 import { AdminModule } from './admin/admin.module';
 import { HealthModule } from './health/health.module';
 import { CommonModule } from './common/common.module';
-import { MailConfigurationModule } from './mail-configuration/mail-configuration.module';
-import { MailAutomationModule } from './mail-automation/mail-automation.module';
 import { OpenRouterModule } from './openrouter/openrouter.module';
 import { StaticController } from './common/static.controller';
 
@@ -53,8 +51,6 @@ import { StaticController } from './common/static.controller';
     TeamRequestsModule,
     AdminModule,
     HealthModule,
-    MailConfigurationModule,
-    MailAutomationModule,
     OpenRouterModule,
   ],
   controllers: [StaticController],

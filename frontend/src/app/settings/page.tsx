@@ -14,13 +14,11 @@ import { cn } from "@/lib/utils";
 // Import sections
 import { AIConfigurationSection } from "@/components/settings/ai-configuration-section";
 import { UserManagementSection } from "@/components/settings/user-management-section";
-import { MailAutomationsSection } from "@/components/settings/mail-automations-section";
-import { MailTemplatesSection } from "@/components/settings/mail-templates-section";
 import { TeamRequestsSection } from "@/components/settings/team-requests-section";
 import { SystemInfoSection } from "@/components/settings/system-info-section";
 import { HelpSection } from "@/components/settings/help-section";
 
-type TabType = "ai" | "users" | "mail" | "templates" | "teams" | "system" | "help";
+type TabType = "ai" | "users" | "teams" | "system" | "help";
 
 const tabs: Array<{ 
   id: TabType; 
@@ -31,8 +29,6 @@ const tabs: Array<{
 }> = [
   { id: "ai", label: "Configuration IA", icon: <Brain className="h-4 w-4" />, adminOnly: true },
   { id: "users", label: "Utilisateurs", icon: <Users className="h-4 w-4" />, hrAccess: true },
-  { id: "mail", label: "Automatisations Mail", icon: <Mail className="h-4 w-4" />, hrAccess: true },
-  { id: "templates", label: "Templates Mail", icon: <FileText className="h-4 w-4" />, hrAccess: true },
   { id: "teams", label: "Demandes d'équipe", icon: <UserCheck className="h-4 w-4" />, adminOnly: true },
   { id: "system", label: "Système", icon: <Info className="h-4 w-4" /> },
   { id: "help", label: "Aide", icon: <HelpCircle className="h-4 w-4" /> },
@@ -220,31 +216,6 @@ function SettingsContent() {
               </Card>
             )}
 
-            {/* Mail Automations */}
-            {activeTab === "mail" && (isUserAdmin || isHR) && (
-              <MailAutomationsSection 
-                currentUser={currentUser} 
-                isUserAdmin={isUserAdmin} 
-              />
-            )}
-
-            {/* Mail Templates */}
-            {activeTab === "templates" && (isUserAdmin || isHR) && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
-                    Templates de Mail
-                  </CardTitle>
-                  <CardDescription>
-                    Créez et gérez vos modèles d'emails pour les automatisations
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <MailTemplatesSection />
-                </CardContent>
-              </Card>
-            )}
 
             {/* Team Requests - Admin only */}
             {activeTab === "teams" && isUserAdmin && (

@@ -279,31 +279,6 @@ export const authApi = {
   markOnboarded: () => apiClient.post('/auth/mark-onboarded'),
 };
 
-// Mail Automations API Functions
-export const mailAutomationsApi = {
-  getAll: () => apiClient.get('/mail-automations'),
-  getById: (id: string) => apiClient.get(`/mail-automations/${id}`),
-  getStats: () => apiClient.get('/mail-automations/stats'),
-  create: (data: any) => apiClient.post('/mail-automations', data),
-  update: (id: string, data: any) => apiClient.patch(`/mail-automations/${id}`, data),
-  delete: (id: string) => apiClient.delete(`/mail-automations/${id}`),
-  toggleStatus: (id: string) => apiClient.patch(`/mail-automations/${id}/toggle-status`),
-  getMailTemplates: () => apiClient.get('/mail-templates'),
-};
-
-// Mail Templates API Functions
-export const mailTemplatesApi = {
-  getAll: (companyId?: string, context?: string) => apiClient.get('/mail-templates', { params: { companyId, context } }),
-  getById: (id: string) => apiClient.get(`/mail-templates/${id}`),
-  getTypes: () => apiClient.get('/mail-templates/types'),
-  getByType: (type: string, companyId?: string) => apiClient.get(`/mail-templates/by-type/${type}`, { params: { companyId } }),
-  create: (data: any) => apiClient.post('/mail-templates', data),
-  update: (id: string, data: any) => apiClient.patch(`/mail-templates/${id}`, data),
-  delete: (id: string) => apiClient.delete(`/mail-templates/${id}`),
-  duplicate: (id: string, name?: string) => apiClient.post(`/mail-templates/${id}/duplicate`, { name }),
-  setAsDefault: (id: string) => apiClient.post(`/mail-templates/${id}/set-default`),
-  preview: (id: string, variables: Record<string, any> = {}) => apiClient.post(`/mail-templates/${id}/preview`, { variables }),
-};
 
 // Public API Functions (no auth required)
 export const publicApi = {
