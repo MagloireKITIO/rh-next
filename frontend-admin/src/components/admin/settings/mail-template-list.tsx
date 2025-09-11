@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import {
   Select,
   SelectContent,
@@ -61,6 +62,8 @@ export default function MailTemplateList({ onEdit, onAdd }: MailTemplateListProp
   const [selectedType, setSelectedType] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedContext, setSelectedContext] = useState<string>('all');
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [templateToDelete, setTemplateToDelete] = useState<MailTemplate | null>(null);
 
   useEffect(() => {
     loadTemplates();
@@ -129,16 +132,24 @@ export default function MailTemplateList({ onEdit, onAdd }: MailTemplateListProp
     }
   };
 
-  const handleDelete = async (templateId: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce template ?')) return;
+  const handleDelete = (template: MailTemplate) => {
+    setTemplateToDelete(template);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!templateToDelete) return;
     
     try {
-      await apiClient.delete(`/mail-templates/${templateId}`);
+      await apiClient.delete(`/mail-templates/${templateToDelete.id}`);
       toast.success('Template supprimé');
       loadTemplates();
     } catch (error) {
       console.error('Erreur:', error);
       toast.error('Erreur lors de la suppression');
+    } finally {
+      setIsDeleteDialogOpen(false);
+      setTemplateToDelete(null);
     }
   };
 
@@ -316,7 +327,7 @@ export default function MailTemplateList({ onEdit, onAdd }: MailTemplateListProp
                       <Button 
                         variant="ghost" 
                         size="sm"
-                        onClick={() => handleDelete(template.id)}
+                        onClick={() => handleDelete(template)}
                         className="text-destructive hover:text-destructive"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -378,6 +389,55 @@ export default function MailTemplateList({ onEdit, onAdd }: MailTemplateListProp
           </CardContent>
         </Card>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmer la suppression</DialogTitle>
+            <DialogDescription>
+              Êtes-vous sûr de vouloir supprimer ce template ?
+            </DialogDescription>
+          </DialogHeader>
+          {templateToDelete && (
+            <div className="space-y-4">
+              <div className="p-4 bg-muted rounded-lg">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 bg-gradient-to-r from-admin-light to-admin-dark rounded-lg flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <div className="font-medium">{templateToDelete.name}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {getTypeLabel(templateToDelete.type)} • {templateToDelete.subject}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-sm text-red-600">
+                  ⚠️ Cette action est irréversible. Le template sera définitivement supprimé.
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsDeleteDialogOpen(false);
+                    setTemplateToDelete(null);
+                  }}
+                >
+                  Annuler
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={confirmDelete}
+                >
+                  Supprimer définitivement
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

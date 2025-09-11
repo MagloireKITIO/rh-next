@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { 
   Building, 
   Users, 
@@ -34,7 +34,9 @@ export default function CompaniesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+  const [companyToDelete, setCompanyToDelete] = useState<Company | null>(null);
   const [newCompany, setNewCompany] = useState({
     name: '',
     domain: '',
@@ -160,9 +162,16 @@ export default function CompaniesPage() {
     }
   };
 
-  const handleDeleteCompany = (companyId: string) => {
-    if (confirm('Êtes-vous sûr de vouloir supprimer cette entreprise ? Cette action est irréversible.')) {
-      deleteCompanyMutation.mutate(companyId);
+  const handleDeleteCompany = (company: Company) => {
+    setCompanyToDelete(company);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (companyToDelete) {
+      deleteCompanyMutation.mutate(companyToDelete.id);
+      setIsDeleteDialogOpen(false);
+      setCompanyToDelete(null);
     }
   };
 
@@ -376,7 +385,7 @@ export default function CompaniesPage() {
                         <Button 
                           variant="ghost" 
                           size="sm"
-                          onClick={() => handleDeleteCompany(company.id)}
+                          onClick={() => handleDeleteCompany(company)}
                           disabled={deleteCompanyMutation.isPending}
                           title="Supprimer l'entreprise"
                           className="text-red-600 hover:text-red-800"
@@ -470,6 +479,61 @@ export default function CompaniesPage() {
                     Annuler
                   </Button>
                 </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirmer la suppression</DialogTitle>
+              <DialogDescription>
+                Êtes-vous sûr de vouloir supprimer cette entreprise ?
+              </DialogDescription>
+            </DialogHeader>
+            {companyToDelete && (
+              <div className="space-y-4">
+                <div className="p-4 bg-muted rounded-lg">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 bg-gradient-to-r from-admin-light to-admin-dark rounded-lg flex items-center justify-center">
+                      <Building className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <div className="font-medium">{companyToDelete.name}</div>
+                      <div className="text-sm text-muted-foreground">{companyToDelete.domain}</div>
+                    </div>
+                  </div>
+                  <div className="text-sm text-red-600">
+                    ⚠️ Cette action est irréversible. Tous les utilisateurs, projets et données associés seront définitivement supprimés.
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setIsDeleteDialogOpen(false);
+                      setCompanyToDelete(null);
+                    }}
+                  >
+                    Annuler
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={confirmDelete}
+                    disabled={deleteCompanyMutation.isPending}
+                  >
+                    {deleteCompanyMutation.isPending ? (
+                      <>
+                        <LoadingSpinner className="w-4 h-4 mr-2" />
+                        Suppression...
+                      </>
+                    ) : (
+                      'Supprimer définitivement'
+                    )}
+                  </Button>
+                </DialogFooter>
               </div>
             )}
           </DialogContent>

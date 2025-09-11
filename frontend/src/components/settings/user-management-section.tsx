@@ -37,6 +37,8 @@ export function UserManagementSection({ canManage, canView, currentUser }: UserM
   const deleteUserMutation = useDeleteUser();
 
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<{id: string, name: string} | null>(null);
   const [inviteForm, setInviteForm] = useState({
     email: "",
     name: "",
@@ -84,13 +86,18 @@ export function UserManagementSection({ canManage, canView, currentUser }: UserM
   };
 
   const handleDeleteUser = (userId: string, userName: string) => {
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer ${userName} ? Cette action est irréversible.`)) {
-      return;
-    }
+    setUserToDelete({ id: userId, name: userName });
+    setDeleteDialogOpen(true);
+  };
 
-    deleteUserMutation.mutate(userId, {
+  const confirmDeleteUser = () => {
+    if (!userToDelete) return;
+
+    deleteUserMutation.mutate(userToDelete.id, {
       onSuccess: () => {
-        toast.success(`${userName} supprimé avec succès`);
+        toast.success(`${userToDelete.name} supprimé avec succès`);
+        setDeleteDialogOpen(false);
+        setUserToDelete(null);
       },
     });
   };
@@ -337,6 +344,57 @@ export function UserManagementSection({ canManage, canView, currentUser }: UserM
           />
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmer la suppression</DialogTitle>
+            <DialogDescription>
+              Êtes-vous sûr de vouloir supprimer cet utilisateur ?
+            </DialogDescription>
+          </DialogHeader>
+          {userToDelete && (
+            <div className="space-y-4">
+              <div className="p-4 bg-muted rounded-lg">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                    <Users className="w-5 h-5 text-red-600" />
+                  </div>
+                  <div>
+                    <div className="font-medium">{userToDelete.name}</div>
+                    <div className="text-sm text-muted-foreground">
+                      Cet utilisateur sera définitivement supprimé
+                    </div>
+                  </div>
+                </div>
+                <div className="text-sm text-red-600">
+                  ⚠️ Cette action est irréversible. L'utilisateur perdra l'accès à l'application.
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setDeleteDialogOpen(false);
+                    setUserToDelete(null);
+                  }}
+                >
+                  Annuler
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={confirmDeleteUser}
+                  disabled={deleteUserMutation.isPending}
+                >
+                  {deleteUserMutation.isPending && <LoadingSpinner className="w-4 h-4 mr-2" />}
+                  Supprimer définitivement
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

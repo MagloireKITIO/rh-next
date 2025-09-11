@@ -59,6 +59,13 @@ export default function MailConfigList({ onEdit, onAdd }: MailConfigListProps) {
     config: null,
     name: ''
   });
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean;
+    config: MailConfig | null;
+  }>({
+    isOpen: false,
+    config: null
+  });
 
   // Récupérer toutes les configurations
   const { data: configs, isLoading, isSuccess } = useQuery({
@@ -326,9 +333,10 @@ export default function MailConfigList({ onEdit, onAdd }: MailConfigListProps) {
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      if (confirm('Êtes-vous sûr de vouloir supprimer cette configuration ?')) {
-                        deleteMutation.mutate(config.id);
-                      }
+                      setDeleteModal({
+                        isOpen: true,
+                        config: config
+                      });
                     }}
                     disabled={deleteMutation.isPending}
                     className="text-red-600 hover:text-red-700 hover:bg-red-50"
@@ -413,6 +421,66 @@ export default function MailConfigList({ onEdit, onAdd }: MailConfigListProps) {
           </Button>
         </DialogFooter>
       </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={deleteModal.isOpen} onOpenChange={(isOpen) => setDeleteModal({ isOpen, config: null })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmer la suppression</DialogTitle>
+            <DialogDescription>
+              Êtes-vous sûr de vouloir supprimer cette configuration ?
+            </DialogDescription>
+          </DialogHeader>
+          {deleteModal.config && (
+            <div className="space-y-4">
+              <div className="p-4 bg-muted rounded-lg">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 bg-gradient-to-r from-admin-light to-admin-dark rounded-lg flex items-center justify-center">
+                    <Mail className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <div className="font-medium">
+                      Configuration {deleteModal.config.provider_type.toUpperCase()}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {deleteModal.config.from_name} &lt;{deleteModal.config.from_email}&gt;
+                    </div>
+                    {deleteModal.config.company && (
+                      <div className="text-sm text-muted-foreground">
+                        {deleteModal.config.company.name}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="text-sm text-red-600">
+                  ⚠️ Cette action est irréversible. La configuration mail sera définitivement supprimée.
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setDeleteModal({ isOpen: false, config: null })}
+                >
+                  Annuler
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    if (deleteModal.config) {
+                      deleteMutation.mutate(deleteModal.config.id);
+                      setDeleteModal({ isOpen: false, config: null });
+                    }
+                  }}
+                  disabled={deleteMutation.isPending}
+                >
+                  {deleteMutation.isPending && <LoadingSpinner className="w-4 h-4 mr-2" />}
+                  Supprimer définitivement
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
       </Dialog>
     </div>
   );

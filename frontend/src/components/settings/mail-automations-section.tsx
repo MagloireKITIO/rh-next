@@ -106,8 +106,10 @@ export function MailAutomationsSection({ currentUser, isUserAdmin }: MailAutomat
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [statsDialogOpen, setStatsDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<AutomationTemplate | null>(null);
   const [selectedAutomation, setSelectedAutomation] = useState<MailAutomation | null>(null);
+  const [automationToDelete, setAutomationToDelete] = useState<{id: string, title: string} | null>(null);
   const [availableTemplates, setAvailableTemplates] = useState<any[]>([]);
 
   const [createForm, setCreateForm] = useState({
@@ -173,17 +175,23 @@ export function MailAutomationsSection({ currentUser, isUserAdmin }: MailAutomat
     }
   };
 
-  const handleDelete = async (id: string, title: string) => {
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer l'automatisation "${title}" ?`)) {
-      return;
-    }
+  const handleDelete = (id: string, title: string) => {
+    setAutomationToDelete({ id, title });
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!automationToDelete) return;
 
     try {
-      await mailAutomationsApi.delete(id);
+      await mailAutomationsApi.delete(automationToDelete.id);
       toast.success("Automatisation supprimée avec succès");
       await loadAutomations();
     } catch (error) {
       toast.error("Erreur lors de la suppression");
+    } finally {
+      setDeleteDialogOpen(false);
+      setAutomationToDelete(null);
     }
   };
 
@@ -744,6 +752,42 @@ export function MailAutomationsSection({ currentUser, isUserAdmin }: MailAutomat
               ))}
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmer la suppression</DialogTitle>
+            <DialogDescription>
+              Êtes-vous sûr de vouloir supprimer cette automatisation ?
+            </DialogDescription>
+          </DialogHeader>
+          {automationToDelete && (
+            <div className="space-y-4">
+              <div className="p-4 bg-muted rounded-lg">
+                <div className="font-medium">{automationToDelete.title}</div>
+                <div className="text-sm text-muted-foreground">
+                  Cette action est irréversible. L'automatisation sera définitivement supprimée.
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setDeleteDialogOpen(false)}
+                >
+                  Annuler
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={confirmDelete}
+                >
+                  Supprimer
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </motion.div>

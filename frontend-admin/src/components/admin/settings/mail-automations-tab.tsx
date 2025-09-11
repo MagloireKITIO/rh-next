@@ -74,7 +74,9 @@ export default function MailAutomationsTab() {
   // CRUD States
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedAutomation, setSelectedAutomation] = useState<MailAutomation | null>(null);
+  const [automationToDelete, setAutomationToDelete] = useState<MailAutomation | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [loadingAutomations, setLoadingAutomations] = useState<Record<string, boolean>>({});
@@ -210,20 +212,25 @@ export default function MailAutomationsTab() {
     }
   };
 
-  const handleDeleteAutomation = async (id: string) => {
-    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cette automatisation ?')) {
-      return;
-    }
+  const handleDeleteAutomation = (automation: MailAutomation) => {
+    setAutomationToDelete(automation);
+    setIsDeleteDialogOpen(true);
+  };
 
-    setLoadingAutomations(prev => ({ ...prev, [id]: true }));
+  const confirmDelete = async () => {
+    if (!automationToDelete) return;
+
+    setLoadingAutomations(prev => ({ ...prev, [automationToDelete.id]: true }));
     try {
-      await adminApi.deleteMailAutomation(id);
+      await adminApi.deleteMailAutomation(automationToDelete.id);
       toast.success('Automatisation supprimée avec succès');
       await loadData();
     } catch {
       toast.error('Erreur lors de la suppression');
     } finally {
-      setLoadingAutomations(prev => ({ ...prev, [id]: false }));
+      setLoadingAutomations(prev => ({ ...prev, [automationToDelete.id]: false }));
+      setIsDeleteDialogOpen(false);
+      setAutomationToDelete(null);
     }
   };
 
@@ -584,7 +591,7 @@ export default function MailAutomationsTab() {
                           <Button 
                             variant="ghost" 
                             size="sm" 
-                            onClick={() => handleDeleteAutomation(automation.id)}
+                            onClick={() => handleDeleteAutomation(automation)}
                             className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
                             disabled={loadingAutomations[automation.id]}
                           >
@@ -880,6 +887,53 @@ export default function MailAutomationsTab() {
                   )}
                 </Button>
               </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmer la suppression</DialogTitle>
+            <DialogDescription>
+              Êtes-vous sûr de vouloir supprimer cette automatisation ?
+            </DialogDescription>
+          </DialogHeader>
+          {automationToDelete && (
+            <div className="space-y-4">
+              <div className="p-4 bg-muted rounded-lg">
+                <div className="font-medium">{automationToDelete.title}</div>
+                <div className="text-sm text-muted-foreground">
+                  {automationToDelete.company?.name} - {automationToDelete.description}
+                </div>
+                <div className="text-sm text-red-600 mt-2">
+                  Cette action est irréversible. L'automatisation sera définitivement supprimée.
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsDeleteDialogOpen(false)}
+                >
+                  Annuler
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={confirmDelete}
+                  disabled={automationToDelete && loadingAutomations[automationToDelete.id]}
+                >
+                  {automationToDelete && loadingAutomations[automationToDelete.id] ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Suppression...
+                    </>
+                  ) : (
+                    'Supprimer'
+                  )}
+                </Button>
+              </DialogFooter>
             </div>
           )}
         </DialogContent>

@@ -42,7 +42,9 @@ export default function ApiKeysPage() {
   const [selectedCompany, setSelectedCompany] = useState<string>('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedApiKey, setSelectedApiKey] = useState<ApiKey | null>(null);
+  const [apiKeyToDelete, setApiKeyToDelete] = useState<ApiKey | null>(null);
   const [showFullKey, setShowFullKey] = useState<{[key: string]: boolean}>({});
   const [isModelsDialogOpen, setIsModelsDialogOpen] = useState(false);
   const [selectedApiKeyForModels, setSelectedApiKeyForModels] = useState<ApiKey | null>(null);
@@ -200,9 +202,16 @@ export default function ApiKeysPage() {
     }
   };
 
-  const handleDeleteApiKey = (id: string) => {
-    if (confirm('Êtes-vous sûr de vouloir supprimer cette clé API ? Cette action est irréversible.')) {
-      deleteApiKeyMutation.mutate(id);
+  const handleDeleteApiKey = (apiKey: ApiKey) => {
+    setApiKeyToDelete(apiKey);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (apiKeyToDelete) {
+      deleteApiKeyMutation.mutate(apiKeyToDelete.id);
+      setIsDeleteDialogOpen(false);
+      setApiKeyToDelete(null);
     }
   };
 
@@ -550,7 +559,7 @@ export default function ApiKeysPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleDeleteApiKey(apiKey.id)}
+                            onClick={() => handleDeleteApiKey(apiKey)}
                             disabled={deleteApiKeyMutation.isPending}
                             title="Supprimer la clé API"
                             className="text-red-600 hover:text-red-800"
@@ -675,6 +684,66 @@ export default function ApiKeysPage() {
               }}
             />
           )}
+
+          {/* Delete Confirmation Dialog */}
+          <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Confirmer la suppression</DialogTitle>
+                <DialogDescription>
+                  Êtes-vous sûr de vouloir supprimer cette clé API ?
+                </DialogDescription>
+              </DialogHeader>
+              {apiKeyToDelete && (
+                <div className="space-y-4">
+                  <div className="p-4 bg-muted rounded-lg">
+                    <div className="flex items-center gap-3 mb-2">
+                      <Key className="w-5 h-5 text-muted-foreground" />
+                      <div>
+                        <div className="font-medium">
+                          {apiKeyToDelete.name || 'Clé API sans nom'}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {apiKeyToDelete.provider} • {apiKeyToDelete.company?.name || 'Non assignée'}
+                        </div>
+                        <code className="text-xs bg-background px-2 py-1 rounded font-mono">
+                          {maskKey(apiKeyToDelete.key)}
+                        </code>
+                      </div>
+                    </div>
+                    <div className="text-sm text-red-600">
+                      ⚠️ Cette action est irréversible. La clé API sera définitivement supprimée.
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setIsDeleteDialogOpen(false);
+                        setApiKeyToDelete(null);
+                      }}
+                    >
+                      Annuler
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={confirmDelete}
+                      disabled={deleteApiKeyMutation.isPending}
+                    >
+                      {deleteApiKeyMutation.isPending ? (
+                        <>
+                          <LoadingSpinner className="w-4 h-4 mr-2" />
+                          Suppression...
+                        </>
+                      ) : (
+                        'Supprimer définitivement'
+                      )}
+                    </Button>
+                  </DialogFooter>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
         </div>
       </AdminLayout>
     </ProtectedRoute>
