@@ -230,6 +230,34 @@ export interface MailConfiguration {
   updated_at?: string;
 }
 
+export interface MailTemplate {
+  id: string;
+  template_type: string;
+  subject: string;
+  html_body: string;
+  text_body?: string;
+  is_active: boolean;
+  is_default: boolean;
+  company_id?: string;
+  company?: Company;
+  available_variables?: string;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TemplateType {
+  value: string;
+  label: string;
+  description: string;
+}
+
+export interface TemplateVariable {
+  name: string;
+  description: string;
+  example: string;
+}
+
 // Admin API Functions
 export const adminApi = {
   // Dashboard & Stats
@@ -357,7 +385,43 @@ export const adminApi = {
     apiClient.post('/admin/mail-config/test', { email: testEmail, company_id: companyId }),
   getMailConfigurationStatus: () => apiClient.get('/admin/mail-config/status'),
 
-  // Mail Templates (Super Admin can see ALL templates)
+  // Mail Templates
+  getAllMailTemplates: (companyId?: string) => {
+    const params = new URLSearchParams();
+    if (companyId) params.append('company_id', companyId);
+    return apiClient.get<MailTemplate[]>(`/admin/mail-templates?${params.toString()}`);
+  },
+  getMailTemplateById: (id: string) => apiClient.get<MailTemplate>(`/admin/mail-templates/${id}`),
+  createMailTemplate: (data: {
+    template_type: string;
+    subject: string;
+    html_body: string;
+    text_body?: string;
+    is_active?: boolean;
+    is_default?: boolean;
+    company_id?: string;
+    description?: string;
+  }) => apiClient.post<MailTemplate>('/admin/mail-templates', data),
+  updateMailTemplate: (id: string, data: {
+    subject?: string;
+    html_body?: string;
+    text_body?: string;
+    is_active?: boolean;
+    is_default?: boolean;
+    description?: string;
+  }) => apiClient.put<MailTemplate>(`/admin/mail-templates/${id}`, data),
+  deleteMailTemplate: (id: string) => apiClient.delete(`/admin/mail-templates/${id}`),
+  duplicateMailTemplate: (id: string, subject?: string) =>
+    apiClient.post<MailTemplate>(`/admin/mail-templates/${id}/duplicate`, { subject }),
+  getTemplateTypes: () => apiClient.get<TemplateType[]>('/admin/mail-templates/types'),
+  getTemplateVariables: (type: string) => 
+    apiClient.get<TemplateVariable[]>(`/admin/mail-templates/variables/${type}`),
+  renderTemplate: (data: {
+    template_type: string;
+    variables: Record<string, string>;
+    company_id?: string;
+  }) => apiClient.post<{subject: string; html: string; text?: string}>('/admin/mail-templates/render', data),
+  createDefaultTemplates: () => apiClient.post('/admin/mail-templates/create-defaults'),
 
   // Analytics API
   getProjectsAnalytics: async (filters?: {

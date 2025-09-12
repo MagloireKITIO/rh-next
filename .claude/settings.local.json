@@ -166,7 +166,8 @@
       "Bash(npx tsc:*)",
       "Bash(npm install)",
       "Bash(npm run test:e2e:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(npm install:*)"
     ],
     "deny": [],
     "ask": []

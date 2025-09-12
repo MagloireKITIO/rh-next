@@ -12,10 +12,10 @@ import {
   Database, 
   Palette,
   Bell,
-  Key
+  Key,
+  Mail
 } from 'lucide-react';
-
-// Composants pour chaque onglet (on les créera progressivement)
+import MailSettings from '@/components/admin/settings/mail-settings';
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('system');
@@ -68,6 +68,14 @@ export default function SettingsPage() {
       icon: Palette,
       component: null, // À implémenter plus tard
       badge: 'Bientôt',
+    },
+    {
+      id: 'mail',
+      label: 'Configuration Mail',
+      description: 'Serveurs SMTP pour l\'envoi d\'emails',
+      icon: Mail,
+      component: MailSettings,
+      badge: null,
     },
     {
       id: 'api-keys',

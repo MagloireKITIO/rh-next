@@ -1,209 +1,24 @@
-🛡️ [JWT GUARD] Checking authentication for: GET /api/projects
-🛡️ [JWT GUARD] Headers: { authorization: 'EXISTS', 'content-type': undefined }
-🛡️ [JWT GUARD] Checking authentication for: GET /api/team-requests/notifications-count
-🛡️ [JWT GUARD] Headers: { authorization: 'EXISTS', 'content-type': undefined }
-✅ [JWT GUARD] Authentication successful for user: {
-  id: 'fbcc68b1-b5a8-40c3-a050-dbacda8d4f7f',
-  email: 'magloirekitio1@gmail.com',
-  role: 'admin',
-  url: '/api/projects'
-}
-🛡️ [JWT GUARD] Checking authentication for: GET /api/projects
-🛡️ [JWT GUARD] Headers: { authorization: 'EXISTS', 'content-type': undefined }
-✅ [JWT GUARD] Authentication successful for user: {
-  id: 'fbcc68b1-b5a8-40c3-a050-dbacda8d4f7f',
-  email: 'magloirekitio1@gmail.com',
-  role: 'admin',
-  url: '/api/projects'
-}
-✅ [JWT GUARD] Authentication successful for user: {
-  id: 'fbcc68b1-b5a8-40c3-a050-dbacda8d4f7f',
-  email: 'magloirekitio1@gmail.com',
-  role: 'admin',
-  url: '/api/team-requests/notifications-count'
-}
-🛡️ [JWT GUARD] Checking authentication for: GET /api/team-requests/notifications-count
-🛡️ [JWT GUARD] Headers: { authorization: 'EXISTS', 'content-type': undefined }
-✅ [JWT GUARD] Authentication successful for user: {
-  id: 'fbcc68b1-b5a8-40c3-a050-dbacda8d4f7f',
-  email: 'magloirekitio1@gmail.com',
-  role: 'admin',
-  url: '/api/team-requests/notifications-count'
-}
-🛡️ [JWT GUARD] Checking authentication for: GET /api/team-requests/notifications-count
-🛡️ [JWT GUARD] Headers: { authorization: 'EXISTS', 'content-type': undefined }
-✅ [JWT GUARD] Authentication successful for user: {
-  id: 'fbcc68b1-b5a8-40c3-a050-dbacda8d4f7f',
-  email: 'magloirekitio1@gmail.com',
-  role: 'admin',
-  url: '/api/team-requests/notifications-count'
-}
-🛡️ [JWT GUARD] Checking authentication for: GET /api/team-requests/notifications-count
-🛡️ [JWT GUARD] Headers: { authorization: 'EXISTS', 'content-type': undefined }
-✅ [JWT GUARD] Authentication successful for user: {
-  id: 'fbcc68b1-b5a8-40c3-a050-dbacda8d4f7f',
-  email: 'magloirekitio1@gmail.com',
-  role: 'admin',
-  url: '/api/team-requests/notifications-count'
-}
-🛡️ [JWT GUARD] Checking authentication for: GET /api/team-requests/notifications-count
-🛡️ [JWT GUARD] Headers: { authorization: 'EXISTS', 'content-type': undefined }
-✅ [JWT GUARD] Authentication successful for user: {
-  id: 'fbcc68b1-b5a8-40c3-a050-dbacda8d4f7f',
-  email: 'magloirekitio1@gmail.com',
-  role: 'admin',
-  url: '/api/team-requests/notifications-count'
-}
-🛡️ [JWT GUARD] Checking authentication for: GET /api/team-requests/notifications-count
-🛡️ [JWT GUARD] Headers: { authorization: 'EXISTS', 'content-type': undefined }
-✅ [JWT GUARD] Authentication successful for user: {
-  id: 'fbcc68b1-b5a8-40c3-a050-dbacda8d4f7f',
-  email: 'magloirekitio1@gmail.com',
-  role: 'admin',
-  url: '/api/team-requests/notifications-count'
-}
-🛡️ [JWT GUARD] Checking authentication for: GET /api/team-requests/notifications-count
-🛡️ [JWT GUARD] Headers: { authorization: 'EXISTS', 'content-type': undefined }
-🛡️ [JWT GUARD] Checking authentication for: GET /api/projects/7522b12b-f47e-4e11-b89d-7ef281361ed8
-🛡️ [JWT GUARD] Headers: { authorization: 'EXISTS', 'content-type': undefined }
-[Nest] 2856  - 22/08/2025 11:20:31     LOG [WebSocketGateway] Client connected: uQp6i0FP8-mdR0CHAAAl
-🛡️ [JWT GUARD] Checking authentication for: GET /api/candidates?projectId=7522b12b-f47e-4e11-b89d-7ef281361ed8
-🛡️ [JWT GUARD] Headers: { authorization: 'EXISTS', 'content-type': undefined }
-[Nest] 2856  - 22/08/2025 11:20:31     LOG [WebSocketGateway] Client uQp6i0FP8-mdR0CHAAAl joined project room: 7522b12b-f47e-4e11-b89d-7ef281361ed8
-✅ [JWT GUARD] Authentication successful for user: {
-  id: 'fbcc68b1-b5a8-40c3-a050-dbacda8d4f7f',
-  email: 'magloirekitio1@gmail.com',
-  role: 'admin',
-  url: '/api/team-requests/notifications-count'
-}
-🛡️ [JWT GUARD] Checking authentication for: GET /api/team-requests/notifications-count
-🛡️ [JWT GUARD] Headers: { authorization: 'EXISTS', 'content-type': undefined }
-✅ [JWT GUARD] Authentication successful for user: {
-  id: 'fbcc68b1-b5a8-40c3-a050-dbacda8d4f7f',
-  email: 'magloirekitio1@gmail.com',
-  role: 'admin',
-  url: '/api/projects/7522b12b-f47e-4e11-b89d-7ef281361ed8'
-}
-🎯 [PROJECTS CONTROLLER] findOne called: {
-  projectId: '7522b12b-f47e-4e11-b89d-7ef281361ed8',
-  companyId: '23e27ba1-1b1c-40b9-85c3-b38cb2883e73'
-}
-🔍 [PROJECTS SERVICE] findOne called: {
-  projectId: '7522b12b-f47e-4e11-b89d-7ef281361ed8',
-  companyId: '23e27ba1-1b1c-40b9-85c3-b38cb2883e73'
-}
-✅ [JWT GUARD] Authentication successful for user: {
-  id: 'fbcc68b1-b5a8-40c3-a050-dbacda8d4f7f',
-  email: 'magloirekitio1@gmail.com',
-  role: 'admin',
-  url: '/api/team-requests/notifications-count'
-}
-✅ [JWT GUARD] Authentication successful for user: {
-  id: 'fbcc68b1-b5a8-40c3-a050-dbacda8d4f7f',
-  email: 'magloirekitio1@gmail.com',
-  role: 'admin',
-  url: '/api/candidates?projectId=7522b12b-f47e-4e11-b89d-7ef281361ed8'
-}
-🛡️ [JWT GUARD] Checking authentication for: GET /api/candidates?projectId=7522b12b-f47e-4e11-b89d-7ef281361ed8
-🛡️ [JWT GUARD] Headers: { authorization: 'EXISTS', 'content-type': undefined }
-✅ [JWT GUARD] Authentication successful for user: {
-  id: 'fbcc68b1-b5a8-40c3-a050-dbacda8d4f7f',
-  email: 'magloirekitio1@gmail.com',
-  role: 'admin',
-  url: '/api/candidates?projectId=7522b12b-f47e-4e11-b89d-7ef281361ed8'
-}
-🔍 [PROJECTS SERVICE] Database query result: {
-  found: 'YES',
-  projectId: '7522b12b-f47e-4e11-b89d-7ef281361ed8',
-  projectName: 'developpeur fullstack',
-  projectCompanyId: '23e27ba1-1b1c-40b9-85c3-b38cb2883e73'
-}
-✅ [PROJECTS SERVICE] Project found and returned
-🛡️ [JWT GUARD] Checking authentication for: GET /api/projects/7522b12b-f47e-4e11-b89d-7ef281361ed8
-🛡️ [JWT GUARD] Headers: { authorization: 'EXISTS', 'content-type': undefined }
-🛡️ [JWT GUARD] Checking authentication for: GET /api/candidates/project/7522b12b-f47e-4e11-b89d-7ef281361ed8/queue-status
-🛡️ [JWT GUARD] Headers: { authorization: 'EXISTS', 'content-type': undefined }
-✅ [JWT GUARD] Authentication successful for user: {
-  id: 'fbcc68b1-b5a8-40c3-a050-dbacda8d4f7f',
-  email: 'magloirekitio1@gmail.com',
-  role: 'admin',
-  url: '/api/projects/7522b12b-f47e-4e11-b89d-7ef281361ed8'
-}
-🎯 [PROJECTS CONTROLLER] findOne called: {
-  projectId: '7522b12b-f47e-4e11-b89d-7ef281361ed8',
-  companyId: '23e27ba1-1b1c-40b9-85c3-b38cb2883e73'
-}
-🔍 [PROJECTS SERVICE] findOne called: {
-  projectId: '7522b12b-f47e-4e11-b89d-7ef281361ed8',
-  companyId: '23e27ba1-1b1c-40b9-85c3-b38cb2883e73'
-}
-[Nest] 2856  - 22/08/2025 11:20:40     LOG [WebSocketGateway] Client connected: YUsFF-2ouDieK0WXAAAo
-[Nest] 2856  - 22/08/2025 11:20:40     LOG [WebSocketGateway] Client YUsFF-2ouDieK0WXAAAo joined project room: 7522b12b-f47e-4e11-b89d-7ef281361ed8
-✅ [JWT GUARD] Authentication successful for user: {
-  id: 'fbcc68b1-b5a8-40c3-a050-dbacda8d4f7f',
-  email: 'magloirekitio1@gmail.com',
-  role: 'admin',
-  url: '/api/candidates/project/7522b12b-f47e-4e11-b89d-7ef281361ed8/queue-status'
-}
-🛡️ [JWT GUARD] Checking authentication for: GET /api/candidates/project/7522b12b-f47e-4e11-b89d-7ef281361ed8/queue-status
-🛡️ [JWT GUARD] Headers: { authorization: 'EXISTS', 'content-type': undefined }
-✅ [JWT GUARD] Authentication successful for user: {
-  id: 'fbcc68b1-b5a8-40c3-a050-dbacda8d4f7f',
-  email: 'magloirekitio1@gmail.com',
-  role: 'admin',
-  url: '/api/candidates/project/7522b12b-f47e-4e11-b89d-7ef281361ed8/queue-status'
-}
-🔍 [PROJECTS SERVICE] Database query result: {
-  found: 'YES',
-  projectId: '7522b12b-f47e-4e11-b89d-7ef281361ed8',
-  projectName: 'developpeur fullstack',
-  projectCompanyId: '23e27ba1-1b1c-40b9-85c3-b38cb2883e73'
-}
-✅ [PROJECTS SERVICE] Project found and returned
-
-
-
- Token found, adding to headers
-api-client.ts:25 🔑 [API CLIENT] Final headers: AxiosHeaders {Accept: 'application/json, text/plain, */*', Content-Type: 'application/json', Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdW…TM1fQ.Fewiv4ETgg2ERi_IfoLdxk6EHqjw32e9KjtPuCR4sYw'}
-api-client.ts:15 🔑 [API CLIENT] Making request to: GET /candidates?projectId=7522b12b-f47e-4e11-b89d-7ef281361ed8
-api-client.ts:19 🔑 [API CLIENT] Token found, adding to headers
-api-client.ts:25 🔑 [API CLIENT] Final headers: AxiosHeaders {Accept: 'application/json, text/plain, */*', Content-Type: 'application/json', Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdW…TM1fQ.Fewiv4ETgg2ERi_IfoLdxk6EHqjw32e9KjtPuCR4sYw'}
-api-client.ts:15 🔑 [API CLIENT] Making request to: GET /projects/7522b12b-f47e-4e11-b89d-7ef281361ed8
-api-client.ts:19 🔑 [API CLIENT] Token found, adding to headers
-api-client.ts:25 🔑 [API CLIENT] Final headers: AxiosHeaders {Accept: 'application/json, text/plain, */*', Content-Type: 'application/json', Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdW…TM1fQ.Fewiv4ETgg2ERi_IfoLdxk6EHqjw32e9KjtPuCR4sYw'}
-api-client.ts:15 🔑 [API CLIENT] Making request to: GET /candidates?projectId=7522b12b-f47e-4e11-b89d-7ef281361ed8
-api-client.ts:19 🔑 [API CLIENT] Token found, adding to headers
-api-client.ts:25 🔑 [API CLIENT] Final headers: AxiosHeaders {Accept: 'application/json, text/plain, */*', Content-Type: 'application/json', Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdW…TM1fQ.Fewiv4ETgg2ERi_IfoLdxk6EHqjw32e9KjtPuCR4sYw'}
-api-client.ts:37 ✅ [API CLIENT] Response received: 200 /team-requests/notifications-count
-use-websocket.ts:45 WebSocket connected
-use-websocket.ts:91 Joining project room: 7522b12b-f47e-4e11-b89d-7ef281361ed8
-2api-client.ts:37 ✅ [API CLIENT] Response received: 200 /team-requests/notifications-count
-2api-client.ts:37 ✅ [API CLIENT] Response received: 200 /candidates?projectId=7522b12b-f47e-4e11-b89d-7ef281361ed8
-api-client.ts:37 ✅ [API CLIENT] Response received: 200 /projects/7522b12b-f47e-4e11-b89d-7ef281361ed8
-page.tsx:74 ✅ [PROJECT PAGE] API call successful, response: {data: {…}, status: 200, statusText: 'OK', headers: AxiosHeaders, config: {…}, …}
-page.tsx:75 ✅ [PROJECT PAGE] Project data: {id: '7522b12b-f47e-4e11-b89d-7ef281361ed8', name: 'developpeur fullstack', jobDescription: "recherche d'un développeur full stack avec de bonne réalisation de projet", customPrompt: null, status: 'active', …}
-page.tsx:80 ✅ [PROJECT PAGE] Project state updated successfully
-api-client.ts:15 🔑 [API CLIENT] Making request to: GET /candidates/project/7522b12b-f47e-4e11-b89d-7ef281361ed8/queue-status
-api-client.ts:19 🔑 [API CLIENT] Token found, adding to headers
-api-client.ts:25 🔑 [API CLIENT] Final headers: AxiosHeaders {Accept: 'application/json, text/plain, */*', Content-Type: 'application/json', Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdW…TM1fQ.Fewiv4ETgg2ERi_IfoLdxk6EHqjw32e9KjtPuCR4sYw'}
-api-client.ts:15 🔑 [API CLIENT] Making request to: GET /candidates/project/7522b12b-f47e-4e11-b89d-7ef281361ed8/queue-status
-api-client.ts:19 🔑 [API CLIENT] Token found, adding to headers
-api-client.ts:25 🔑 [API CLIENT] Final headers: AxiosHeaders {Accept: 'application/json, text/plain, */*', Content-Type: 'application/json', Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdW…TM1fQ.Fewiv4ETgg2ERi_IfoLdxk6EHqjw32e9KjtPuCR4sYw'}
-use-websocket.ts:45 WebSocket connected
-use-websocket.ts:91 Joining project room: 7522b12b-f47e-4e11-b89d-7ef281361ed8
-2api-client.ts:37 ✅ [API CLIENT] Response received: 200 /candidates/project/7522b12b-f47e-4e11-b89d-7ef281361ed8/queue-status
-api-client.ts:37 ✅ [API CLIENT] Response received: 200 /projects/7522b12b-f47e-4e11-b89d-7ef281361ed8
-page.tsx:74 ✅ [PROJECT PAGE] API call successful, response: {data: {…}, status: 200, statusText: 'OK', headers: AxiosHeaders, config: {…}, …}
-page.tsx:75 ✅ [PROJECT PAGE] Project data: {id: '7522b12b-f47e-4e11-b89d-7ef281361ed8', name: 'developpeur fullstack', jobDescription: "recherche d'un développeur full stack avec de bonne réalisation de projet", customPrompt: null, status: 'active', …}
-page.tsx:80 ✅ [PROJECT PAGE] Project state updated successfully
-
-
-[PROJECT PAGE] Starting project fetch for ID: 7522b12b-f47e-4e11-b89d-7ef281361ed8
-page.tsx:67 🔍 [PROJECT PAGE] Fetching project with ID: 7522b12b-f47e-4e11-b89d-7ef281361ed8
-page.tsx:68 🔍 [PROJECT PAGE] Token in localStorage: EXISTS
-page.tsx:71 🔍 [PROJECT PAGE] Making API call to projectsApi.getById...
-page.tsx:102 🚀 [PROJECT PAGE] Starting project fetch for ID: 7522b12b-f47e-4e11-b89d-7ef281361ed8
-page.tsx:67 🔍 [PROJECT PAGE] Fetching project with ID: 7522b12b-f47e-4e11-b89d-7ef281361ed8
-page.tsx:68 🔍 [PROJECT PAGE] Token in localStorage: EXISTS
-page.tsx:71 🔍 [PROJECT PAGE] Making API call to projectsApi.getById...
-api-client.ts:15 🔑 [API CLIENT] Making request to: GET /projects/7522b12b-f47e-4e11-b89d-7ef281361ed8
+🔍 [DEBUG] configs from API: Objectconfig: {transitional: {…}, adapter: Array(3), transformRequest: Array(1), transformResponse: Array(1), timeout: 0, …}data: {data: Array(0)}headers: AxiosHeaders {content-length: '11', content-type: 'application/json; charset=utf-8'}request: XMLHttpRequest {onreadystatechange: null, readyState: 4, timeout: 0, withCredentials: false, upload: XMLHttpRequestUpload, …}status: 200statusText: "OK"[[Prototype]]: Object
+C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-settings.tsx:146 🔍 [DEBUG] configs.data: Objectdata: [][[Prototype]]: Object
+C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-settings.tsx:152 🔍 [DEBUG] configurations after processing: Array(0)
+C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-settings.tsx:145 🔍 [DEBUG] configs from API: Object
+C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-settings.tsx:146 🔍 [DEBUG] configs.data: Object
+C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-settings.tsx:152 🔍 [DEBUG] configurations after processing: Array(0)
+C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-templates.tsx:439 🔍 [DEBUG] templates from API: undefined
+C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-templates.tsx:440 🔍 [DEBUG] templates.data: undefined
+C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-templates.tsx:446 🔍 [DEBUG] templatesList after processing: Array(0)
+C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-templates.tsx:439 🔍 [DEBUG] templates from API: undefined
+C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-templates.tsx:440 🔍 [DEBUG] templates.data: undefined
+C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-templates.tsx:446 🔍 [DEBUG] templatesList after processing: Array(0)
+C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-templates.tsx:439 🔍 [DEBUG] templates from API: Object
+C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-templates.tsx:440 🔍 [DEBUG] templates.data: Object
+C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-templates.tsx:446 🔍 [DEBUG] templatesList after processing: Array(0)
+C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-templates.tsx:439 🔍 [DEBUG] templates from API: Object
+C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-templates.tsx:440 🔍 [DEBUG] templates.data: Object
+C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-templates.tsx:446 🔍 [DEBUG] templatesList after processing: Array(0)
+C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-templates.tsx:439 🔍 [DEBUG] templates from API: Object
+C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-templates.tsx:440 🔍 [DEBUG] templates.data: Objectdata: Array(5)0: {id: 'fc495c81-f32e-4974-a562-5f7e6293aace', template_type: 'candidate_analysis_complete', subject: 'Analyse des candidats terminée - {{project_name}}', html_body: `<h2>Analyse terminée !</h2>\n<p>Bonjour {{user_name…px solid #eee;">\n<p>L'équipe {{company_name}}</p>`, text_body: null, …}1: {id: '56acebc7-23a8-4422-8a21-15f3fe9d0b9b', template_type: 'confirm_signup', subject: 'Confirmez votre inscription - {{app_name}}', html_body: "<h2>Bienvenue {{user_name}} !</h2>\n<p>Merci de vou…<p>Cordialement,<br>L'équipe {{company_name}}</p>", text_body: null, …}2: {id: '16d58267-8962-4769-ac06-e4cf5b71a7a8', template_type: 'invite_user', subject: 'Invitation à rejoindre {{company_name}} sur {{app_name}}', html_body: `<h2>Vous êtes invité(e) à rejoindre {{company_name…px solid #eee;">\n<p>L'équipe {{company_name}}</p>`, text_body: null, …}3: {id: '80e42783-2355-451e-a5c9-372bff221124', template_type: 'reset_password', subject: 'Réinitialisation de votre mot de passe - {{app_name}}', html_body: "<h2>Réinitialisation de mot de passe</h2>\n<p>Bonjo…<p>Cordialement,<br>L'équipe {{company_name}}</p>", text_body: null, …}4: {id: '1674ef88-ca29-45e0-ad86-7c1f24182d34', template_type: 'team_request_notification', subject: "Nouvelle demande d'équipe - {{company_name}}", html_body: `<h2>Nouvelle demande d'équipe</h2>\n<p>Une nouvelle…e;">\n<p>Système de notifications {{app_name}}</p>`, text_body: null, …}length: 5[[Prototype]]: Array(0)at: ƒ at()concat: ƒ concat()constructor: ƒ Array()copyWithin: ƒ copyWithin()entries: ƒ entries()every: ƒ every()fill: ƒ fill()filter: ƒ filter()find: ƒ find()findIndex: ƒ findIndex()findLast: ƒ findLast()findLastIndex: ƒ findLastIndex()flat: ƒ flat()flatMap: ƒ flatMap()forEach: ƒ forEach()includes: ƒ includes()indexOf: ƒ indexOf()join: ƒ join()keys: ƒ keys()lastIndexOf: ƒ lastIndexOf()length: 0map: ƒ map()pop: ƒ pop()push: ƒ push()reduce: ƒ reduce()reduceRight: ƒ reduceRight()reverse: ƒ reverse()shift: ƒ shift()slice: ƒ slice()some: ƒ some()sort: ƒ sort()splice: ƒ splice()toLocaleString: ƒ toLocaleString()toReversed: ƒ toReversed()toSorted: ƒ toSorted()toSpliced: ƒ toSpliced()toString: ƒ toString()unshift: ƒ unshift()values: ƒ values()with: ƒ with()Symbol(Symbol.iterator): ƒ values()Symbol(Symbol.unscopables): {at: true, copyWithin: true, entries: true, fill: true, find: true, …}[[Prototype]]: Object[[Prototype]]: Objectconstructor: ƒ Object()hasOwnProperty: ƒ hasOwnProperty()isPrototypeOf: ƒ isPrototypeOf()propertyIsEnumerable: ƒ propertyIsEnumerable()toLocaleString: ƒ toLocaleString()toString: ƒ toString()valueOf: ƒ valueOf()__defineGetter__: ƒ __defineGetter__()__defineSetter__: ƒ __defineSetter__()__lookupGetter__: ƒ __lookupGetter__()__lookupSetter__: ƒ __lookupSetter__()__proto__: (...)get __proto__: ƒ __proto__()set __proto__: ƒ __proto__()
+C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-templates.tsx:446 🔍 [DEBUG] templatesList after processing: Array(0)length: 0[[Prototype]]: Array(0)
+C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-templates.tsx:439 🔍 [DEBUG] templates from API: Objectconfig: {transitional: {…}, adapter: Array(3), transformRequest: Array(1), transformResponse: Array(1), timeout: 0, …}data: {data: Array(5)}headers: AxiosHeaders {content-length: '6110', content-type: 'application/json; charset=utf-8'}request: XMLHttpRequest {onreadystatechange: null, readyState: 4, timeout: 0, withCredentials: false, upload: XMLHttpRequestUpload, …}status: 200statusText: "OK"[[Prototype]]: Object
+C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-templates.tsx:440 🔍 [DEBUG] templates.data: Object
+C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-templates.tsx:446 🔍 [DEBUG] templatesList after processing: Array(0)

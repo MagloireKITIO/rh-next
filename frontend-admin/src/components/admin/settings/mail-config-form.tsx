@@ -29,7 +29,7 @@ import { toast } from 'sonner';
 
 interface MailConfiguration {
   id?: string;
-  provider_type: 'smtp' | 'sendgrid' | 'mailgun' | 'aws_ses' | 'supabase' | 'gmail' | 'outlook';
+  provider_type: 'smtp';
   company_id?: string;
   configurationCompanies?: Array<{
     id: string;
@@ -42,8 +42,6 @@ interface MailConfiguration {
   smtp_password?: string;
   smtp_secure?: boolean;
   smtp_require_tls?: boolean;
-  api_key?: string;
-  api_secret?: string;
   from_email: string;
   from_name: string;
   is_active: boolean;
@@ -77,8 +75,6 @@ export default function MailConfigForm({ config, onCancel, onSuccess }: MailConf
     smtp_password: '',
     smtp_secure: true,
     smtp_require_tls: false,
-    api_key: '',
-    api_secret: '',
   });
 
   const queryClient = useQueryClient();
@@ -200,38 +196,10 @@ export default function MailConfigForm({ config, onCancel, onSuccess }: MailConf
 
   const providers = [
     {
-      id: 'supabase',
-      name: 'Supabase',
-      description: 'Service par défaut',
-      icon: Globe,
-      requiresConfig: false,
-    },
-    {
       id: 'smtp',
       name: 'Serveur SMTP',
       description: 'Gmail, Outlook, ou serveur SMTP personnalisé',
       icon: Server,
-      requiresConfig: true,
-    },
-    {
-      id: 'sendgrid',
-      name: 'SendGrid',
-      description: 'Service de messagerie SendGrid',
-      icon: Send,
-      requiresConfig: true,
-    },
-    {
-      id: 'mailgun',
-      name: 'Mailgun',
-      description: 'Service de messagerie Mailgun',
-      icon: Mail,
-      requiresConfig: true,
-    },
-    {
-      id: 'aws_ses',
-      name: 'AWS SES',
-      description: 'Amazon Simple Email Service',
-      icon: Send,
       requiresConfig: true,
     },
   ];
@@ -248,7 +216,7 @@ export default function MailConfigForm({ config, onCancel, onSuccess }: MailConf
     }
 
     const configToSave = {
-      provider_type: selectedProvider as 'smtp' | 'gmail' | 'outlook' | 'sendgrid',
+      provider_type: 'smtp' as const,
       company_id: undefined, // Toujours undefined pour les nouvelles configs
       smtp_host: configuration.smtp_host,
       smtp_port: configuration.smtp_port,
@@ -256,8 +224,6 @@ export default function MailConfigForm({ config, onCancel, onSuccess }: MailConf
       smtp_password: configuration.smtp_password,
       smtp_secure: configuration.smtp_secure,
       smtp_require_tls: configuration.smtp_require_tls,
-      api_key: configuration.api_key,
-      api_secret: configuration.api_secret,
       from_email: configuration.from_email,
       from_name: configuration.from_name,
       is_active: configuration.is_active,
@@ -296,12 +262,64 @@ export default function MailConfigForm({ config, onCancel, onSuccess }: MailConf
     }
   };
 
-  const handleTest = () => {
+  const handleTest = async () => {
     if (!testEmail) {
       toast.error('Veuillez saisir un email de test');
       return;
     }
-    testConfigMutation.mutate(testEmail);
+
+    if (!configuration.smtp_host || !configuration.from_email) {
+      toast.error('Veuillez remplir au minimum le serveur SMTP et l\'email expéditeur');
+      return;
+    }
+
+    // Si on est en mode édition, utiliser l'API normale
+    if (isEditing && config?.id) {
+      testConfigMutation.mutate(testEmail);
+    } else {
+      // Si on est en mode création, il faut d'abord sauvegarder temporairement pour tester
+      try {
+        toast.info('Sauvegarde temporaire pour le test...');
+        
+        const configToSave = {
+          provider_type: 'smtp' as const,
+          smtp_host: configuration.smtp_host,
+          smtp_port: configuration.smtp_port,
+          smtp_user: configuration.smtp_user,
+          smtp_password: configuration.smtp_password,
+          smtp_secure: configuration.smtp_secure,
+          smtp_require_tls: configuration.smtp_require_tls,
+          from_email: configuration.from_email,
+          from_name: configuration.from_name,
+          is_active: false, // Inactif pendant les tests
+          is_default: false,
+        };
+
+        const result = await saveConfigMutation.mutateAsync(configToSave);
+        const tempConfigId = result.data?.id;
+
+        if (tempConfigId) {
+          // Assigner aux entreprises si nécessaire
+          if (!isGlobal && selectedCompanies.length > 0) {
+            await adminApi.assignCompaniesToConfiguration(tempConfigId, selectedCompanies);
+          }
+
+          // Maintenant tester avec cette config temporaire
+          await adminApi.testMailConfiguration(testEmail, isGlobal ? undefined : selectedCompanies[0]);
+          
+          toast.success('Email de test envoyé avec succès ! Configuration sauvegardée mais inactive.');
+          
+          // Invalider les caches
+          queryClient.invalidateQueries({ queryKey: ['admin', 'mail-configs'] });
+          queryClient.invalidateQueries({ queryKey: ['admin', 'mail-config-companies', tempConfigId] });
+          
+          setIsTestMode(false);
+          setTestEmail('');
+        }
+      } catch (error: any) {
+        toast.error(error.response?.data?.message || 'Erreur lors du test');
+      }
+    }
   };
 
   const renderConfigurationFields = () => {
@@ -385,20 +403,6 @@ export default function MailConfigForm({ config, onCancel, onSuccess }: MailConf
                 <Label htmlFor="smtp_require_tls">TLS requis (port 587)</Label>
               </div>
             </div>
-          </div>
-        );
-
-      case 'sendgrid':
-        return (
-          <div>
-            <Label htmlFor="api_key">Clé API SendGrid</Label>
-            <Input
-              id="api_key"
-              type="password"
-              placeholder="SG.xxxxxxxxxxxxxxxxxxxxx"
-              value={configuration.api_key || ''}
-              onChange={(e) => setConfiguration({...configuration, api_key: e.target.value})}
-            />
           </div>
         );
 
@@ -536,7 +540,7 @@ export default function MailConfigForm({ config, onCancel, onSuccess }: MailConf
                     setSelectedProvider(provider.id);
                     setConfiguration({
                       ...configuration,
-                      provider_type: provider.id as 'smtp' | 'gmail' | 'outlook' | 'sendgrid'
+                      provider_type: 'smtp'
                     });
                   }}
                   className={`
@@ -627,67 +631,69 @@ export default function MailConfigForm({ config, onCancel, onSuccess }: MailConf
       </Card>
 
       {/* Test de configuration */}
-      {isEditing && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TestTube2 className="w-5 h-5" />
-              Test de Configuration
-            </CardTitle>
-            <CardDescription>
-              Testez votre configuration en envoyant un email de test
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {!isTestMode ? (
-              <Button 
-                onClick={() => setIsTestMode(true)}
-                variant="outline"
-                className="w-full"
-              >
-                <TestTube2 className="w-4 h-4 mr-2" />
-                Tester la configuration
-              </Button>
-            ) : (
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="test_email">Email de test</Label>
-                  <Input
-                    id="test_email"
-                    type="email"
-                    placeholder="test@exemple.com"
-                    value={testEmail}
-                    onChange={(e) => setTestEmail(e.target.value)}
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <Button 
-                    onClick={handleTest}
-                    disabled={testConfigMutation.isPending}
-                    className="flex-1"
-                  >
-                    {testConfigMutation.isPending ? (
-                      <LoadingSpinner className="w-4 h-4 mr-2" />
-                    ) : (
-                      <Send className="w-4 h-4 mr-2" />
-                    )}
-                    Envoyer le test
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    onClick={() => {
-                      setIsTestMode(false);
-                      setTestEmail('');
-                    }}
-                  >
-                    Annuler
-                  </Button>
-                </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TestTube2 className="w-5 h-5" />
+            Test de Configuration
+          </CardTitle>
+          <CardDescription>
+            {isEditing 
+              ? 'Testez votre configuration existante en envoyant un email de test'
+              : 'Testez votre configuration avant de la sauvegarder (sauvegarde automatique pour le test)'
+            }
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {!isTestMode ? (
+            <Button 
+              onClick={() => setIsTestMode(true)}
+              variant="outline"
+              className="w-full"
+              disabled={!configuration.smtp_host || !configuration.from_email}
+            >
+              <TestTube2 className="w-4 h-4 mr-2" />
+              Tester la configuration
+            </Button>
+          ) : (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="test_email">Email de test</Label>
+                <Input
+                  id="test_email"
+                  type="email"
+                  placeholder="test@exemple.com"
+                  value={testEmail}
+                  onChange={(e) => setTestEmail(e.target.value)}
+                />
               </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+              <div className="flex gap-2">
+                <Button 
+                  onClick={handleTest}
+                  disabled={testConfigMutation.isPending}
+                  className="flex-1"
+                >
+                  {testConfigMutation.isPending ? (
+                    <LoadingSpinner className="w-4 h-4 mr-2" />
+                  ) : (
+                    <Send className="w-4 h-4 mr-2" />
+                  )}
+                  Envoyer le test
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    setIsTestMode(false);
+                    setTestEmail('');
+                  }}
+                >
+                  Annuler
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Actions */}
       <div className="flex justify-end gap-2">

@@ -15,6 +15,7 @@ import { AdminModule } from './admin/admin.module';
 import { HealthModule } from './health/health.module';
 import { CommonModule } from './common/common.module';
 import { OpenRouterModule } from './openrouter/openrouter.module';
+import { MailModule } from './mail/mail.module';
 import { StaticController } from './common/static.controller';
 
 @Module({
@@ -37,6 +38,16 @@ import { StaticController } from './common/static.controller';
         rejectUnauthorized: false,
       },
       logging: process.env.NODE_ENV === 'development' ? true : ['error'],
+      // Configuration du pool de connexions pour éviter ECONNRESET
+      extra: {
+        max: 10, // Limite du pool Supabase
+        connectionTimeoutMillis: 30000,
+        idleTimeoutMillis: 10000,
+        acquireTimeoutMillis: 30000,
+      },
+      // Retry sur les erreurs de connexion
+      retryAttempts: 3,
+      retryDelay: 3000,
     }),
     CommonModule,
     AuthModule,
@@ -52,6 +63,7 @@ import { StaticController } from './common/static.controller';
     AdminModule,
     HealthModule,
     OpenRouterModule,
+    MailModule,
   ],
   controllers: [StaticController],
 })
