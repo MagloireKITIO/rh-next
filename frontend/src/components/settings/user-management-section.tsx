@@ -202,7 +202,7 @@ export function UserManagementSection({ canManage, canView, currentUser }: UserM
           <div className="flex items-center justify-center py-8">
             <LoadingSpinner size="md" text="Chargement des utilisateurs..." />
           </div>
-        ) : usersData?.data && usersData.data.length > 0 ? (
+        ) : Array.isArray(usersData?.data) && usersData.data.length > 0 ? (
           usersData.data.map((user) => (
             <div
               key={user.id}

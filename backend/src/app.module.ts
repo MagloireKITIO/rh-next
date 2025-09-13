@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ProjectsModule } from './projects/projects.module';
 import { CandidatesModule } from './candidates/candidates.module';
 import { AiModule } from './ai/ai.module';
@@ -23,6 +24,7 @@ import { StaticController } from './common/static.controller';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    EventEmitterModule.forRoot(),
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: process.env.DATABASE_URL,
@@ -33,6 +35,11 @@ import { StaticController } from './common/static.controller';
         process.env.NODE_ENV === 'development' 
           ? 'src/migrations/*.ts'
           : 'dist/migrations/*.js'
+      ],
+      subscribers: [
+        process.env.NODE_ENV === 'development'
+          ? 'src/**/*.subscriber.ts'
+          : 'dist/**/*.subscriber.js'
       ],
       ssl: {
         rejectUnauthorized: false,

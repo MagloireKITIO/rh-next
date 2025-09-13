@@ -14,11 +14,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
-import { 
-  Mail, 
-  Plus, 
-  Edit, 
-  Trash2, 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Mail,
+  Plus,
+  Edit,
+  Trash2,
   Copy,
   Eye,
   ArrowLeft,
@@ -26,7 +27,8 @@ import {
   FileText,
   Send,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  Code2
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -63,12 +65,10 @@ export default function MailTemplates() {
     queryFn: () => adminApi.getTemplateTypes(),
   });
 
-  // Récupérer les variables pour un type
-  const { data: templateVariables } = useQuery({
-    queryKey: ['admin', 'template-variables', selectedType],
-    queryFn: () => adminApi.getTemplateVariables(selectedType),
-    enabled: !!selectedType
-  });
+  // ✅ SUPPRIMÉ - Plus de variables statiques
+  // Toutes les variables sont maintenant gérées dynamiquement
+
+  // ✅ Debug logs supprimés - Plus de variables statiques
 
   // Mutations
   const createMutation = useMutation({
@@ -228,23 +228,25 @@ export default function MailTemplates() {
               {!selectedTemplate && (
                 <div>
                   <Label htmlFor="template_type">Type de template *</Label>
-                  <select
-                    id="template_type"
+                  <Select
                     value={formData.template_type}
-                    onChange={(e) => {
-                      setFormData({...formData, template_type: e.target.value});
-                      setSelectedType(e.target.value);
+                    onValueChange={(value) => {
+                      setFormData({...formData, template_type: value});
+                      setSelectedType(value);
                     }}
-                    className="w-full p-2 border rounded-md"
                     required
                   >
-                    <option value="">Sélectionnez un type</option>
-                    {templateTypes?.data?.data?.map(type => (
-                      <option key={type.value} value={type.value}>
-                        {type.label}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionnez un type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.isArray(templateTypes?.data?.data) && templateTypes.data.data.map((type: any) => (
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
 
@@ -334,36 +336,31 @@ export default function MailTemplates() {
                       }}
                     />
                   </div>
-                  {/* Variables disponibles */}
-                  {selectedType && templateVariables?.data?.data && (
-                    <div className="mt-3 pt-3 border-t">
-                      <div className="flex flex-wrap gap-1">
-                        {templateVariables.data.data.map(variable => (
-                          <code 
-                            key={variable.name}
-                            className="text-xs font-mono bg-muted px-2 py-1 rounded cursor-pointer hover:bg-muted/80"
-                            onClick={() => {
-                              if (editorRef.current) {
-                                const editor = editorRef.current;
-                                const selection = editor.getSelection();
-                                const range = {
-                                  startLineNumber: selection.startLineNumber,
-                                  startColumn: selection.startColumn,
-                                  endLineNumber: selection.endLineNumber,
-                                  endColumn: selection.endColumn
-                                };
-                                editor.executeEdits('insert-variable', [
-                                  { range, text: variable.name, forceMoveMarkers: true }
-                                ]);
-                                editor.focus();
-                              }
-                            }}
-                          >
-                            {variable.name}
-                          </code>
-                        ))}
-                      </div>
-                    </div>
+                  {/* Variables disponibles - Mode dynamique */}
+                  {(() => {
+                    console.log('🔍 [TEMPLATE FORM] selectedType before rendering DynamicVariablesHelper:', selectedType);
+                    console.log('🔍 [TEMPLATE FORM] formData.template_type:', formData.template_type);
+                    return selectedType;
+                  })() && (
+                    <DynamicVariablesHelper
+                      templateType={selectedType}
+                      onVariableClick={(variable) => {
+                        if (editorRef.current) {
+                          const editor = editorRef.current;
+                          const selection = editor.getSelection();
+                          const range = {
+                            startLineNumber: selection.startLineNumber,
+                            startColumn: selection.startColumn,
+                            endLineNumber: selection.endLineNumber,
+                            endColumn: selection.endColumn
+                          };
+                          editor.executeEdits('insert-variable', [
+                            { range, text: variable.name, forceMoveMarkers: true }
+                          ]);
+                          editor.focus();
+                        }
+                      }}
+                    />
                   )}
                 </CardContent>
               </Card>
@@ -661,6 +658,188 @@ export default function MailTemplates() {
             </Card>
           ))}
         </div>
+      )}
+    </div>
+  );
+}
+
+// Composant pour afficher les variables dynamiquement selon le type de template
+function DynamicVariablesHelper({
+  templateType,
+  onVariableClick
+}: {
+  templateType: string;
+  onVariableClick: (variable: any) => void;
+}) {
+  console.log('🔍 [DYNAMIC VARIABLES] Component rendered with templateType:', templateType);
+
+  // Mapper le type de template vers le type d'entité pour les automations
+  const getEntityTypeFromTemplate = (templateType: string): string | null => {
+    console.log('🔍 [DYNAMIC VARIABLES] Mapping templateType:', templateType);
+
+    const mapping: Record<string, string> = {
+      // Templates candidats
+      'candidate_application': 'candidates',
+      'candidate_analysis_complete': 'candidates',
+      'CANDIDATE_APPLICATION': 'candidates',
+
+      // Templates projets
+      'project_created': 'projects',
+      'team_request_notification': 'projects',
+      'TEAM_REQUEST_NOTIFICATION': 'projects',
+
+      // Templates entreprises
+      'company_created': 'companies',
+
+      // Templates utilisateurs
+      'user_invitation': 'users',
+      'invite_user': 'users',
+      'INVITE_USER': 'users',
+      'confirm_signup': 'users',
+      'CONFIRM_SIGNUP': 'users',
+      'magic_link': 'users',
+      'MAGIC_LINK': 'users',
+      'change_email': 'users',
+      'CHANGE_EMAIL': 'users',
+      'reset_password': 'users',
+      'RESET_PASSWORD': 'users',
+      'reauthentication': 'users',
+      'REAUTHENTICATION': 'users',
+    };
+
+    const entityType = mapping[templateType] || null;
+    console.log('🔍 [DYNAMIC VARIABLES] Mapped to entityType:', entityType);
+
+    return entityType;
+  };
+
+  const entityType = getEntityTypeFromTemplate(templateType);
+
+  // ✅ SEULEMENT LES VARIABLES DYNAMIQUES - Plus de variables statiques !
+  const { data: dynamicVariables, isLoading, error } = useQuery({
+    queryKey: ['admin', 'available-variables', entityType],
+    queryFn: () => {
+      console.log('🔍 [DYNAMIC VARIABLES] Making API call for entityType:', entityType);
+      return adminApi.getAvailableVariables(entityType!);
+    },
+    enabled: !!entityType
+  });
+
+  console.log('🔍 [DYNAMIC VARIABLES] Query result:', {
+    isLoading,
+    error,
+    dynamicVariables,
+    dataStructure: dynamicVariables?.data,
+    fullResponse: JSON.stringify(dynamicVariables, null, 2)
+  });
+
+  // ✅ DEBUG - Vérifions toutes les possibilités de structure
+  console.log('🔍 [DYNAMIC VARIABLES] Data structure analysis:');
+  console.log('  - dynamicVariables?.data:', dynamicVariables?.data);
+  console.log('  - dynamicVariables?.data?.data:', dynamicVariables?.data?.data);
+  console.log('  - Array.isArray(dynamicVariables?.data):', Array.isArray(dynamicVariables?.data));
+  console.log('  - Array.isArray(dynamicVariables?.data?.data):', Array.isArray(dynamicVariables?.data?.data));
+
+  // Essayons différentes structures possibles
+  let dynamicVars: any[] = [];
+
+  if (Array.isArray(dynamicVariables?.data?.data)) {
+    dynamicVars = dynamicVariables.data.data;
+    console.log('🔍 [DYNAMIC VARIABLES] Using structure: dynamicVariables.data.data');
+  } else if (Array.isArray(dynamicVariables?.data)) {
+    dynamicVars = dynamicVariables.data;
+    console.log('🔍 [DYNAMIC VARIABLES] Using structure: dynamicVariables.data');
+  } else if (Array.isArray(dynamicVariables)) {
+    dynamicVars = dynamicVariables;
+    console.log('🔍 [DYNAMIC VARIABLES] Using structure: dynamicVariables');
+  } else {
+    console.log('🔍 [DYNAMIC VARIABLES] No array structure found in response');
+  }
+
+  console.log('🔍 [DYNAMIC VARIABLES] Final dynamicVars:', dynamicVars.length, dynamicVars);
+
+  // ✅ TOUTES les variables sont maintenant dynamiques !
+  const allVariables = dynamicVars;
+  console.log('🔍 [DYNAMIC VARIABLES] Final allVariables:', allVariables.length, allVariables);
+
+  if (isLoading) {
+    console.log('🔍 [DYNAMIC VARIABLES] Showing loading state');
+    return (
+      <div className="mt-3 pt-3 border-t">
+        <div className="flex items-center gap-2">
+          <Code2 className="w-4 h-4" />
+          <span className="text-sm">Chargement des variables...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    console.log('🔍 [DYNAMIC VARIABLES] Showing error state:', error);
+    return (
+      <div className="mt-3 pt-3 border-t">
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            <strong>❌ Erreur :</strong> Impossible de charger les variables dynamiques.
+            <br />Détails : {error.message || 'Erreur inconnue'}
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  if (allVariables.length === 0) {
+    console.log('🔍 [DYNAMIC VARIABLES] No variables found, showing appropriate message');
+    if (!entityType) {
+      return (
+        <div className="mt-3 pt-3 border-t">
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              <strong>💡 Astuce :</strong> Ce type de template n'est pas encore mappé pour les variables dynamiques.
+              Les variables seront disponibles une fois le mapping ajouté dans le code.
+            </AlertDescription>
+          </Alert>
+        </div>
+      );
+    }
+    return null;
+  }
+
+  return (
+    <div className="mt-3 pt-3 border-t">
+      <div className="flex items-center gap-2 mb-3">
+        <Code2 className="w-4 h-4" />
+        <span className="text-sm font-medium">Variables dynamiques disponibles</span>
+        <span className="text-xs text-muted-foreground">
+          ({allVariables.length} variables auto-générées)
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-h-32 overflow-y-auto">
+        {allVariables.map((variable, index) => (
+          <div key={index} className="group">
+            <code
+              className="text-xs font-mono bg-muted px-2 py-1 rounded cursor-pointer hover:bg-muted/80 transition-colors block"
+              onClick={() => onVariableClick(variable)}
+              title={variable.description}
+            >
+              {variable.name}
+            </code>
+          </div>
+        ))}
+      </div>
+
+      {entityType && allVariables.length > 0 && (
+        <Alert className="mt-2">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            <strong>🎉 Système 100% dynamique !</strong>
+            Ces {allVariables.length} variables sont automatiquement générées pour l'entité "{entityType}".
+            Ajoutez de nouveaux champs à votre entité → les variables apparaissent automatiquement !
+          </AlertDescription>
+        </Alert>
       )}
     </div>
   );

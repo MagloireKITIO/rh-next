@@ -167,7 +167,12 @@
       "Bash(npm install)",
       "Bash(npm run test:e2e:*)",
       "Bash(rm:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Read(//c/Users/stage.dsi.pmo/Desktop/dev/ActivaHR/horilla_automations/methods/**)",
+      "Read(//c/Users/stage.dsi.pmo/Desktop/dev/ActivaHR/horilla_automations/views/**)",
+      "Read(//c/Users/stage.dsi.pmo/Desktop/dev/ActivaHR/horilla_automations/**)",
+      "Read(//c/Users/stage.dsi.pmo/Desktop/dev/ActivaHR/horilla/**)",
+      "Read(//c/Users/stage.dsi.pmo/Desktop/dev/ActivaHR/**)"
     ],
     "deny": [],
     "ask": []

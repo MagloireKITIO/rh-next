@@ -414,8 +414,18 @@ export const adminApi = {
   duplicateMailTemplate: (id: string, subject?: string) =>
     apiClient.post<MailTemplate>(`/admin/mail-templates/${id}/duplicate`, { subject }),
   getTemplateTypes: () => apiClient.get<TemplateType[]>('/admin/mail-templates/types'),
-  getTemplateVariables: (type: string) => 
-    apiClient.get<TemplateVariable[]>(`/admin/mail-templates/variables/${type}`),
+  // ✅ SUPPRIMÉ - Variables maintenant gérées dynamiquement par getAvailableVariables()
+
+  // Mail Automations
+  getAllMailAutomations: () => apiClient.get('/admin/mail-automations'),
+  getMailAutomation: (id: string) => apiClient.get(`/admin/mail-automations/${id}`),
+  createMailAutomation: (data: any) => apiClient.post('/admin/mail-automations', data),
+  updateMailAutomation: (id: string, data: any) => apiClient.put(`/admin/mail-automations/${id}`, data),
+  deleteMailAutomation: (id: string) => apiClient.delete(`/admin/mail-automations/${id}`),
+  toggleMailAutomation: (id: string) => apiClient.patch(`/admin/mail-automations/${id}/toggle`),
+  getMailAutomationStats: () => apiClient.get('/admin/mail-automations/stats'),
+  getMailAutomationLogs: () => apiClient.get('/admin/mail-automations/logs'),
+  getAvailableVariables: (entityType: string) => apiClient.get(`/admin/mail-automations/available-variables/${entityType}`),
   renderTemplate: (data: {
     template_type: string;
     variables: Record<string, string>;

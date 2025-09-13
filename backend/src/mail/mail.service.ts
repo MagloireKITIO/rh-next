@@ -262,4 +262,52 @@ export class MailService {
       throw new BadRequestException(`Erreur lors de l'envoi: ${error.message}`);
     }
   }
+
+  /**
+   * Envoie un email avec un template
+   */
+  async sendWithTemplate(
+    recipient: string,
+    template: any,
+    context: Record<string, any>,
+    companyId?: string
+  ): Promise<void> {
+    const config = await this.getConfigurationForCompany(companyId);
+    
+    if (!config) {
+      throw new BadRequestException('Aucune configuration mail trouvée');
+    }
+
+    const transporter = await this.createTransporter(config);
+
+    // Remplacer les variables dans le template
+    let subject = template.subject;
+    let htmlBody = template.html_body;
+    let textBody = template.text_body || '';
+
+    // Remplacer les variables {{variable}} par les valeurs du contexte
+    Object.keys(context).forEach(key => {
+      const value = context[key] || '';
+      const regex = new RegExp(`{{${key}}}`, 'g');
+      subject = subject.replace(regex, value);
+      htmlBody = htmlBody.replace(regex, value);
+      textBody = textBody.replace(regex, value);
+    });
+
+    const mailOptions = {
+      from: `${config.from_name} <${config.from_email}>`,
+      to: recipient,
+      subject,
+      html: htmlBody,
+      text: textBody || undefined,
+    };
+
+    try {
+      await transporter.sendMail(mailOptions);
+      console.log(`✅ [MAIL] Email sent successfully to ${recipient} with template "${template.subject}"`);
+    } catch (error) {
+      console.error(`❌ [MAIL] Error sending email to ${recipient}:`, error);
+      throw new BadRequestException(`Erreur lors de l'envoi de l'email : ${error.message}`);
+    }
+  }
 }

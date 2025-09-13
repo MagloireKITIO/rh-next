@@ -32,76 +32,8 @@ export class MailTemplateService {
     private companyRepository: Repository<Company>,
   ) {}
 
-  // Variables disponibles par type de template
-  private getTemplateVariables(templateType: TemplateType): TemplateVariable[] {
-    const commonVariables: TemplateVariable[] = [
-      { name: '{{company_name}}', description: 'Nom de l\'entreprise', example: 'RH Analytics Pro' },
-      { name: '{{app_name}}', description: 'Nom de l\'application', example: 'RH Analytics Pro' },
-      { name: '{{support_email}}', description: 'Email de support', example: 'support@rh-analytics.com' },
-      { name: '{{base_url}}', description: 'URL de base de l\'application', example: 'https://app.rh-analytics.com' },
-    ];
-
-    const specificVariables: { [key in TemplateType]: TemplateVariable[] } = {
-      [TemplateType.CONFIRM_SIGNUP]: [
-        { name: '{{user_name}}', description: 'Nom de l\'utilisateur', example: 'Jean Dupont' },
-        { name: '{{user_email}}', description: 'Email de l\'utilisateur', example: 'jean@exemple.com' },
-        { name: '{{confirmation_url}}', description: 'URL de confirmation', example: 'https://app.rh-analytics.com/confirm?token=abc123' },
-        { name: '{{token}}', description: 'Token de confirmation', example: 'abc123xyz' },
-      ],
-      [TemplateType.INVITE_USER]: [
-        { name: '{{user_name}}', description: 'Nom de l\'utilisateur invité', example: 'Marie Martin' },
-        { name: '{{user_email}}', description: 'Email de l\'utilisateur invité', example: 'marie@exemple.com' },
-        { name: '{{inviter_name}}', description: 'Nom de la personne qui invite', example: 'Admin RH' },
-        { name: '{{invitation_url}}', description: 'URL d\'invitation', example: 'https://app.rh-analytics.com/invite?token=def456' },
-        { name: '{{role}}', description: 'Rôle assigné', example: 'HR Manager' },
-      ],
-      [TemplateType.MAGIC_LINK]: [
-        { name: '{{user_name}}', description: 'Nom de l\'utilisateur', example: 'Pierre Paul' },
-        { name: '{{magic_link_url}}', description: 'URL du lien magique', example: 'https://app.rh-analytics.com/magic?token=ghi789' },
-        { name: '{{expiry_time}}', description: 'Temps d\'expiration', example: '15 minutes' },
-      ],
-      [TemplateType.CHANGE_EMAIL]: [
-        { name: '{{user_name}}', description: 'Nom de l\'utilisateur', example: 'Sophie Durand' },
-        { name: '{{old_email}}', description: 'Ancien email', example: 'sophie.old@exemple.com' },
-        { name: '{{new_email}}', description: 'Nouveau email', example: 'sophie.new@exemple.com' },
-        { name: '{{confirmation_url}}', description: 'URL de confirmation', example: 'https://app.rh-analytics.com/change-email?token=jkl012' },
-      ],
-      [TemplateType.RESET_PASSWORD]: [
-        { name: '{{user_name}}', description: 'Nom de l\'utilisateur', example: 'Antoine Moreau' },
-        { name: '{{user_email}}', description: 'Email de l\'utilisateur', example: 'antoine@exemple.com' },
-        { name: '{{reset_url}}', description: 'URL de réinitialisation', example: 'https://app.rh-analytics.com/reset?token=mno345' },
-        { name: '{{expiry_time}}', description: 'Temps d\'expiration', example: '1 heure' },
-      ],
-      [TemplateType.REAUTHENTICATION]: [
-        { name: '{{user_name}}', description: 'Nom de l\'utilisateur', example: 'Lucie Bernard' },
-        { name: '{{login_url}}', description: 'URL de connexion', example: 'https://app.rh-analytics.com/login' },
-        { name: '{{security_reason}}', description: 'Raison de la ré-authentification', example: 'Activité suspecte détectée' },
-      ],
-      [TemplateType.TEAM_REQUEST_NOTIFICATION]: [
-        { name: '{{requester_name}}', description: 'Nom du demandeur', example: 'Équipe Marketing' },
-        { name: '{{requester_email}}', description: 'Email du demandeur', example: 'marketing@entreprise.com' },
-        { name: '{{project_name}}', description: 'Nom du projet', example: 'Recrutement Chef de Produit' },
-        { name: '{{request_url}}', description: 'URL de la demande', example: 'https://app.rh-analytics.com/requests/123' },
-        { name: '{{message}}', description: 'Message de la demande', example: 'Nous avons besoin d\'aide pour analyser les candidats...' },
-      ],
-      [TemplateType.CANDIDATE_ANALYSIS_COMPLETE]: [
-        { name: '{{user_name}}', description: 'Nom de l\'utilisateur', example: 'Manager RH' },
-        { name: '{{project_name}}', description: 'Nom du projet', example: 'Recrutement Développeur' },
-        { name: '{{candidate_count}}', description: 'Nombre de candidats analysés', example: '12' },
-        { name: '{{project_url}}', description: 'URL du projet', example: 'https://app.rh-analytics.com/projects/456' },
-        { name: '{{analysis_summary}}', description: 'Résumé de l\'analyse', example: 'Score moyen: 8.5/10' },
-      ],
-      [TemplateType.PROJECT_SHARED]: [
-        { name: '{{user_name}}', description: 'Nom de l\'utilisateur', example: 'Partenaire RH' },
-        { name: '{{project_name}}', description: 'Nom du projet partagé', example: 'Analyse Candidats Stage' },
-        { name: '{{shared_by}}', description: 'Partagé par', example: 'Direction RH' },
-        { name: '{{share_url}}', description: 'URL de partage', example: 'https://app.rh-analytics.com/shared/789' },
-        { name: '{{access_level}}', description: 'Niveau d\'accès', example: 'Lecture seule' },
-      ],
-    };
-
-    return [...commonVariables, ...specificVariables[templateType]];
-  }
+  // ✅ SUPPRESSION TOTALE DU SYSTÈME STATIQUE
+  // Les variables sont maintenant gérées dynamiquement par le MailAutomationService
 
   // CRUD Operations
   async getAllTemplates(companyId?: string): Promise<MailTemplate[]> {
@@ -185,12 +117,11 @@ export class MailTemplateService {
       }
     }
 
-    // Ajouter les variables disponibles pour ce type
-    const availableVariables = JSON.stringify(this.getTemplateVariables(createDto.template_type));
+    // ✅ Plus de variables statiques - tout est dynamique maintenant
 
     const template = this.templateRepository.create({
       ...createDto,
-      available_variables: availableVariables
+      available_variables: null // ✅ Plus de variables statiques stockées
     });
 
     return this.templateRepository.save(template);
@@ -261,10 +192,8 @@ export class MailTemplateService {
     };
   }
 
-  // Obtenir les variables disponibles pour un type de template
-  async getAvailableVariables(templateType: TemplateType): Promise<TemplateVariable[]> {
-    return this.getTemplateVariables(templateType);
-  }
+  // ✅ MÉTHODE SUPPRIMÉE - Variables maintenant gérées par le système d'automatisation dynamique
+  // Utiliser MailAutomationService.getAvailableVariables() à la place
 
   // Créer les templates par défaut
   async createDefaultTemplates(): Promise<void> {

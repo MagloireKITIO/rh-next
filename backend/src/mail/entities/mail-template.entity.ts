@@ -18,6 +18,7 @@ export enum TemplateType {
   REAUTHENTICATION = 'reauthentication',
   TEAM_REQUEST_NOTIFICATION = 'team_request_notification',
   CANDIDATE_ANALYSIS_COMPLETE = 'candidate_analysis_complete',
+  CANDIDATE_APPLICATION = 'candidate_application',
   PROJECT_SHARED = 'project_shared'
 }
 

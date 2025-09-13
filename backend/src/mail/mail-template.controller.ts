@@ -48,11 +48,8 @@ export class MailTemplateController {
     return { data: types };
   }
 
-  @Get('variables/:type')
-  async getAvailableVariables(@Param('type') type: TemplateType) {
-    const variables = await this.templateService.getAvailableVariables(type);
-    return { data: variables };
-  }
+  // ✅ ENDPOINT SUPPRIMÉ - Variables maintenant gérées dynamiquement
+  // Utiliser GET /admin/mail-automations/available-variables/:entityType à la place
 
   @Get(':id')
   async getTemplateById(@Param('id') id: string) {
@@ -131,6 +128,7 @@ export class MailTemplateController {
       [TemplateType.REAUTHENTICATION]: 'Ré-authentification',
       [TemplateType.TEAM_REQUEST_NOTIFICATION]: 'Notification demande équipe',
       [TemplateType.CANDIDATE_ANALYSIS_COMPLETE]: 'Analyse candidat terminée',
+      [TemplateType.CANDIDATE_APPLICATION]: 'Candidature reçue',
       [TemplateType.PROJECT_SHARED]: 'Projet partagé'
     };
     return labels[type] || type;
@@ -146,6 +144,7 @@ export class MailTemplateController {
       [TemplateType.REAUTHENTICATION]: 'Email demandant une nouvelle authentification',
       [TemplateType.TEAM_REQUEST_NOTIFICATION]: 'Notification d\'une demande d\'équipe externe',
       [TemplateType.CANDIDATE_ANALYSIS_COMPLETE]: 'Notification de fin d\'analyse des candidats',
+      [TemplateType.CANDIDATE_APPLICATION]: 'Email envoyé lors de la réception d\'une nouvelle candidature',
       [TemplateType.PROJECT_SHARED]: 'Notification de partage d\'un projet'
     };
     return descriptions[type] || '';

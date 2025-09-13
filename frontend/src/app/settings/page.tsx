@@ -15,10 +15,11 @@ import { cn } from "@/lib/utils";
 import { AIConfigurationSection } from "@/components/settings/ai-configuration-section";
 import { UserManagementSection } from "@/components/settings/user-management-section";
 import { TeamRequestsSection } from "@/components/settings/team-requests-section";
+import { MailAutomationsSection } from "@/components/settings/mail-automations-section";
 import { SystemInfoSection } from "@/components/settings/system-info-section";
 import { HelpSection } from "@/components/settings/help-section";
 
-type TabType = "ai" | "users" | "teams" | "system" | "help";
+type TabType = "ai" | "users" | "teams" | "mail-automations" | "system" | "help";
 
 const tabs: Array<{ 
   id: TabType; 
@@ -30,6 +31,7 @@ const tabs: Array<{
   { id: "ai", label: "Configuration IA", icon: <Brain className="h-4 w-4" />, adminOnly: true },
   { id: "users", label: "Utilisateurs", icon: <Users className="h-4 w-4" />, hrAccess: true },
   { id: "teams", label: "Demandes d'équipe", icon: <UserCheck className="h-4 w-4" />, adminOnly: true },
+  { id: "mail-automations", label: "Automatisations Email", icon: <Mail className="h-4 w-4" />, hrAccess: true },
   { id: "system", label: "Système", icon: <Info className="h-4 w-4" /> },
   { id: "help", label: "Aide", icon: <HelpCircle className="h-4 w-4" /> },
 ];
@@ -231,6 +233,24 @@ function SettingsContent() {
                 </CardHeader>
                 <CardContent>
                   <TeamRequestsSection />
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Mail Automations - HR Access */}
+            {activeTab === "mail-automations" && canViewUsers && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Mail className="h-5 w-5" />
+                    Automatisations Email
+                  </CardTitle>
+                  <CardDescription>
+                    Configurez l'envoi automatique d'emails basé sur les actions de votre entreprise
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <MailAutomationsSection />
                 </CardContent>
               </Card>
             )}

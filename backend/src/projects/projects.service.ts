@@ -512,8 +512,7 @@ export class ProjectsService {
         await this.analysisQueueService.addToQueue(savedCandidate.id, savedCandidate, project);
         this.logger.log(`🔍 Candidate added to analysis queue: ${candidateName}`);
 
-        // ✅ Automatisations désormais gérées automatiquement par AutomationSubscriber
-        // Les triggers ON_CREATE sont déclenchés automatiquement lors de la sauvegarde du candidat
+        // ✅ Les automatisations sont maintenant déclenchées automatiquement par AutomationSubscriber
         this.logger.log(`📧 Automation triggers will be executed automatically for candidate: ${candidateName}`);
 
         return {
