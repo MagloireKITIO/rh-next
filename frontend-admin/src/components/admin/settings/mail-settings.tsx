@@ -65,10 +65,13 @@ export default function MailSettings() {
   });
 
   // Récupérer les stats des automatisations
-  const { data: automationStats } = useQuery({
+  const { data: automationStats, error: automationStatsError, isLoading: automationStatsLoading } = useQuery({
     queryKey: ['admin', 'mail-automation-stats'],
     queryFn: () => adminApi.getMailAutomationStats(),
   });
+
+  // Extraire les données - double imbrication car useQuery + backend retournent tous les deux { data: ... }
+  const stats = automationStats?.data?.data;
 
   // Récupérer toutes les automatisations
   const { data: automations, isLoading: automationsLoading, error: automationsError } = useQuery({
@@ -439,7 +442,7 @@ export default function MailSettings() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Total</p>
-                  <p className="text-2xl font-bold">{automationStats?.data?.total || 0}</p>
+                  <p className="text-2xl font-bold">{stats?.total || 0}</p>
                 </div>
                 <Mail className="w-8 h-8 text-muted-foreground" />
               </div>
@@ -451,7 +454,7 @@ export default function MailSettings() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Actives</p>
-                  <p className="text-2xl font-bold text-green-600">{automationStats?.data?.active || 0}</p>
+                  <p className="text-2xl font-bold text-green-600">{stats?.active || 0}</p>
                 </div>
                 <CheckCircle className="w-8 h-8 text-green-600" />
               </div>
@@ -463,7 +466,7 @@ export default function MailSettings() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Cette semaine</p>
-                  <p className="text-2xl font-bold text-blue-600">{automationStats?.data?.thisWeek || 0}</p>
+                  <p className="text-2xl font-bold text-blue-600">{stats?.thisWeek || 0}</p>
                 </div>
                 <AlertCircle className="w-8 h-8 text-blue-600" />
               </div>
@@ -475,7 +478,7 @@ export default function MailSettings() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Erreurs</p>
-                  <p className="text-2xl font-bold text-red-600">{automationStats?.data?.errors || 0}</p>
+                  <p className="text-2xl font-bold text-red-600">{stats?.errors || 0}</p>
                 </div>
                 <AlertCircle className="w-8 h-8 text-red-600" />
               </div>

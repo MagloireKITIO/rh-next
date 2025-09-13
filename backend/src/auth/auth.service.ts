@@ -46,7 +46,6 @@ export class AuthService {
     }
 
     // Sign up with Supabase
-    console.log('🔧 Tentative d\'inscription Supabase pour:', email);
     const { data, error } = await this.supabase.auth.signUp({
       email,
       password,
@@ -58,11 +57,6 @@ export class AuthService {
       },
     });
 
-    console.log('📧 Réponse Supabase signUp:', { 
-      user: data?.user?.id, 
-      session: !!data?.session,
-      error: error?.message 
-    });
 
     if (error) {
       console.error('❌ Erreur Supabase signUp:', error);
@@ -123,11 +117,9 @@ export class AuthService {
     } else {
       // Mettre à jour l'état de vérification si nécessaire
       if (data.user.email_confirmed_at && (!user.email_verified || !user.is_active)) {
-        console.log('🔄 Synchronisation état utilisateur après vérification email');
         user.email_verified = true;
         user.is_active = true;
         await this.userRepository.save(user);
-        console.log('✅ Utilisateur activé et email vérifié');
       }
     }
 
@@ -189,7 +181,6 @@ export class AuthService {
 
     // Pour les super admins, pas de vérification d'email nécessaire
     if (user.role === UserRole.SUPER_ADMIN) {
-      console.log('🔑 Connexion super admin - bypass vérification email');
       
       // S'assurer que l'admin est actif
       if (!user.is_active) {
@@ -227,13 +218,11 @@ export class AuthService {
     const { access_token } = googleAuthDto;
 
     try {
-      console.log('🔍 googleAuth appelé avec token:', access_token ? 'Présent' : 'Absent');
       
       // Get user info from Supabase
       const { data: { user: supabaseUser }, error } = await this.supabase.auth.getUser(access_token);
 
       if (error || !supabaseUser) {
-        console.log('❌ Erreur Supabase getUser:', error);
         throw new UnauthorizedException('Invalid Google token');
       }
 
@@ -277,8 +266,7 @@ export class AuthService {
           user.email_verified = true;
           user.is_active = true;
           await this.userRepository.save(user);
-          console.log('✅ Utilisateur activé et email vérifié');
-        }
+          }
       }
 
       const payload = { sub: user.id, email: user.email };
@@ -351,7 +339,6 @@ export class AuthService {
     }
 
     // Inscription avec Supabase AVEC validation d'email (même pour les entreprises)
-    console.log('🔧 Tentative d\'inscription Supabase pour:', email);
     const { data, error } = await this.supabase.auth.signUp({
       email,
       password,
@@ -363,11 +350,6 @@ export class AuthService {
       },
     });
 
-    console.log('📧 Réponse Supabase signUp:', { 
-      user: data?.user?.id, 
-      session: !!data?.session,
-      error: error?.message 
-    });
 
     if (error) {
       console.error('❌ Erreur Supabase signUp:', error);

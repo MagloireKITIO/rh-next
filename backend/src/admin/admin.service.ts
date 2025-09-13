@@ -316,10 +316,6 @@ export class AdminService {
       const savedUser = await this.userRepository.save(user);
 
       // TODO: Envoyer l'invitation par email (service mail à réimplémenter)
-      console.log('📨 Invitation créée pour:', createUserDto.email);
-      console.log('Token d\'invitation:', invitationToken);
-
-      console.log('✅ Utilisateur créé et invitation envoyée à:', createUserDto.email);
       
       return {
         ...savedUser,
@@ -390,10 +386,6 @@ export class AdminService {
       await this.userRepository.save(user);
 
       // TODO: Renvoyer l'invitation par email (service mail à réimplémenter)
-      console.log('📨 Renvoi d\'invitation pour:', user.email);
-      console.log('Nouveau token d\'invitation:', newInvitationToken);
-
-      console.log('✅ Invitation renvoyée à:', user.email);
       
       return {
         message: `Invitation renvoyée à ${user.email}`,

@@ -110,14 +110,22 @@ export class MailAutomationService {
     // Query pour le total
     let totalQuery = this.mailAutomationRepository.createQueryBuilder('automation');
     if (userRole !== UserRole.SUPER_ADMIN) {
-      totalQuery.where('automation.company_id = :companyId', { companyId });
+      // Inclure les automations de l'entreprise ET les automations système
+      totalQuery.where('(automation.company_id = :companyId OR automation.visibility = :systemVisibility)', {
+        companyId,
+        systemVisibility: VisibilityType.SYSTEM
+      });
     }
     const total = await totalQuery.getCount();
 
     // Query séparée pour les actives
     let activeQuery = this.mailAutomationRepository.createQueryBuilder('automation');
     if (userRole !== UserRole.SUPER_ADMIN) {
-      activeQuery.where('automation.company_id = :companyId', { companyId });
+      // Inclure les automations de l'entreprise ET les automations système
+      activeQuery.where('(automation.company_id = :companyId OR automation.visibility = :systemVisibility)', {
+        companyId,
+        systemVisibility: VisibilityType.SYSTEM
+      });
     }
     activeQuery.andWhere('automation.is_active = true');
     const active = await activeQuery.getCount();
@@ -131,7 +139,11 @@ export class MailAutomationService {
       .where('log.created_at >= :oneWeekAgo', { oneWeekAgo });
 
     if (userRole !== UserRole.SUPER_ADMIN) {
-      logQuery.andWhere('automation.company_id = :companyId', { companyId });
+      // Inclure les logs des automations de l'entreprise ET des automations système
+      logQuery.andWhere('(automation.company_id = :companyId OR automation.visibility = :systemVisibility)', {
+        companyId,
+        systemVisibility: VisibilityType.SYSTEM
+      });
     }
 
     const thisWeek = await logQuery.getCount();
@@ -143,7 +155,11 @@ export class MailAutomationService {
       .andWhere('log.status = :status', { status: AutomationLogStatus.ERROR });
 
     if (userRole !== UserRole.SUPER_ADMIN) {
-      errorQuery.andWhere('automation.company_id = :companyId', { companyId });
+      // Inclure les logs des automations de l'entreprise ET des automations système
+      errorQuery.andWhere('(automation.company_id = :companyId OR automation.visibility = :systemVisibility)', {
+        companyId,
+        systemVisibility: VisibilityType.SYSTEM
+      });
     }
 
     const errors = await errorQuery.getCount();
@@ -164,7 +180,11 @@ export class MailAutomationService {
       .limit(limit);
 
     if (userRole !== UserRole.SUPER_ADMIN) {
-      query.where('automation.company_id = :companyId', { companyId });
+      // Inclure les logs des automations de l'entreprise ET des automations système
+      query.where('(automation.company_id = :companyId OR automation.visibility = :systemVisibility)', {
+        companyId,
+        systemVisibility: VisibilityType.SYSTEM
+      });
     }
 
     return await query.getMany();

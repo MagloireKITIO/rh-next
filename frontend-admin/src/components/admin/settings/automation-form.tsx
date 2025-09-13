@@ -379,7 +379,7 @@ function VariablesHelper({ entityType }: { entityType: string }) {
     );
   }
 
-  if (!variables?.data || variables.data.length === 0) {
+  if (!variables?.data || !Array.isArray(variables.data) || variables.data.length === 0) {
     return null;
   }
 
@@ -396,7 +396,7 @@ function VariablesHelper({ entityType }: { entityType: string }) {
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-h-48 overflow-y-auto">
-          {variables.data.map((variable: any, index: number) => (
+          {Array.isArray(variables.data) && variables.data.map((variable: any, index: number) => (
             <div
               key={index}
               className="group cursor-pointer"
@@ -417,7 +417,7 @@ function VariablesHelper({ entityType }: { entityType: string }) {
         <div className="mt-3 pt-3 border-t">
           <p className="text-xs text-muted-foreground">
             <strong>Astuce :</strong> Toutes ces variables sont automatiquement disponibles dans vos templates d'emails.
-            Le système génère dynamiquement {variables.data.length} variables basées sur l'entité sélectionnée.
+            Le système génère dynamiquement {Array.isArray(variables.data) ? variables.data.length : 0} variables basées sur l'entité sélectionnée.
           </p>
         </div>
       </CardContent>

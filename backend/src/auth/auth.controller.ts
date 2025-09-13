@@ -28,26 +28,22 @@ export class AuthController {
 
   @Post('company-signup')
   async companySignUp(@Body() companySignUpDto: CompanySignUpDto) {
-    console.log('🚀 POST /auth/company-signup called with:', companySignUpDto);
     return this.authService.companySignUp(companySignUpDto);
   }
 
   @Post('accept-invitation')
   async acceptInvitation(@Body() acceptInvitationDto: AcceptInvitationDto) {
-    console.log('🚀 POST /auth/accept-invitation called with:', acceptInvitationDto);
     return this.authService.acceptInvitation(acceptInvitationDto);
   }
 
   @Post('finalize-invitation')
   async finalizeInvitation(@Body() body: { email: string; supabaseUserId: string }) {
-    console.log('🚀 POST /auth/finalize-invitation called with:', body);
     return this.authService.finalizeInvitation(body.email, body.supabaseUserId);
   }
 
   @Post('complete-company-google')
   @UseGuards(JwtAuthGuard)
   async completeCompanyGoogle(@Request() req, @Body() completeCompanyDto: CompleteCompanyGoogleDto) {
-    console.log('🚀 POST /auth/complete-company-google called for user:', req.user.id);
     return this.authService.completeCompanyGoogle(req.user.id, completeCompanyDto);
   }
 
@@ -65,13 +61,11 @@ export class AuthController {
 
   @Post('verify-email')
   async verifyEmail(@Body() body: { token: string }) {
-    console.log('🔍 POST /auth/verify-email called with token:', body.token);
     return this.authService.verifyEmail(body.token);
   }
 
   @Post('resend-verification')
   async resendVerification(@Body() body: { email: string }) {
-    console.log('📧 POST /auth/resend-verification called for:', body.email);
     return this.authService.resendVerificationEmail(body.email);
   }
 
@@ -97,21 +91,18 @@ export class AuthController {
   @Put('profile')
   @UseGuards(JwtAuthGuard)
   async updateProfile(@Request() req, @Body() updateProfileDto: UpdateProfileDto) {
-    console.log('🔄 PUT /auth/profile called for user:', req.user.id);
     return this.authService.updateProfile(req.user.id, updateProfileDto);
   }
 
   @Post('change-password')
   @UseGuards(JwtAuthGuard)
   async changePassword(@Request() req, @Body() changePasswordDto: ChangePasswordDto) {
-    console.log('🔐 POST /auth/change-password called for user:', req.user.id);
     return this.authService.changePassword(req.user.id, changePasswordDto);
   }
 
   @Delete('delete-account')
   @UseGuards(JwtAuthGuard)
   async deleteAccount(@Request() req, @Body() deleteAccountDto: DeleteAccountDto) {
-    console.log('🗑️ DELETE /auth/delete-account called for user:', req.user.id);
     return this.authService.deleteAccount(req.user.id, deleteAccountDto);
   }
 
@@ -138,7 +129,6 @@ export class AuthController {
     },
   }))
   async uploadAvatar(@Request() req, @UploadedFile() file: Express.Multer.File) {
-    console.log('📸 POST /auth/avatar called for user:', req.user.id);
     if (!file) {
       throw new BadRequestException('Aucun fichier fourni');
     }
