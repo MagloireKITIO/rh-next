@@ -406,10 +406,10 @@ export default function CandidateDetailPage() {
                   <span className="text-sm">{candidate.name}</span>
                 </div>
                 
-                {candidate.extractedData?.email && (
+                {candidate.email && (
                   <div className="flex items-center gap-2">
                     <Mail className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{candidate.extractedData.email}</span>
+                    <span className="text-sm">{candidate.email}</span>
                   </div>
                 )}
                 
