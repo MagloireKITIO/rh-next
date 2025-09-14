@@ -11,6 +11,7 @@ import { AutomationEventService } from './automation-event.service';
 import { AutomationSubscriber } from './subscribers/automation.subscriber';
 import { MailConfiguration } from './entities/mail-configuration.entity';
 import { MailConfigurationCompany } from './entities/mail-configuration-company.entity';
+import { EmailHistory } from './entities/email-history.entity';
 import { MailTemplate } from './entities/mail-template.entity';
 import { MailAutomation } from './entities/mail-automation.entity';
 import { AutomationLog } from './entities/automation-log.entity';
@@ -22,6 +23,7 @@ import { Project } from '../projects/entities/project.entity';
     TypeOrmModule.forFeature([
       MailConfiguration,
       MailConfigurationCompany,
+      EmailHistory,
       MailTemplate,
       MailAutomation,
       AutomationLog,

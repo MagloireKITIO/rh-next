@@ -172,6 +172,7 @@ export class CandidatesController {
       subject: emailData.subject,
       html: htmlMessage,
       companyId: companyId,
+      candidateId: candidateId,
       attachments: mailAttachments,
     });
 
@@ -194,43 +195,28 @@ export class CandidatesController {
       throw new Error('Candidat non trouvé');
     }
 
-    // Pour l'instant, on retourne des données simulées
-    // En production, ceci devrait être récupéré depuis une table email_history
-    const mockEmailHistory = [
-      {
-        id: '1',
-        to: candidate.email || candidate.extractedData?.email || 'candidat@example.com',
-        subject: 'À propos de votre candidature - Premier contact',
-        message: 'Bonjour, nous avons bien reçu votre candidature...',
-        status: 'delivered',
-        sentAt: new Date('2025-01-13T10:30:00Z').toISOString(),
-        deliveredAt: new Date('2025-01-13T10:32:15Z').toISOString(),
-        readAt: new Date('2025-01-13T14:20:30Z').toISOString(),
-      },
-      {
-        id: '2',
-        to: candidate.email || candidate.extractedData?.email || 'candidat@example.com',
-        subject: 'Invitation entretien - Développeur Senior',
-        message: 'Nous souhaitons vous rencontrer pour un entretien...',
-        status: 'sent',
-        sentAt: new Date('2025-01-14T09:15:00Z').toISOString(),
-      },
-      {
-        id: '3',
-        to: 'wrong-email@example.com',
-        subject: 'Test de relance candidature',
-        message: 'Message de relance...',
-        status: 'failed',
-        sentAt: new Date('2025-01-12T16:45:00Z').toISOString(),
-        failureReason: 'Adresse email invalide',
-      }
-    ];
+    // Récupérer le vrai historique des emails depuis la base de données
+    const emailHistory = await this.mailService.getCandidateEmailHistory(candidateId, companyId);
+
+    // Formatter les données pour le frontend
+    const formattedEmails = emailHistory.map(email => ({
+      id: email.id,
+      to: email.to,
+      subject: email.subject,
+      message: email.message,
+      status: email.status,
+      sentAt: email.created_at.toISOString(),
+      deliveredAt: email.delivered_at?.toISOString(),
+      readAt: email.read_at?.toISOString(),
+      failureReason: email.failure_reason,
+      attachments: email.attachments
+    }));
 
     return {
       success: true,
       candidateId: candidateId,
       candidateName: candidate.name,
-      emails: mockEmailHistory
+      emails: formattedEmails
     };
   }
 

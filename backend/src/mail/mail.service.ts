@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 import { MailConfiguration } from './entities/mail-configuration.entity';
 import { MailConfigurationCompany } from './entities/mail-configuration-company.entity';
+import { EmailHistory, EmailStatus } from './entities/email-history.entity';
 import { Company } from '../companies/entities/company.entity';
 
 export interface CreateMailConfigDto {
@@ -31,6 +32,8 @@ export class MailService {
     private mailConfigRepository: Repository<MailConfiguration>,
     @InjectRepository(MailConfigurationCompany)
     private mailConfigCompanyRepository: Repository<MailConfigurationCompany>,
+    @InjectRepository(EmailHistory)
+    private emailHistoryRepository: Repository<EmailHistory>,
     @InjectRepository(Company)
     private companyRepository: Repository<Company>,
     private configService: ConfigService,
@@ -268,6 +271,7 @@ export class MailService {
     subject: string;
     html: string;
     companyId?: string;
+    candidateId?: string;
     attachments?: Array<{
       filename: string;
       content: Buffer;
@@ -278,6 +282,24 @@ export class MailService {
 
     if (!config) {
       throw new BadRequestException('Aucune configuration mail trouvée');
+    }
+
+    // Créer l'entrée dans l'historique
+    let emailHistory: EmailHistory | null = null;
+    if (options.candidateId && options.companyId) {
+      emailHistory = await this.createEmailHistory({
+        to: options.to,
+        subject: options.subject,
+        message: options.html.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>/g, ''), // Convertir HTML en texte
+        htmlContent: options.html,
+        candidateId: options.candidateId,
+        companyId: options.companyId,
+        attachments: options.attachments?.map(att => ({
+          filename: att.filename,
+          contentType: att.contentType,
+          size: att.content.length
+        }))
+      });
     }
 
     const transporter = await this.createTransporter(config);
@@ -293,8 +315,19 @@ export class MailService {
     try {
       await transporter.sendMail(mailOptions);
       console.log(`✅ Email envoyé à ${options.to} avec ${options.attachments?.length || 0} pièce(s) jointe(s)`);
+
+      // Mettre à jour le statut dans l'historique
+      if (emailHistory) {
+        await this.updateEmailStatus(emailHistory.id, EmailStatus.SENT, new Date());
+      }
     } catch (error) {
       console.error('Erreur envoi email:', error);
+
+      // Mettre à jour le statut d'échec dans l'historique
+      if (emailHistory) {
+        await this.updateEmailStatus(emailHistory.id, EmailStatus.FAILED, null, error.message);
+      }
+
       throw new BadRequestException(`Erreur lors de l'envoi: ${error.message}`);
     }
   }
@@ -345,5 +378,89 @@ export class MailService {
       console.error(`❌ [MAIL] Error sending email to ${recipient}:`, error);
       throw new BadRequestException(`Erreur lors de l'envoi de l'email : ${error.message}`);
     }
+  }
+
+  // Email History Operations
+  async createEmailHistory(data: {
+    to: string;
+    subject: string;
+    message: string;
+    htmlContent?: string;
+    candidateId: string;
+    companyId: string;
+    attachments?: Array<{
+      filename: string;
+      contentType: string;
+      size: number;
+    }>;
+  }): Promise<EmailHistory> {
+    const emailHistory = this.emailHistoryRepository.create({
+      to: data.to,
+      subject: data.subject,
+      message: data.message,
+      html_content: data.htmlContent,
+      candidate_id: data.candidateId,
+      company_id: data.companyId,
+      attachments: data.attachments,
+      status: EmailStatus.PENDING
+    });
+
+    return this.emailHistoryRepository.save(emailHistory);
+  }
+
+  async updateEmailStatus(
+    emailId: string,
+    status: EmailStatus,
+    timestamp?: Date,
+    failureReason?: string
+  ): Promise<EmailHistory> {
+    const emailHistory = await this.emailHistoryRepository.findOne({
+      where: { id: emailId }
+    });
+
+    if (!emailHistory) {
+      throw new NotFoundException('Email history not found');
+    }
+
+    emailHistory.status = status;
+
+    switch (status) {
+      case EmailStatus.SENT:
+        emailHistory.sent_at = timestamp;
+        break;
+      case EmailStatus.DELIVERED:
+        emailHistory.delivered_at = timestamp;
+        break;
+      case EmailStatus.FAILED:
+        emailHistory.failure_reason = failureReason;
+        break;
+    }
+
+    return this.emailHistoryRepository.save(emailHistory);
+  }
+
+  async getCandidateEmailHistory(candidateId: string, companyId: string): Promise<EmailHistory[]> {
+    return this.emailHistoryRepository.find({
+      where: {
+        candidate_id: candidateId,
+        company_id: companyId
+      },
+      order: { created_at: 'DESC' }
+    });
+  }
+
+  async getAllEmailHistory(companyId: string, page = 1, limit = 50): Promise<{
+    emails: EmailHistory[];
+    total: number;
+  }> {
+    const [emails, total] = await this.emailHistoryRepository.findAndCount({
+      where: { company_id: companyId },
+      relations: ['candidate'],
+      order: { created_at: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit
+    });
+
+    return { emails, total };
   }
 }
