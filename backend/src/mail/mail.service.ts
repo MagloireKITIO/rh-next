@@ -240,7 +240,7 @@ export class MailService {
     companyId?: string;
   }): Promise<void> {
     const config = await this.getConfigurationForCompany(options.companyId);
-    
+
     if (!config) {
       throw new BadRequestException('Aucune configuration mail trouvée');
     }
@@ -257,6 +257,42 @@ export class MailService {
     try {
       await transporter.sendMail(mailOptions);
       console.log(`✅ Email envoyé à ${options.to}`);
+    } catch (error) {
+      console.error('Erreur envoi email:', error);
+      throw new BadRequestException(`Erreur lors de l'envoi: ${error.message}`);
+    }
+  }
+
+  async sendEmailWithAttachments(options: {
+    to: string;
+    subject: string;
+    html: string;
+    companyId?: string;
+    attachments?: Array<{
+      filename: string;
+      content: Buffer;
+      contentType: string;
+    }>;
+  }): Promise<void> {
+    const config = await this.getConfigurationForCompany(options.companyId);
+
+    if (!config) {
+      throw new BadRequestException('Aucune configuration mail trouvée');
+    }
+
+    const transporter = await this.createTransporter(config);
+
+    const mailOptions = {
+      from: `${config.from_name} <${config.from_email}>`,
+      to: options.to,
+      subject: options.subject,
+      html: options.html,
+      attachments: options.attachments || [],
+    };
+
+    try {
+      await transporter.sendMail(mailOptions);
+      console.log(`✅ Email envoyé à ${options.to} avec ${options.attachments?.length || 0} pièce(s) jointe(s)`);
     } catch (error) {
       console.error('Erreur envoi email:', error);
       throw new BadRequestException(`Erreur lors de l'envoi: ${error.message}`);

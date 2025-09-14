@@ -8,19 +8,22 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ScoreIndicator } from "@/components/ui/score-indicator";
-import { 
-  ArrowLeft, 
-  FileText, 
+import {
+  ArrowLeft,
+  FileText,
   Download,
   User,
   Mail,
   Phone,
   Calendar,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  History
 } from "lucide-react";
 import { toast } from "sonner";
 import { candidatesApi } from "@/lib/api-client";
+import { EmailHistoryModal } from "@/components/candidate/email-history-modal";
+import { SendEmailModal, EmailData } from "@/components/candidate/send-email-modal";
 
 interface Candidate {
   id: string;
@@ -50,6 +53,8 @@ export default function CandidateDetailPage() {
   
   const [candidate, setCandidate] = useState<Candidate | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showEmailHistory, setShowEmailHistory] = useState(false);
+  const [showSendEmail, setShowSendEmail] = useState(false);
 
   useEffect(() => {
     const fetchCandidate = async () => {
@@ -85,13 +90,32 @@ export default function CandidateDetailPage() {
       const link = document.createElement('a');
       // Si l'URL commence par http, c'est déjà une URL complète (Supabase)
       // Sinon, c'est un chemin local qui nécessite le backend URL
-      link.href = candidate.fileUrl.startsWith('http') 
-        ? candidate.fileUrl 
+      link.href = candidate.fileUrl.startsWith('http')
+        ? candidate.fileUrl
         : `${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'}/${candidate.fileUrl}`;
       link.download = candidate.fileName;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+    }
+  };
+
+  const handleSendEmail = async (emailData: EmailData) => {
+    if (!candidate) return;
+
+    try {
+      await candidatesApi.sendEmail(candidate.id, {
+        to: emailData.to,
+        subject: emailData.subject,
+        message: emailData.message,
+        attachments: emailData.attachments // Envoyer les fichiers directement
+      });
+
+      toast.success(`Email envoyé avec succès à ${emailData.to}`);
+    } catch (error) {
+      console.error('Error sending email:', error);
+      toast.error('Erreur lors de l\'envoi de l\'email');
+      throw error;
     }
   };
 
@@ -441,7 +465,7 @@ export default function CandidateDetailPage() {
                 <CardTitle>Actions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button 
+                <Button
                   onClick={handleDownloadCV}
                   className="w-full gap-2"
                   variant="outline"
@@ -449,14 +473,32 @@ export default function CandidateDetailPage() {
                   <Download className="h-4 w-4" />
                   Télécharger le CV
                 </Button>
-                
-                <Button 
+
+                <Button
+                  onClick={() => setShowSendEmail(true)}
+                  className="w-full gap-2"
+                  variant="outline"
+                >
+                  <Mail className="h-4 w-4" />
+                  Envoyer un email
+                </Button>
+
+                <Button
                   onClick={() => window.open(candidate.fileUrl.startsWith('http') ? candidate.fileUrl : `${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'}/${candidate.fileUrl}`, '_blank')}
                   className="w-full gap-2"
                   variant="outline"
                 >
                   <FileText className="h-4 w-4" />
                   Voir le PDF
+                </Button>
+
+                <Button
+                  onClick={() => setShowEmailHistory(true)}
+                  className="w-full gap-2"
+                  variant="outline"
+                >
+                  <History className="h-4 w-4" />
+                  Historique des mails
                 </Button>
               </CardContent>
             </Card>
@@ -494,6 +536,22 @@ export default function CandidateDetailPage() {
           </motion.div>
         </div>
       </div>
+
+      {/* Modal d'envoi d'email */}
+      <SendEmailModal
+        candidate={candidate}
+        isOpen={showSendEmail}
+        onClose={() => setShowSendEmail(false)}
+        onSend={handleSendEmail}
+      />
+
+      {/* Modal d'historique des emails */}
+      <EmailHistoryModal
+        candidateId={candidate?.id || null}
+        candidateName={candidate?.name || ''}
+        isOpen={showEmailHistory}
+        onClose={() => setShowEmailHistory(false)}
+      />
     </div>
   );
 }

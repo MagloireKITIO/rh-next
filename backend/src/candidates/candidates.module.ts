@@ -10,6 +10,7 @@ import { AnalysisModule } from '../analysis/analysis.module';
 import { StorageModule } from '../storage/storage.module';
 import { WebSocketModule } from '../websocket/websocket.module';
 import { ApiKeysModule } from '../api-keys/api-keys.module';
+import { MailModule } from '../mail/mail.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { ApiKeysModule } from '../api-keys/api-keys.module';
     StorageModule,
     WebSocketModule,
     ApiKeysModule,
+    MailModule,
   ],
   controllers: [CandidatesController],
   providers: [CandidatesService, AnalysisQueueService],

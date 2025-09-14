@@ -187,6 +187,29 @@ export const candidatesApi = {
   analyze: (id: string) => apiClient.post(`/candidates/${id}/analyze`),
   getRankingChanges: (projectId: string) => apiClient.get<RankingChange[]>(`/candidates/project/${projectId}/rankings`),
   getQueueStatus: (projectId: string) => apiClient.get(`/candidates/project/${projectId}/queue-status`),
+  sendEmail: (candidateId: string, emailData: {
+    to: string;
+    subject: string;
+    message: string;
+    attachments?: File[];
+  }) => {
+    const formData = new FormData();
+    formData.append('to', emailData.to);
+    formData.append('subject', emailData.subject);
+    formData.append('message', emailData.message);
+
+    // Ajouter les fichiers à FormData
+    if (emailData.attachments) {
+      emailData.attachments.forEach((file) => {
+        formData.append('attachments', file);
+      });
+    }
+
+    return apiClient.post(`/candidates/${candidateId}/send-email`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+  getEmailHistory: (candidateId: string) => apiClient.get(`/candidates/${candidateId}/email-history`),
   delete: (id: string) => apiClient.delete(`/candidates/${id}`),
 };
 

@@ -1,11 +1,11 @@
-import { 
-  Controller, 
-  Get, 
-  Post, 
-  Body, 
-  Param, 
-  Delete, 
-  UseInterceptors, 
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Delete,
+  UseInterceptors,
   UploadedFiles,
   Query,
   Res,
@@ -17,6 +17,7 @@ import { memoryStorage } from 'multer';
 import { CandidatesService } from './candidates.service';
 import { AnalysisQueueService } from './analysis-queue.service';
 import { ProjectsService } from '../projects/projects.service';
+import { MailService } from '../mail/mail.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CompanyGuard } from '../auth/guards/company.guard';
 import { CurrentCompany } from '../auth/decorators/current-user.decorator';
@@ -28,6 +29,7 @@ export class CandidatesController {
     private readonly candidatesService: CandidatesService,
     private readonly analysisQueueService: AnalysisQueueService,
     private readonly projectsService: ProjectsService,
+    private readonly mailService: MailService,
   ) {}
 
   @Get()
@@ -128,6 +130,108 @@ export class CandidatesController {
   @Get('project/:projectId/queue-status')
   getQueueStatus(@Param('projectId') projectId: string) {
     return this.analysisQueueService.getQueueStatus(projectId);
+  }
+
+  @Post(':id/send-email')
+  @UseInterceptors(FilesInterceptor('attachments', 5, {
+    storage: memoryStorage(),
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB limit per file
+    },
+  }))
+  async sendEmailToCandidate(
+    @Param('id') candidateId: string,
+    @CurrentCompany() companyId: string,
+    @Body() emailData: {
+      to: string;
+      subject: string;
+      message: string;
+    },
+    @UploadedFiles() attachments?: Express.Multer.File[]
+  ) {
+    const candidate = await this.candidatesService.findOne(candidateId, companyId);
+
+    if (!candidate) {
+      throw new Error('Candidat non trouvé');
+    }
+
+    // Convertir le message en HTML simple avec des retours à la ligne
+    const htmlMessage = emailData.message
+      .replace(/\n/g, '<br>')
+      .replace(/\r\n/g, '<br>');
+
+    // Préparer les pièces jointes pour nodemailer
+    const mailAttachments = attachments?.map(file => ({
+      filename: file.originalname,
+      content: file.buffer,
+      contentType: file.mimetype,
+    })) || [];
+
+    await this.mailService.sendEmailWithAttachments({
+      to: emailData.to,
+      subject: emailData.subject,
+      html: htmlMessage,
+      companyId: companyId,
+      attachments: mailAttachments,
+    });
+
+    return {
+      success: true,
+      message: `Email envoyé avec succès à ${emailData.to}`,
+      candidateId: candidateId,
+      attachmentCount: attachments?.length || 0
+    };
+  }
+
+  @Get(':id/email-history')
+  async getCandidateEmailHistory(
+    @Param('id') candidateId: string,
+    @CurrentCompany() companyId: string
+  ) {
+    const candidate = await this.candidatesService.findOne(candidateId, companyId);
+
+    if (!candidate) {
+      throw new Error('Candidat non trouvé');
+    }
+
+    // Pour l'instant, on retourne des données simulées
+    // En production, ceci devrait être récupéré depuis une table email_history
+    const mockEmailHistory = [
+      {
+        id: '1',
+        to: candidate.email || candidate.extractedData?.email || 'candidat@example.com',
+        subject: 'À propos de votre candidature - Premier contact',
+        message: 'Bonjour, nous avons bien reçu votre candidature...',
+        status: 'delivered',
+        sentAt: new Date('2025-01-13T10:30:00Z').toISOString(),
+        deliveredAt: new Date('2025-01-13T10:32:15Z').toISOString(),
+        readAt: new Date('2025-01-13T14:20:30Z').toISOString(),
+      },
+      {
+        id: '2',
+        to: candidate.email || candidate.extractedData?.email || 'candidat@example.com',
+        subject: 'Invitation entretien - Développeur Senior',
+        message: 'Nous souhaitons vous rencontrer pour un entretien...',
+        status: 'sent',
+        sentAt: new Date('2025-01-14T09:15:00Z').toISOString(),
+      },
+      {
+        id: '3',
+        to: 'wrong-email@example.com',
+        subject: 'Test de relance candidature',
+        message: 'Message de relance...',
+        status: 'failed',
+        sentAt: new Date('2025-01-12T16:45:00Z').toISOString(),
+        failureReason: 'Adresse email invalide',
+      }
+    ];
+
+    return {
+      success: true,
+      candidateId: candidateId,
+      candidateName: candidate.name,
+      emails: mockEmailHistory
+    };
   }
 
   @Delete(':id')

@@ -17,9 +17,12 @@ import { useCandidatesByProject, useCandidatesByProjectLegacy, useRankingChanges
 import { useDeleteCandidate } from "@/hooks/mutations";
 import { useWebSocketSync } from "@/hooks/useWebSocketSync";
 import { useQueryClient } from '@tanstack/react-query';
-import { TrendingUp, TrendingDown, RefreshCw, Eye, FileText, Wifi, Trash2, Search, Filter, X } from "lucide-react";
+import { TrendingUp, TrendingDown, RefreshCw, Eye, FileText, Wifi, Trash2, Search, Filter, X, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CandidateSourceBadge } from "@/components/ui/candidate-source-badge";
+import { SendEmailModal, EmailData } from "@/components/candidate/send-email-modal";
+import { candidatesApi } from "@/lib/api-client";
+import { toast } from "sonner";
 
 interface CandidateRankingProps {
   projectId: string;
@@ -53,6 +56,8 @@ export function CandidateRanking({
   const [scoreFilter, setScoreFilter] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  const [selectedCandidateForEmail, setSelectedCandidateForEmail] = useState<Candidate | null>(null);
+  const [showEmailModal, setShowEmailModal] = useState(false);
 
   // Debounce pour la recherche (500ms)
   useEffect(() => {
@@ -151,6 +156,35 @@ export function CandidateRanking({
       setSelectedCandidates(new Set());
     }
   }, [filteredCandidates]);
+
+  const handleSendEmail = useCallback((candidate: Candidate) => {
+    setSelectedCandidateForEmail(candidate);
+    setShowEmailModal(true);
+  }, []);
+
+  const handleEmailSend = useCallback(async (emailData: EmailData) => {
+    if (!selectedCandidateForEmail) return;
+
+    try {
+      await candidatesApi.sendEmail(selectedCandidateForEmail.id, {
+        to: emailData.to,
+        subject: emailData.subject,
+        message: emailData.message,
+        attachments: emailData.attachments // Envoyer les fichiers directement
+      });
+
+      toast.success(`Email envoyé avec succès à ${emailData.to}`);
+    } catch (error) {
+      console.error('Error sending email:', error);
+      toast.error('Erreur lors de l\'envoi de l\'email');
+      throw error;
+    }
+  }, [selectedCandidateForEmail]);
+
+  const handleEmailModalClose = useCallback(() => {
+    setShowEmailModal(false);
+    setSelectedCandidateForEmail(null);
+  }, []);
 
   const handleDeleteSelected = async () => {
     if (selectedCandidates.size === 0) return;
@@ -502,6 +536,15 @@ export function CandidateRanking({
                           variant="outline"
                           size="sm"
                           className="gap-1"
+                          onClick={() => handleSendEmail(candidate)}
+                        >
+                          <Mail className="h-3 w-3" />
+                          Email
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1"
                           onClick={() => window.open(candidate.fileUrl.startsWith('http') ? candidate.fileUrl : `${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'}/${candidate.fileUrl}`, '_blank')}
                         >
                           <FileText className="h-3 w-3" />
@@ -565,6 +608,14 @@ export function CandidateRanking({
           </div>
         )}
       </CardContent>
+
+      {/* Modal d'envoi d'email */}
+      <SendEmailModal
+        candidate={selectedCandidateForEmail}
+        isOpen={showEmailModal}
+        onClose={handleEmailModalClose}
+        onSend={handleEmailSend}
+      />
     </Card>
   );
 }
