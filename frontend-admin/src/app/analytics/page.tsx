@@ -230,7 +230,7 @@ export default function AnalyticsPage() {
                       </div>
                       <div className="w-full bg-muted rounded-full h-2">
                         <div 
-                          className="bg-gradient-to-r from-admin-light to-admin-dark h-2 rounded-full transition-all duration-300"
+                          className="bg-primary h-2 rounded-full transition-all duration-300"
                           style={{
                             width: `${project.totalCandidates > 0 
                               ? (project.analyzedCandidates / project.totalCandidates) * 100

@@ -546,8 +546,8 @@ export default function MailConfigForm({ config, onCancel, onSuccess }: MailConf
                   className={`
                     border rounded-lg p-4 cursor-pointer transition-all
                     ${isSelected 
-                      ? 'border-admin-light bg-admin-light/5 ring-2 ring-admin-light/20' 
-                      : 'border-border hover:border-admin-light/50'
+                      ? 'border-primary bg-primary/5 ring-2 ring-primary/20' 
+                      : 'border-border hover:border-primary/50'
                     }
                   `}
                 >
@@ -703,8 +703,7 @@ export default function MailConfigForm({ config, onCancel, onSuccess }: MailConf
         <Button 
           onClick={handleSave}
           disabled={saveConfigMutation.isPending}
-          className="bg-gradient-to-r from-admin-light to-admin-dark"
-        >
+                  >
           {saveConfigMutation.isPending ? (
             <LoadingSpinner className="w-4 h-4 mr-2" />
           ) : (

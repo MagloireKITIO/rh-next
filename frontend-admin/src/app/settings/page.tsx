@@ -133,7 +133,7 @@ export default function SettingsPage() {
                           className={`
                             flex items-center gap-3 px-4 py-3 text-left transition-colors
                             ${isActive 
-                              ? 'bg-gradient-to-r from-admin-light/10 to-admin-dark/10 text-foreground border-r-2 border-admin-light' 
+                              ? 'bg-primary/10 text-foreground border-r-2 border-primary' 
                               : 'text-muted-foreground hover:bg-muted/50'
                             }
                             ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
@@ -171,7 +171,7 @@ export default function SettingsPage() {
                   <div className="flex items-center gap-3">
                     {activeTabData && (
                       <>
-                        <activeTabData.icon className="w-5 h-5 text-admin-light" />
+                        <activeTabData.icon className="w-5 h-5 text-primary" />
                         <div>
                           <CardTitle>{activeTabData.label}</CardTitle>
                           <CardDescription>{activeTabData.description}</CardDescription>

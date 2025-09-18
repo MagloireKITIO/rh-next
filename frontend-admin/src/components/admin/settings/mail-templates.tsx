@@ -65,8 +65,11 @@ export default function MailTemplates() {
     queryFn: () => adminApi.getTemplateTypes(),
   });
 
-  // ✅ SUPPRIMÉ - Plus de variables statiques
-  // Toutes les variables sont maintenant gérées dynamiquement
+  // Récupérer les variables de templates
+  const { data: templateVariables } = useQuery({
+    queryKey: ['admin', 'template-variables'],
+    queryFn: () => adminApi.getTemplateVariables(),
+  });
 
   // ✅ Debug logs supprimés - Plus de variables statiques
 
@@ -394,8 +397,7 @@ export default function MailTemplates() {
             <Button 
               type="submit" 
               disabled={createMutation.isPending || updateMutation.isPending}
-              className="bg-gradient-to-r from-admin-light to-admin-dark"
-            >
+                          >
               {(createMutation.isPending || updateMutation.isPending) ? (
                 <LoadingSpinner className="w-4 h-4 mr-2" />
               ) : selectedTemplate ? (
@@ -536,8 +538,7 @@ export default function MailTemplates() {
           )}
           <Button 
             onClick={() => setCurrentView('form')}
-            className="bg-gradient-to-r from-admin-light to-admin-dark"
-          >
+                      >
             <Plus className="w-4 h-4 mr-2" />
             Nouveau template
           </Button>
@@ -573,8 +574,7 @@ export default function MailTemplates() {
               </Button>
               <Button 
                 onClick={() => setCurrentView('form')}
-                className="bg-gradient-to-r from-admin-light to-admin-dark"
-              >
+                              >
                 <Plus className="w-4 h-4 mr-2" />
                 Nouveau template
               </Button>

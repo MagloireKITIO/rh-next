@@ -330,8 +330,7 @@ export default function AutomationForm({ automation, onCancel, onSuccess }: Auto
                 <Button 
                   type="submit" 
                   disabled={saveMutation.isPending}
-                  className="bg-gradient-to-r from-admin-light to-admin-dark"
-                >
+                                  >
                   {saveMutation.isPending && <LoadingSpinner className="w-4 h-4 mr-2" />}
                   <Save className="w-4 h-4 mr-2" />
                   {isEditing ? 'Modifier' : 'Créer'}
