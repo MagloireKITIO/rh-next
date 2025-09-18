@@ -152,17 +152,6 @@ export default function LoginPage() {
               </Button>
             </form>
             
-            <div className="text-center text-sm">
-              <span className="text-slate-600 dark:text-slate-400">
-                Pas encore de compte ?{" "}
-              </span>
-              <Link 
-                href="/auth/signup" 
-                className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400"
-              >
-                S'inscrire
-              </Link>
-            </div>
           </CardContent>
         </Card>
       </div>

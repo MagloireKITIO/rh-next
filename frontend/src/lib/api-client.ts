@@ -274,15 +274,8 @@ export const companiesApi = {
 
 // Auth API Functions
 export const authApi = {
-  signin: (email: string, password: string) => 
+  signin: (email: string, password: string) =>
     apiClient.post<{ access_token: string; user: any }>('/auth/signin', { email, password }),
-  companySignup: (data: {
-    email: string;
-    password: string;
-    name: string;
-    companyName: string;
-    companyDomain: string;
-  }) => apiClient.post('/auth/company-signup', data),
   acceptInvitation: (invitation_token: string, password: string) =>
     apiClient.post<{ access_token: string; user: any }>('/auth/accept-invitation', { invitation_token, password }),
   getProfile: () => apiClient.get<any>('/auth/profile'),

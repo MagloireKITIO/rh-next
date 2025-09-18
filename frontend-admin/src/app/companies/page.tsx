@@ -202,7 +202,7 @@ export default function CompaniesPage() {
             
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-gradient-to-r from-admin-light to-admin-dark">
+                <Button>
                   <Plus className="w-4 h-4 mr-2" />
                   Nouvelle Entreprise
                 </Button>
@@ -408,7 +408,7 @@ export default function CompaniesPage() {
             <p className="text-muted-foreground mb-4">
               {searchTerm ? 'Aucune entreprise ne correspond à votre recherche.' : 'Commencez par créer votre première entreprise.'}
             </p>
-            <Button onClick={() => setIsCreateDialogOpen(true)} className="bg-gradient-to-r from-admin-light to-admin-dark">
+            <Button onClick={() => setIsCreateDialogOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Créer une entreprise
             </Button>

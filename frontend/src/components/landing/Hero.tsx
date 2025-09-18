@@ -65,11 +65,11 @@ const Hero = () => {
   const handleGetStarted = () => {
     console.log("Button clicked, user:", user); // Debug
     if (user) {
-      console.log("Redirecting to dashboard"); // Debug  
+      console.log("Redirecting to dashboard"); // Debug
       router.push("/dashboard");
     } else {
-      console.log("Redirecting to signup"); // Debug
-      router.push("/auth/signup");
+      console.log("Redirecting to login"); // Debug
+      router.push("/auth/login");
     }
   };
 
@@ -117,7 +117,7 @@ const Hero = () => {
             onClick={handleGetStarted}
             className="px-8 py-4 bg-gradient-to-r from-indigo-light to-indigo-dark text-white rounded-lg font-semibold hover:scale-105 active:scale-95 transition-all duration-300 hover:shadow-lg hover:shadow-indigo-dark/25 active:shadow-md cursor-pointer"
           >
-            {user ? "Accéder au Dashboard" : "Commencer maintenant"}
+{user ? "Accéder au Dashboard" : "Se connecter"}
           </button>
           
           {!user && (

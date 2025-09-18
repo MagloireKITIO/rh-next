@@ -25,8 +25,6 @@ interface AuthUser {
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
-  signUp: (email: string, password: string, name: string) => Promise<void>;
-  signUpCompany: (email: string, password: string, name: string, companyName: string, companyDomain: string) => Promise<void>;
   acceptInvitation: (token: string, password: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
@@ -72,30 +70,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // L'état est géré uniquement via le token JWT de notre backend
   }, []);
 
-  const signUp = async (email: string, password: string, name: string) => {
-    setLoading(true);
-    try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            name,
-          },
-          emailRedirectTo: `${window.location.origin}/auth/success`,
-        },
-      });
-
-      if (error) throw error;
-      
-      toast.success('Inscription réussie! Vérifiez votre email pour confirmer votre compte.');
-    } catch (error: any) {
-      toast.error(error.message || 'Erreur lors de l\'inscription');
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const signIn = async (email: string, password: string) => {
     setLoading(true);
@@ -141,28 +115,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signUpCompany = async (email: string, password: string, name: string, companyName: string, companyDomain: string) => {
-    setLoading(true);
-    try {
-      // Utiliser l'approche standard avec apiClient mais pour l'auth
-      const response = await authApi.companySignup({
-        email,
-        password,
-        name,
-        companyName,
-        companyDomain,
-      });
-
-      // Plus de token - l'utilisateur doit vérifier son email
-      // Le message du backend indique qu'il faut vérifier l'email
-      toast.success('Entreprise créée avec succès! ' + response.data.message);
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Erreur lors de l\'inscription de l\'entreprise');
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const acceptInvitation = async (token: string, password: string) => {
     setLoading(true);
@@ -255,8 +207,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value = {
     user,
     loading,
-    signUp,
-    signUpCompany,
     acceptInvitation,
     signIn,
     signInWithGoogle,

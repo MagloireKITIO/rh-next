@@ -81,7 +81,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="flex items-center gap-3 p-6 border-b border-border">
-            <div className="w-10 h-10 bg-gradient-to-r from-admin-light to-admin-dark rounded-lg flex items-center justify-center">
+            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
               <Shield className="w-6 h-6 text-white" />
             </div>
             <div>
@@ -117,7 +117,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           {/* User section */}
           <div className="p-6 border-t border-border">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-8 h-8 bg-gradient-to-r from-admin-light to-admin-dark rounded-full flex items-center justify-center">
+              <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
                 <Shield className="w-4 h-4 text-white" />
               </div>
               <div className="flex-1 min-w-0">
@@ -158,7 +158,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </Button>
             
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-admin-light to-admin-dark rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                 <Shield className="w-4 h-4 text-white" />
               </div>
               <span className="font-semibold">RH Analytics</span>
