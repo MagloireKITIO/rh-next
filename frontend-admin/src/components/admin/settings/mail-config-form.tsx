@@ -554,8 +554,8 @@ export default function MailConfigForm({ config, onCancel, onSuccess }: MailConf
                   <div className="flex items-start gap-3">
                     <div className={`
                       w-10 h-10 rounded-lg flex items-center justify-center
-                      ${isSelected 
-                        ? 'bg-gradient-to-r from-admin-light to-admin-dark text-white' 
+                      ${isSelected
+                        ? 'bg-primary text-primary-foreground'
                         : 'bg-muted text-muted-foreground'
                       }
                     `}>

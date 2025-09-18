@@ -59,7 +59,7 @@ export function NavBar({
       "fixed top-0 z-50 w-full",
       variant === "landing" 
         ? "py-8 bg-gradient-to-b from-black/60 via-black/40 to-transparent backdrop-blur-sm border-b-0" 
-        : "py-4 border-b bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-slate-200 dark:border-slate-800",
+        : "py-4 border-b bg-card/80 backdrop-blur-md border-border",
       className
     )}>
       <div className="container mx-auto px-4">
@@ -105,8 +105,8 @@ export function NavBar({
                       : cn(
                           "hover:text-indigo-600 dark:hover:text-indigo-400",
                           isActive
-                            ? "text-indigo-600 dark:text-indigo-400"
-                            : "text-slate-700 dark:text-slate-300"
+                            ? "text-primary"
+                            : "text-foreground"
                         )
                   )}
                 >
@@ -162,8 +162,8 @@ export function NavBar({
                           )
                         : cn(
                             isActive
-                              ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400"
-                              : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                              ? "bg-primary/10 text-primary"
+                              : "text-foreground hover:bg-muted/50"
                           )
                     )}
                   >
@@ -177,7 +177,7 @@ export function NavBar({
                 <div className="px-3 py-2 flex items-center justify-between">
                   <span className={cn(
                     "text-sm font-medium",
-                    "text-slate-700 dark:text-slate-300"
+                    "text-foreground"
                   )}>Notifications</span>
                   <NotificationBell count={notificationsCount} />
                 </div>

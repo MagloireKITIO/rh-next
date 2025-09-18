@@ -273,7 +273,7 @@ export default function CandidateDetailPage() {
                         <span className="text-sm">Technique</span>
                         <span className="text-sm font-medium">{latestAnalysis.analysisData.skillsMatch.technical}/100</span>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="w-full bg-muted rounded-full h-2">
                         <div 
                           className="bg-blue-600 h-2 rounded-full" 
                           style={{width: `${latestAnalysis.analysisData.skillsMatch.technical}%`}}
@@ -285,7 +285,7 @@ export default function CandidateDetailPage() {
                         <span className="text-sm">Expérience</span>
                         <span className="text-sm font-medium">{latestAnalysis.analysisData.skillsMatch.experience}/100</span>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="w-full bg-muted rounded-full h-2">
                         <div 
                           className="bg-green-600 h-2 rounded-full" 
                           style={{width: `${latestAnalysis.analysisData.skillsMatch.experience}%`}}
@@ -297,7 +297,7 @@ export default function CandidateDetailPage() {
                         <span className="text-sm">Culturel</span>
                         <span className="text-sm font-medium">{latestAnalysis.analysisData.skillsMatch.cultural}/100</span>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="w-full bg-muted rounded-full h-2">
                         <div 
                           className="bg-purple-600 h-2 rounded-full" 
                           style={{width: `${latestAnalysis.analysisData.skillsMatch.cultural}%`}}
@@ -309,7 +309,7 @@ export default function CandidateDetailPage() {
                         <span className="text-sm font-medium">Global</span>
                         <span className="text-sm font-bold">{latestAnalysis.analysisData.skillsMatch.overall}/100</span>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="w-full bg-muted rounded-full h-2">
                         <div 
                           className="bg-orange-600 h-2 rounded-full" 
                           style={{width: `${latestAnalysis.analysisData.skillsMatch.overall}%`}}

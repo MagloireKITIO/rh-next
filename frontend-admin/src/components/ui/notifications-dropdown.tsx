@@ -76,11 +76,11 @@ export function NotificationsDropdown({ isOpen, onClose }: NotificationsDropdown
       
       {/* Dropdown */}
       <div className="absolute right-0 top-full mt-2 w-80 z-50">
-        <Card className="shadow-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+        <Card className="shadow-xl border border-border bg-card">
           {/* Header */}
           <div className="p-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
-              <h3 className="font-medium text-gray-900 dark:text-white">
+              <h3 className="font-medium text-foreground">
                 Notifications
               </h3>
               <Badge variant="secondary" className="text-xs">
@@ -118,7 +118,7 @@ export function NotificationsDropdown({ isOpen, onClose }: NotificationsDropdown
                       
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                          <p className="text-sm font-medium text-foreground truncate">
                             {notification.title}
                           </p>
                           {notification.count && (

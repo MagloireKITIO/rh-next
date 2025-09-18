@@ -331,7 +331,7 @@ export default function ProjectPage() {
                             variant="ghost"
                             size="sm"
                             onClick={handleEditDescription}
-                            className="h-6 w-6 p-0 hover:bg-gray-100"
+                            className="h-6 w-6 p-0 hover:bg-muted"
                           >
                             <Edit className="h-3 w-3" />
                           </Button>
@@ -454,7 +454,7 @@ export default function ProjectPage() {
                     {[
                       { priority: "HIGH", count: analyzedCandidates.filter(c => c.analyses?.[0]?.analysisData?.hrDecision?.priority === "HIGH").length, color: "bg-red-500", label: "Haute" },
                       { priority: "MEDIUM", count: analyzedCandidates.filter(c => c.analyses?.[0]?.analysisData?.hrDecision?.priority === "MEDIUM").length, color: "bg-yellow-500", label: "Moyenne" },
-                      { priority: "LOW", count: analyzedCandidates.filter(c => c.analyses?.[0]?.analysisData?.hrDecision?.priority === "LOW").length, color: "bg-gray-500", label: "Faible" }
+                      { priority: "LOW", count: analyzedCandidates.filter(c => c.analyses?.[0]?.analysisData?.hrDecision?.priority === "LOW").length, color: "bg-muted-foreground", label: "Faible" }
                     ].map((prio) => (
                       <div key={prio.priority} className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -623,7 +623,7 @@ export default function ProjectPage() {
                 </div>
               </div>
               
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-muted-foreground">
                 ⚠️ Ce lien expire dans 30 jours. Les personnes ayant accès à ce lien peuvent consulter 
                 les analyses des candidats mais ne peuvent pas les modifier.
               </div>

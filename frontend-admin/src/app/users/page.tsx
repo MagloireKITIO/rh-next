@@ -176,8 +176,8 @@ export default function UsersPage() {
       case 'super_admin': return 'bg-red-100 text-red-800 border-red-200';
       case 'admin': return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'hr': return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'user': return 'bg-gray-100 text-gray-800 border-gray-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'user': return 'bg-muted text-muted-foreground border-border';
+      default: return 'bg-muted text-muted-foreground border-border';
     }
   };
 
@@ -353,8 +353,8 @@ export default function UsersPage() {
                     <TableRow key={user.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-gradient-to-r from-admin-light to-admin-dark rounded-full flex items-center justify-center">
-                            <span className="text-white text-sm font-medium">
+                          <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                            <span className="text-primary-foreground text-sm font-medium">
                               {user.name.charAt(0).toUpperCase()}
                             </span>
                           </div>

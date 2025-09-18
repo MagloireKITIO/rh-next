@@ -335,8 +335,8 @@ export default function MailSettings() {
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-r from-admin-light to-admin-dark rounded-lg flex items-center justify-center">
-                      <Mail className="w-5 h-5 text-white" />
+                    <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+                      <Mail className="w-5 h-5 text-primary-foreground" />
                     </div>
                     <div>
                       <CardTitle className="text-base">{config.from_name}</CardTitle>
@@ -541,7 +541,7 @@ export default function MailSettings() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-gradient-to-r from-admin-light to-admin-dark rounded-lg flex items-center justify-center">
-                        <Mail className="w-5 h-5 text-white" />
+                        <Mail className="w-5 h-5 text-primary-foreground" />
                       </div>
                       <div>
                         <CardTitle className="text-base">{automation.title}</CardTitle>

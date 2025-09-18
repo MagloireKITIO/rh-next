@@ -297,8 +297,8 @@ export default function CompaniesPage() {
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-r from-admin-light to-admin-dark rounded-lg flex items-center justify-center">
-                          <Building className="w-5 h-5 text-white" />
+                        <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+                          <Building className="w-5 h-5 text-primary-foreground" />
                         </div>
                         <div>
                           <CardTitle className="text-lg">{company.name}</CardTitle>
@@ -497,8 +497,8 @@ export default function CompaniesPage() {
               <div className="space-y-4">
                 <div className="p-4 bg-muted rounded-lg">
                   <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 bg-gradient-to-r from-admin-light to-admin-dark rounded-lg flex items-center justify-center">
-                      <Building className="w-5 h-5 text-white" />
+                    <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+                      <Building className="w-5 h-5 text-primary-foreground" />
                     </div>
                     <div>
                       <div className="font-medium">{companyToDelete.name}</div>

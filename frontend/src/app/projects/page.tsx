@@ -160,7 +160,7 @@ export default function ProjectsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+    <div className="min-h-screen bg-background">
       <Sidebar />
       <NavBar withSidebar={true} />
       
@@ -172,10 +172,10 @@ export default function ProjectsPage() {
           className="flex items-center justify-between"
         >
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">
               Projets de recrutement
             </h1>
-            <p className="text-slate-600 dark:text-slate-400">
+            <p className="text-muted-foreground">
               Gérez tous vos projets de recrutement et analysez les candidatures
             </p>
           </div>
@@ -193,11 +193,11 @@ export default function ProjectsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="flex flex-col sm:flex-row gap-4 bg-white dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-slate-700"
+          className="flex flex-col sm:flex-row gap-4 bg-card p-4 rounded-lg border border-border"
         >
           {/* Search */}
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
               placeholder="Rechercher un projet..."
               value={searchTerm}
@@ -210,7 +210,7 @@ export default function ProjectsPage() {
           <select 
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as 'name' | 'date' | 'candidates')}
-            className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800"
+            className="px-3 py-2 border border-border rounded-md bg-card text-foreground"
           >
             <option value="date">Plus récent</option>
             <option value="name">Nom A-Z</option>
@@ -218,7 +218,7 @@ export default function ProjectsPage() {
           </select>
 
           {/* View Mode Toggle */}
-          <div className="flex items-center space-x-2 bg-slate-100 dark:bg-slate-700 rounded-lg p-1">
+          <div className="flex items-center space-x-2 bg-muted rounded-lg p-1">
             <Button
               variant={viewMode === 'list' ? 'default' : 'ghost'}
               size="sm"
@@ -296,9 +296,9 @@ export default function ProjectsPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+              <div className="bg-card rounded-lg border border-border">
                 {/* Header */}
-                <div className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-600 dark:text-slate-400">
+                <div className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-border text-sm font-medium text-muted-foreground">
                   <div className="col-span-4">Nom du projet</div>
                   <div className="col-span-2">Candidats</div>
                   <div className="col-span-2">Score moyen</div>
@@ -322,7 +322,7 @@ export default function ProjectsPage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.05 }}
                       onClick={() => handleOpenProject(project.id)}
-                      className="grid grid-cols-12 gap-4 px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition-colors border-b border-slate-100 dark:border-slate-700 last:border-b-0"
+                      className="grid grid-cols-12 gap-4 px-6 py-4 hover:bg-muted/50 cursor-pointer transition-colors border-b border-border last:border-b-0"
                     >
                       <div className="col-span-4">
                         <div className="flex items-center space-x-3">
@@ -330,10 +330,10 @@ export default function ProjectsPage() {
                             <FolderOpen className="h-5 w-5 text-white" />
                           </div>
                           <div>
-                            <p className="font-medium text-slate-900 dark:text-slate-100">
+                            <p className="font-medium text-foreground">
                               {project.name}
                             </p>
-                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                            <p className="text-sm text-muted-foreground">
                               ID: {project.id.slice(-8)}
                             </p>
                           </div>
@@ -341,14 +341,14 @@ export default function ProjectsPage() {
                       </div>
                       
                       <div className="col-span-2 flex items-center">
-                        <span className="flex items-center gap-1 text-slate-700 dark:text-slate-300">
+                        <span className="flex items-center gap-1 text-foreground">
                           <Users className="h-4 w-4" />
                           {candidatesCount}
                         </span>
                       </div>
                       
                       <div className="col-span-2 flex items-center">
-                        <span className="text-slate-700 dark:text-slate-300">
+                        <span className="text-foreground">
                           {averageScore > 0 ? `${averageScore.toFixed(1)}/10` : 'N/A'}
                         </span>
                       </div>
@@ -357,14 +357,14 @@ export default function ProjectsPage() {
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                           project.status === 'active' 
                             ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
-                            : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                            : 'bg-muted text-muted-foreground'
                         }`}>
                           {project.status === 'active' ? 'Actif' : 'Inactif'}
                         </span>
                       </div>
                       
                       <div className="col-span-1 flex items-center">
-                        <span className="text-slate-500 dark:text-slate-400 text-sm">
+                        <span className="text-muted-foreground text-sm">
                           {new Date(project.createdAt).toLocaleDateString('fr-FR')}
                         </span>
                       </div>

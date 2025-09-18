@@ -59,7 +59,7 @@ export function UserMenu({ showMobileMenu = false, onMobileMenuToggle }: UserMen
   if (loading) {
     return (
       <div className="flex items-center gap-3">
-        <div className="w-8 h-8 bg-slate-200 dark:bg-slate-700 rounded-full animate-pulse"></div>
+        <div className="w-8 h-8 bg-muted rounded-full animate-pulse"></div>
       </div>
     );
   }
@@ -73,7 +73,7 @@ export function UserMenu({ showMobileMenu = false, onMobileMenuToggle }: UserMen
             variant="ghost"
             size="sm"
             onClick={onMobileMenuToggle}
-            className="md:hidden text-white hover:text-indigo-400 hover:bg-white/10"
+            className="md:hidden text-foreground hover:text-primary hover:bg-muted/50"
           >
             {showMobileMenu ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </Button>
@@ -84,7 +84,7 @@ export function UserMenu({ showMobileMenu = false, onMobileMenuToggle }: UserMen
             variant="ghost"
             size="sm"
             onClick={() => router.push("/auth/login")}
-            className="text-white hover:text-indigo-400 hover:bg-white/10"
+            className="text-foreground hover:text-primary hover:bg-muted/50"
           >
             Se connecter
           </Button>
@@ -108,7 +108,7 @@ export function UserMenu({ showMobileMenu = false, onMobileMenuToggle }: UserMen
           variant="ghost"
           size="sm"
           onClick={onMobileMenuToggle}
-          className="md:hidden text-slate-700 dark:text-slate-300"
+          className="md:hidden text-foreground"
         >
           {showMobileMenu ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </Button>
@@ -119,7 +119,7 @@ export function UserMenu({ showMobileMenu = false, onMobileMenuToggle }: UserMen
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
-            className="relative h-10 w-10 rounded-full ring-2 ring-slate-200 dark:ring-slate-700 hover:ring-indigo-400 dark:hover:ring-indigo-500 transition-all"
+            className="relative h-10 w-10 rounded-full ring-2 ring-border hover:ring-primary transition-all"
           >
             <Avatar className="h-8 w-8">
               <AvatarImage src={user.avatar_url} alt={user.name} />
@@ -131,26 +131,26 @@ export function UserMenu({ showMobileMenu = false, onMobileMenuToggle }: UserMen
         </DropdownMenuTrigger>
         
         <DropdownMenuContent
-          className="w-60 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-slate-200 dark:border-slate-700"
+          className="w-60 bg-card/95 backdrop-blur-md border-border"
           align="end"
           forceMount
         >
           <DropdownMenuLabel className="font-normal">
             <div className="flex flex-col space-y-1">
-              <p className="text-sm font-medium leading-none text-slate-900 dark:text-slate-100">
+              <p className="text-sm font-medium leading-none text-foreground">
                 {user.name}
               </p>
-              <p className="text-xs leading-none text-slate-500 dark:text-slate-400">
+              <p className="text-xs leading-none text-muted-foreground">
                 {user.email}
               </p>
             </div>
           </DropdownMenuLabel>
           
-          <DropdownMenuSeparator className="bg-slate-200 dark:bg-slate-700" />
+          <DropdownMenuSeparator className="bg-border" />
           
           <DropdownMenuItem
             onClick={handleProfile}
-            className="cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="cursor-pointer hover:bg-muted/50"
           >
             <User className="mr-2 h-4 w-4" />
             <span>Profil</span>
@@ -158,13 +158,13 @@ export function UserMenu({ showMobileMenu = false, onMobileMenuToggle }: UserMen
           
           <DropdownMenuItem
             onClick={handleSettings}
-            className="cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="cursor-pointer hover:bg-muted/50"
           >
             <Settings className="mr-2 h-4 w-4" />
             <span>Paramètres</span>
           </DropdownMenuItem>
           
-          <DropdownMenuSeparator className="bg-slate-200 dark:bg-slate-700" />
+          <DropdownMenuSeparator className="bg-border" />
           
           <DropdownMenuItem
             onClick={handleSignOut}

@@ -68,7 +68,7 @@ export default function AnalyticsPage() {
       <>
         <NavBar withSidebar />
         <Sidebar />
-        <main className="ml-64 pt-24 min-h-screen bg-slate-50 dark:bg-slate-900">
+        <main className="ml-64 pt-24 min-h-screen bg-background">
           <div className="p-8">
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
@@ -90,10 +90,10 @@ export default function AnalyticsPage() {
         <div className="p-8">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">
+            <h1 className="text-3xl font-bold text-foreground mb-2">
               Analytics & Rapports
             </h1>
-            <p className="text-slate-600 dark:text-slate-400">
+            <p className="text-muted-foreground">
               Analysez les performances de vos projets de recrutement et générez des rapports détaillés
             </p>
           </div>
@@ -278,19 +278,19 @@ export default function AnalyticsPage() {
                   <CardContent className="space-y-4">
                     {/* Stats Grid */}
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="text-center p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                      <div className="text-center p-3 bg-muted/30 rounded-lg">
                         <Users className="w-5 h-5 mx-auto mb-1 text-blue-600" />
                         <div className="text-2xl font-bold">{project.totalCandidates}</div>
                         <div className="text-xs text-muted-foreground">Candidats</div>
                       </div>
                       
-                      <div className="text-center p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                      <div className="text-center p-3 bg-muted/30 rounded-lg">
                         <FileText className="w-5 h-5 mx-auto mb-1 text-green-600" />
                         <div className="text-2xl font-bold">{project.analyzedCandidates}</div>
                         <div className="text-xs text-muted-foreground">Analysés</div>
                       </div>
                       
-                      <div className="text-center p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                      <div className="text-center p-3 bg-muted/30 rounded-lg">
                         <BarChart3 className="w-5 h-5 mx-auto mb-1 text-indigo-600" />
                         <div className="text-2xl font-bold">
                           {project.averageScore ? Math.round(project.averageScore) : 0}
@@ -298,7 +298,7 @@ export default function AnalyticsPage() {
                         <div className="text-xs text-muted-foreground">Score moyen</div>
                       </div>
                       
-                      <div className="text-center p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                      <div className="text-center p-3 bg-muted/30 rounded-lg">
                         <TrendingUp className="w-5 h-5 mx-auto mb-1 text-orange-600" />
                         <div className="text-2xl font-bold">
                           {project.topCandidateScore ? Math.round(project.topCandidateScore) : 0}

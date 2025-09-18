@@ -68,7 +68,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div 
-          className="fixed inset-0 z-20 bg-black/50 lg:hidden" 
+          className="fixed inset-0 z-20 bg-background/50 backdrop-blur-sm lg:hidden" 
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -102,7 +102,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                     variant={isActive ? "default" : "ghost"}
                     className={cn(
                       "w-full justify-start",
-                      isActive && "bg-gradient-to-r from-admin-light to-admin-dark text-white"
+                      isActive && "bg-primary text-primary-foreground"
                     )}
                     onClick={() => setSidebarOpen(false)}
                   >

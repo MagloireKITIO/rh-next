@@ -22,8 +22,8 @@ export default function Home() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="text-center">
-        <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-admin-light to-admin-dark rounded-xl flex items-center justify-center">
-          <span className="text-white font-bold text-2xl">RH</span>
+        <div className="w-16 h-16 mx-auto mb-4 bg-primary rounded-xl flex items-center justify-center">
+          <span className="text-primary-foreground font-bold text-2xl">RH</span>
         </div>
         <LoadingSpinner className="w-8 h-8 mx-auto mb-4" />
         <p className="text-muted-foreground">Chargement de l&apos;interface d&apos;administration...</p>

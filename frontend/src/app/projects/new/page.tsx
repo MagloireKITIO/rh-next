@@ -152,7 +152,7 @@ Be objective and focus on job-relevant criteria.`;
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+    <div className="min-h-screen bg-background">
       <NavBar />
       
       <div className="container mx-auto p-6 max-w-4xl">

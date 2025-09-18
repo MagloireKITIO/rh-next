@@ -159,8 +159,8 @@ export default function AdminDashboard() {
                   {companiesStats?.data?.slice(0, 3).map((company) => (
                     <div key={company.id} className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-gradient-to-r from-admin-light to-admin-dark rounded-lg flex items-center justify-center">
-                          <Building className="w-4 h-4 text-white" />
+                        <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                          <Building className="w-4 h-4 text-primary-foreground" />
                         </div>
                         <div>
                           <p className="font-medium text-sm">{company.name}</p>

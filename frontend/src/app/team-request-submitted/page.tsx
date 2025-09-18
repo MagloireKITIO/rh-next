@@ -25,16 +25,16 @@ function TeamRequestSubmittedContent() {
       {/* Background curves identique au landing */}
       <BackgroundCurves />
       
-      <div className="min-h-screen flex items-center justify-center bg-black p-4 relative">
+      <div className="min-h-screen flex items-center justify-center bg-background p-4 relative">
         <div className="relative w-full max-w-lg">
           <Card className="p-8 text-center shadow-2xl border border-gray-700 bg-gray-900/90 backdrop-blur-md">
             <div className="flex justify-center mb-6">
               <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
-                <CheckCircle className="w-8 h-8 text-white" />
+                <CheckCircle className="w-8 h-8 text-primary" />
               </div>
             </div>
             
-            <h1 className="text-2xl font-bold text-white mb-4">
+            <h1 className="text-2xl font-bold text-foreground mb-4">
               Demande envoyée avec succès !
             </h1>
             
@@ -48,7 +48,7 @@ function TeamRequestSubmittedContent() {
               <div className="flex items-start gap-3 p-4 bg-gradient-to-br from-gray-800 to-gray-700 rounded-lg border border-gray-600">
                 <Clock className="w-5 h-5 text-indigo-400 mt-0.5 flex-shrink-0" />
                 <div>
-                  <h3 className="font-medium text-white mb-1">Examen en cours</h3>
+                  <h3 className="font-medium text-foreground mb-1">Examen en cours</h3>
                   <p className="text-sm text-gray-300">
                     Un administrateur va examiner votre demande. Cela peut prendre quelques jours.
                   </p>
@@ -58,7 +58,7 @@ function TeamRequestSubmittedContent() {
               <div className="flex items-start gap-3 p-4 bg-gradient-to-br from-gray-800 to-gray-700 rounded-lg border border-gray-600">
                 <Mail className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
                 <div>
-                  <h3 className="font-medium text-white mb-1">Notification par email</h3>
+                  <h3 className="font-medium text-foreground mb-1">Notification par email</h3>
                   <p className="text-sm text-gray-300">
                     Si votre demande est approuvée, vous recevrez un email d'invitation avec un lien pour créer votre compte.
                   </p>
@@ -68,7 +68,7 @@ function TeamRequestSubmittedContent() {
               <div className="flex items-start gap-3 p-4 bg-gradient-to-br from-gray-800 to-gray-700 rounded-lg border border-gray-600">
                 <Users className="w-5 h-5 text-purple-400 mt-0.5 flex-shrink-0" />
                 <div>
-                  <h3 className="font-medium text-white mb-1">Accès complet</h3>
+                  <h3 className="font-medium text-foreground mb-1">Accès complet</h3>
                   <p className="text-sm text-gray-300">
                     Une fois votre compte créé, vous aurez accès aux projets de l'équipe avec les privilèges RH.
                   </p>
@@ -98,7 +98,7 @@ function TeamRequestSubmittedContent() {
 export default function TeamRequestSubmittedPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-black">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <LoadingSpinner className="w-8 h-8 mx-auto mb-4" />
           <p className="text-gray-400">
