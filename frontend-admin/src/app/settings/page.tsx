@@ -5,17 +5,19 @@ import AdminLayout from '@/components/layout/admin-layout';
 import ProtectedRoute from '@/components/layout/protected-route';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Settings, 
-  Globe, 
-  Shield, 
-  Database, 
+import {
+  Settings,
+  Globe,
+  Shield,
+  Database,
   Palette,
   Bell,
   Key,
-  Mail
+  Mail,
+  FileText
 } from 'lucide-react';
 import MailSettings from '@/components/admin/settings/mail-settings';
+import PrivacyPolicySettings from '@/components/admin/settings/privacy-policy-settings';
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('system');
@@ -75,6 +77,14 @@ export default function SettingsPage() {
       description: 'Serveurs SMTP pour l\'envoi d\'emails',
       icon: Mail,
       component: MailSettings,
+      badge: null,
+    },
+    {
+      id: 'privacy-policy',
+      label: 'Politique de Confidentialité',
+      description: 'Configuration de la politique de confidentialité',
+      icon: FileText,
+      component: PrivacyPolicySettings,
       badge: null,
     },
     {

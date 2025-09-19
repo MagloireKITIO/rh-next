@@ -433,6 +433,16 @@ export const adminApi = {
   }) => apiClient.post<{subject: string; html: string; text?: string}>('/admin/mail-templates/render', data),
   createDefaultTemplates: () => apiClient.post('/admin/mail-templates/create-defaults'),
 
+  // Privacy Policy Configuration
+  getPrivacyPolicyConfiguration: () => apiClient.get('/configuration/privacy-policy'),
+  uploadPrivacyPolicy: (formData: FormData) =>
+    apiClient.post('/configuration/privacy-policy/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }),
+  enablePrivacyPolicy: (enabled: boolean) =>
+    apiClient.post('/configuration/privacy-policy/enable', { enabled }),
+  deletePrivacyPolicy: () => apiClient.delete('/configuration/privacy-policy'),
+
   // Analytics API
   getProjectsAnalytics: async (filters?: {
     search?: string;
@@ -443,7 +453,7 @@ export const adminApi = {
     if (filters?.search) params.append('search', filters.search);
     if (filters?.status) params.append('status', filters.status);
     if (filters?.sortBy) params.append('sortBy', filters.sortBy);
-    
+
     const response = await apiClient.get(`/admin/analytics/projects?${params.toString()}`);
     return response.data.data;
   },

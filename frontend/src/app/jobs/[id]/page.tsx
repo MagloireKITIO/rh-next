@@ -10,17 +10,19 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { 
-  Calendar, 
-  Building, 
-  MapPin, 
-  Clock, 
-  ArrowLeft, 
-  FileText, 
-  Send, 
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Calendar,
+  Building,
+  MapPin,
+  Clock,
+  ArrowLeft,
+  FileText,
+  Send,
   Upload,
   ExternalLink,
-  Share2
+  Share2,
+  CheckSquare
 } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
@@ -57,8 +59,15 @@ export default function JobDetailPage() {
     email: '',
     phone: '',
     coverLetter: '',
-    cv: null as File | null
+    cv: null as File | null,
+    acceptPrivacyPolicy: false
   });
+
+  const [privacyPolicyConfig, setPrivacyPolicyConfig] = useState<{
+    enabled: boolean;
+    hasFile: boolean;
+    fileName: string | null;
+  } | null>(null);
 
   useEffect(() => {
     const fetchJobOffer = async () => {
@@ -72,8 +81,18 @@ export default function JobDetailPage() {
       }
     };
 
+    const fetchPrivacyPolicyConfig = async () => {
+      try {
+        const response = await publicApi.getPrivacyPolicyInfo();
+        setPrivacyPolicyConfig(response.data);
+      } catch (err) {
+        console.warn('Could not fetch privacy policy config');
+      }
+    };
+
     if (id) {
       fetchJobOffer();
+      fetchPrivacyPolicyConfig();
     }
   }, [id]);
 
@@ -116,6 +135,12 @@ export default function JobDetailPage() {
       return;
     }
 
+    // Vérifier la politique de confidentialité si elle est activée
+    if (privacyPolicyConfig?.enabled && !applicationData.acceptPrivacyPolicy) {
+      toast.error('Vous devez accepter la politique de confidentialité pour continuer');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const formData = new FormData();
@@ -126,7 +151,7 @@ export default function JobDetailPage() {
       formData.append('cv', applicationData.cv);
 
       await publicApi.applyToJob(id as string, formData);
-      
+
       toast.success('Votre candidature a été envoyée avec succès !');
       setShowApplicationDialog(false);
       setApplicationData({
@@ -134,13 +159,19 @@ export default function JobDetailPage() {
         email: '',
         phone: '',
         coverLetter: '',
-        cv: null
+        cv: null,
+        acceptPrivacyPolicy: false
       });
     } catch (error) {
       toast.error('Erreur lors de l\'envoi de la candidature');
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const openPrivacyPolicy = () => {
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+    window.open(`${backendUrl}/api/public/privacy-policy`, '_blank');
   };
 
   const openDocument = () => {
@@ -380,6 +411,37 @@ export default function JobDetailPage() {
                           rows={4}
                         />
                       </div>
+
+                      {/* Privacy Policy Checkbox */}
+                      {privacyPolicyConfig?.enabled && privacyPolicyConfig?.hasFile && (
+                        <div className="flex items-start space-x-2 p-3 bg-muted/50 rounded-lg border">
+                          <Checkbox
+                            id="acceptPrivacyPolicy"
+                            checked={applicationData.acceptPrivacyPolicy}
+                            onCheckedChange={(checked) =>
+                              setApplicationData(prev => ({ ...prev, acceptPrivacyPolicy: checked as boolean }))
+                            }
+                            disabled={isSubmitting}
+                            className="mt-0.5"
+                          />
+                          <div className="space-y-1">
+                            <Label htmlFor="acceptPrivacyPolicy" className="text-sm cursor-pointer">
+                              J'accepte la{' '}
+                              <button
+                                type="button"
+                                onClick={openPrivacyPolicy}
+                                className="text-primary hover:underline font-medium"
+                              >
+                                politique de confidentialité
+                              </button>{' '}
+                              *
+                            </Label>
+                            <p className="text-xs text-muted-foreground">
+                              En cochant cette case, vous acceptez notre politique de confidentialité et le traitement de vos données personnelles.
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex gap-2 pt-4">
@@ -391,9 +453,9 @@ export default function JobDetailPage() {
                       >
                         Annuler
                       </Button>
-                      <Button 
+                      <Button
                         onClick={handleApplication}
-                        disabled={isSubmitting || !applicationData.name || !applicationData.email || !applicationData.cv}
+                        disabled={isSubmitting || !applicationData.name || !applicationData.email || !applicationData.cv || (privacyPolicyConfig?.enabled && !applicationData.acceptPrivacyPolicy)}
                         className="flex-1"
                       >
                         {isSubmitting ? 'Envoi...' : 'Envoyer ma candidature'}

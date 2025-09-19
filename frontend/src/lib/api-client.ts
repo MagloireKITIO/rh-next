@@ -323,6 +323,10 @@ export const publicApi = {
     apiClient.post(`/public/job-offers/${id}/apply`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     }),
+  getPrivacyPolicyInfo: () =>
+    apiClient.get('/public/privacy-policy/info'),
+  getPrivacyPolicy: () =>
+    apiClient.get('/public/privacy-policy'),
   submitTeamRequest: (data: any) =>
     apiClient.post('/public/team-requests', data),
 };

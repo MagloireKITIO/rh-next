@@ -17,6 +17,7 @@ import { HealthModule } from './health/health.module';
 import { CommonModule } from './common/common.module';
 import { OpenRouterModule } from './openrouter/openrouter.module';
 import { MailModule } from './mail/mail.module';
+import { PublicModule } from './public/public.module';
 import { StaticController } from './common/static.controller';
 
 @Module({
@@ -71,6 +72,7 @@ import { StaticController } from './common/static.controller';
     HealthModule,
     OpenRouterModule,
     MailModule,
+    PublicModule,
   ],
   controllers: [StaticController],
 })

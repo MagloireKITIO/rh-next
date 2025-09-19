@@ -87,6 +87,34 @@ Provide a detailed analysis including:
 Be objective and focus on job-relevant criteria.`;
   }
 
+  async getPrivacyPolicyConfiguration() {
+    const enabled = await this.getValue('privacy_policy_enabled');
+    const fileUrl = await this.getValue('privacy_policy_file_url');
+    const fileName = await this.getValue('privacy_policy_file_name');
+
+    return {
+      enabled: enabled === 'true',
+      fileUrl: fileUrl || null,
+      fileName: fileName || null,
+      hasFile: !!(fileUrl && fileName)
+    };
+  }
+
+  async setPrivacyPolicyFile(fileUrl: string, fileName: string): Promise<void> {
+    await this.setValue('privacy_policy_file_url', fileUrl);
+    await this.setValue('privacy_policy_file_name', fileName);
+  }
+
+  async setPrivacyPolicyEnabled(enabled: boolean): Promise<void> {
+    await this.setValue('privacy_policy_enabled', enabled.toString());
+  }
+
+  async deletePrivacyPolicyFile(): Promise<void> {
+    await this.setValue('privacy_policy_file_url', '');
+    await this.setValue('privacy_policy_file_name', '');
+    await this.setValue('privacy_policy_enabled', 'false');
+  }
+
   async initializeDefaultConfigurations() {
     const defaultConfigs = [
       {
@@ -108,6 +136,21 @@ Be objective and focus on job-relevant criteria.`;
         key: 'AI_ANALYSIS_TIMEOUT',
         value: '30000', // 30 seconds
         description: 'Timeout for AI analysis requests in milliseconds'
+      },
+      {
+        key: 'privacy_policy_enabled',
+        value: 'false',
+        description: 'Active ou désactive la politique de confidentialité obligatoire'
+      },
+      {
+        key: 'privacy_policy_file_url',
+        value: '',
+        description: 'URL du fichier PDF de la politique de confidentialité'
+      },
+      {
+        key: 'privacy_policy_file_name',
+        value: '',
+        description: 'Nom du fichier original de la politique de confidentialité'
       }
     ];
 
