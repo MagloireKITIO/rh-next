@@ -17,10 +17,11 @@ import { useCandidatesByProject, useCandidatesByProjectLegacy, useRankingChanges
 import { useDeleteCandidate } from "@/hooks/mutations";
 import { useWebSocketSync } from "@/hooks/useWebSocketSync";
 import { useQueryClient } from '@tanstack/react-query';
-import { TrendingUp, TrendingDown, RefreshCw, Eye, FileText, Wifi, Trash2, Search, Filter, X, Mail } from "lucide-react";
+import { TrendingUp, TrendingDown, RefreshCw, Eye, FileText, Wifi, Trash2, Search, Filter, X, Mail, MoveRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CandidateSourceBadge } from "@/components/ui/candidate-source-badge";
 import { SendEmailModal, EmailData } from "@/components/candidate/send-email-modal";
+import { MoveCandidatesDialog } from "@/components/pipeline/move-candidates-dialog";
 import { candidatesApi } from "@/lib/api-client";
 import { toast } from "sonner";
 
@@ -58,6 +59,7 @@ export function CandidateRanking({
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [selectedCandidateForEmail, setSelectedCandidateForEmail] = useState<Candidate | null>(null);
   const [showEmailModal, setShowEmailModal] = useState(false);
+  const [showMoveDialog, setShowMoveDialog] = useState(false);
 
   // Debounce pour la recherche (500ms)
   useEffect(() => {
@@ -403,18 +405,29 @@ export function CandidateRanking({
                 }
               </span>
             </div>
-            {selectedCandidates.size > 0 && onDeleteCandidates && (
-              <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-                <DialogTrigger asChild>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="gap-2"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Delete Selected ({selectedCandidates.size})
-                  </Button>
-                </DialogTrigger>
+            {selectedCandidates.size > 0 && (
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowMoveDialog(true)}
+                  className="gap-2"
+                >
+                  <MoveRight className="h-4 w-4" />
+                  Déplacer ({selectedCandidates.size})
+                </Button>
+                {onDeleteCandidates && (
+                  <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                    <DialogTrigger asChild>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="gap-2"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Delete Selected ({selectedCandidates.size})
+                      </Button>
+                    </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>Are you sure to delete these candidates?</DialogTitle>
@@ -442,6 +455,8 @@ export function CandidateRanking({
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
+                )}
+              </div>
             )}
           </div>
         )}
@@ -615,6 +630,20 @@ export function CandidateRanking({
         isOpen={showEmailModal}
         onClose={handleEmailModalClose}
         onSend={handleEmailSend}
+      />
+
+      {/* Modal de déplacement de candidats */}
+      <MoveCandidatesDialog
+        projectId={projectId}
+        candidates={Array.from(selectedCandidates).map(id =>
+          filteredCandidates.find(c => c.id === id)!
+        ).filter(Boolean)}
+        isOpen={showMoveDialog}
+        onClose={() => setShowMoveDialog(false)}
+        onSuccess={() => {
+          setSelectedCandidates(new Set());
+          refreshData();
+        }}
       />
     </Card>
   );

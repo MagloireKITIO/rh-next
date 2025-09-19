@@ -14,9 +14,10 @@ import { CVUpload } from "@/components/upload/cv-upload";
 import { CandidateRanking, RankingStats } from "@/components/ranking/candidate-ranking";
 import { ProjectSettings } from "@/components/project/project-settings";
 import { SubtleProgress } from "@/components/queue/subtle-progress";
+import { PipelineBoard } from "@/components/pipeline";
 import { useProject, useProjectStats } from "@/hooks/queries";
 import { useCandidatesByProject, useCandidatesByProjectLegacy, useRankingChanges } from "@/hooks/queries";
-import { useAnalysesByProject } from "@/hooks/queries";
+import { useAnalysesByProject, usePipelinesByProject } from "@/hooks/queries";
 import { useUpdateProject } from "@/hooks/mutations";
 import { useWebSocketSync } from "@/hooks/useWebSocketSync";
 import { Project, Candidate, projectsApi, apiClient } from "@/lib/api-client";
@@ -58,8 +59,12 @@ export default function ProjectPage() {
   const { data: candidates = [], isLoading: candidatesLoading } = useCandidatesByProjectLegacy(projectId);
   const { data: rankingChanges = [] } = useRankingChanges(projectId);
   const { data: analyses = [] } = useAnalysesByProject(projectId);
+  const { data: pipelines = [] } = usePipelinesByProject(projectId);
   const updateProjectMutation = useUpdateProject();
   const { isConnected } = useWebSocketSync(projectId);
+
+  // Récupérer le pipeline principal (normalement il n'y en a qu'un par projet)
+  const mainPipeline = pipelines.length > 0 ? pipelines[0] : null;
 
   // Gestion d'erreur pour project
   useEffect(() => {
@@ -295,7 +300,7 @@ export default function ProjectPage() {
         transition={{ delay: 0.2 }}
       >
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview" className="gap-2">
               <TrendingUp className="h-4 w-4" />
               Overview
@@ -303,6 +308,14 @@ export default function ProjectPage() {
             <TabsTrigger value="candidates" className="gap-2">
               <Users className="h-4 w-4" />
               Candidates ({candidates.length})
+            </TabsTrigger>
+            <TabsTrigger value="pipeline" className="gap-2">
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 3h18v18H3V3z"/>
+                <path d="M9 3v18"/>
+                <path d="M15 3v18"/>
+              </svg>
+              Pipeline
             </TabsTrigger>
             <TabsTrigger value="upload" className="gap-2">
               <FileText className="h-4 w-4" />
@@ -408,6 +421,39 @@ export default function ProjectPage() {
               enablePagination={true}
               pageSize={20}
             />
+          </TabsContent>
+
+          <TabsContent value="pipeline" className="space-y-6">
+            {mainPipeline ? (
+              <PipelineBoard
+                projectId={projectId}
+                pipelineId={mainPipeline.id}
+                onViewCandidate={handleViewCandidate}
+              />
+            ) : (
+              <div className="flex items-center justify-center p-8">
+                <div className="text-center">
+                  <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+                    <svg className="h-8 w-8 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M3 3h18v18H3V3z"/>
+                      <path d="M9 3v18"/>
+                      <path d="M15 3v18"/>
+                    </svg>
+                  </div>
+                  <h3 className="font-medium mb-2">Pipeline en cours de création</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Le pipeline de recrutement est en cours de création pour ce projet.
+                  </p>
+                  <Button
+                    onClick={() => window.location.reload()}
+                    variant="outline"
+                    className="mt-4"
+                  >
+                    Actualiser
+                  </Button>
+                </div>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="upload" className="space-y-6">

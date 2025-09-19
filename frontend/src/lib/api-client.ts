@@ -140,6 +140,74 @@ export interface PaginationParams {
   scoreFilter?: 'all' | 'excellent' | 'good' | 'average' | 'poor';
 }
 
+// Pipeline Types
+export interface PipelineStage {
+  id: string;
+  name: string;
+  description?: string;
+  order: number;
+  color?: string;
+  isDefault: boolean;
+  isActive: boolean;
+  pipelineId: string;
+  candidatesCount?: number;
+  candidates?: CandidateWithPipelineStatus[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RecruitmentPipeline {
+  id: string;
+  name: string;
+  description?: string;
+  isActive: boolean;
+  projectId: string;
+  stages: PipelineStage[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CandidatePipelineStatus {
+  id: string;
+  candidateId: string;
+  pipelineId: string;
+  currentStageId: string;
+  previousStageId?: string;
+  movedBy: string;
+  notes?: string;
+  movedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CandidateWithPipelineStatus extends Candidate {
+  pipelineStatus?: {
+    id: string;
+    movedAt: string;
+    notes?: string;
+    movedBy: string;
+  };
+}
+
+export interface PipelineStats {
+  pipeline: {
+    id: string;
+    name: string;
+  };
+  stages: Array<{
+    stageId: string;
+    stageName: string;
+    candidatesCount: number;
+    averageDays: number;
+  }>;
+  conversionRates: Array<{
+    fromStage: string;
+    toStage: string;
+    rate: number;
+  }>;
+  totalCandidates: number;
+}
+
 // API Functions
 export const projectsApi = {
   getAll: () => apiClient.get<Project[]>('/projects'),
@@ -297,13 +365,56 @@ export const authApi = {
 
 
 // Public API Functions (no auth required)
+// Pipeline API Functions
+export const pipelineApi = {
+  getByProject: (projectId: string) =>
+    apiClient.get<RecruitmentPipeline[]>(`/pipeline/project/${projectId}`),
+
+  getById: (id: string) =>
+    apiClient.get<RecruitmentPipeline>(`/pipeline/${id}`),
+
+  getWithCandidates: (id: string) =>
+    apiClient.get<RecruitmentPipeline>(`/pipeline/${id}/with-candidates`),
+
+  getStats: (id: string) =>
+    apiClient.get<PipelineStats>(`/pipeline/${id}/stats`),
+
+  create: (projectId: string, data: {
+    name: string;
+    description?: string;
+    stages?: Array<{ name: string; description?: string; color?: string }>
+  }) =>
+    apiClient.post<RecruitmentPipeline>(`/pipeline/project/${projectId}`, data),
+
+  update: (id: string, data: { name?: string; description?: string }) =>
+    apiClient.patch<RecruitmentPipeline>(`/pipeline/${id}`, data),
+
+  delete: (id: string) =>
+    apiClient.delete(`/pipeline/${id}`),
+
+  addStage: (pipelineId: string, data: { name: string; description?: string; color?: string }) =>
+    apiClient.post<PipelineStage>(`/pipeline/${pipelineId}/stages`, data),
+
+  updateStage: (stageId: string, data: { name?: string; description?: string; color?: string }) =>
+    apiClient.patch<PipelineStage>(`/pipeline/stages/${stageId}`, data),
+
+  deleteStage: (stageId: string) =>
+    apiClient.delete(`/pipeline/stages/${stageId}`),
+
+  moveCandidate: (data: { candidateId: string; stageId: string; notes?: string }) =>
+    apiClient.post<CandidatePipelineStatus>('/pipeline/move-candidate', data),
+
+  reorderStages: (pipelineId: string, stageOrders: Array<{ stageId: string; order: number }>) =>
+    apiClient.post<PipelineStage[]>(`/pipeline/${pipelineId}/stages/reorder`, stageOrders),
+};
+
 export const publicApi = {
-  getSharedProject: (token: string) => 
+  getSharedProject: (token: string) =>
     apiClient.get(`/public/projects/shared/${token}`),
-  
+
   getSharedProjectCandidates: (token: string, params?: PaginationParams) => {
     const queryParams = new URLSearchParams();
-    
+
     if (params) {
       if (params.page) queryParams.append('page', params.page.toString());
       if (params.limit) queryParams.append('limit', params.limit.toString());
@@ -311,10 +422,10 @@ export const publicApi = {
       if (params.status) queryParams.append('status', params.status);
       if (params.scoreFilter) queryParams.append('scoreFilter', params.scoreFilter);
     }
-    
+
     return apiClient.get<PaginatedResponse<Candidate>>(`/public/projects/shared/${token}/candidates${queryParams.toString() ? '?' + queryParams.toString() : ''}`);
   },
-  
+
   getJobOffer: (id: string) =>
     apiClient.get(`/public/job-offers/${id}`),
   getAllJobOffers: () =>

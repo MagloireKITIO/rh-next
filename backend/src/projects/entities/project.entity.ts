@@ -3,6 +3,7 @@ import { Candidate } from '../../candidates/entities/candidate.entity';
 import { Analysis } from '../../analysis/entities/analysis.entity';
 import { Company } from '../../companies/entities/company.entity';
 import { User } from '../../auth/entities/user.entity';
+import { RecruitmentPipeline } from '../../pipeline/entities/recruitment-pipeline.entity';
 
 @Entity('projects')
 export class Project {
@@ -64,6 +65,9 @@ export class Project {
 
   @OneToMany(() => Analysis, analysis => analysis.project)
   analyses: Analysis[];
+
+  @OneToMany(() => RecruitmentPipeline, pipeline => pipeline.project)
+  recruitmentPipelines: RecruitmentPipeline[];
 
   @CreateDateColumn()
   createdAt: Date;

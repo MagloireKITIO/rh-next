@@ -1,24 +1,148 @@
-🔍 [DEBUG] configs from API: Objectconfig: {transitional: {…}, adapter: Array(3), transformRequest: Array(1), transformResponse: Array(1), timeout: 0, …}data: {data: Array(0)}headers: AxiosHeaders {content-length: '11', content-type: 'application/json; charset=utf-8'}request: XMLHttpRequest {onreadystatechange: null, readyState: 4, timeout: 0, withCredentials: false, upload: XMLHttpRequestUpload, …}status: 200statusText: "OK"[[Prototype]]: Object
-C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-settings.tsx:146 🔍 [DEBUG] configs.data: Objectdata: [][[Prototype]]: Object
-C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-settings.tsx:152 🔍 [DEBUG] configurations after processing: Array(0)
-C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-settings.tsx:145 🔍 [DEBUG] configs from API: Object
-C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-settings.tsx:146 🔍 [DEBUG] configs.data: Object
-C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-settings.tsx:152 🔍 [DEBUG] configurations after processing: Array(0)
-C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-templates.tsx:439 🔍 [DEBUG] templates from API: undefined
-C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-templates.tsx:440 🔍 [DEBUG] templates.data: undefined
-C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-templates.tsx:446 🔍 [DEBUG] templatesList after processing: Array(0)
-C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-templates.tsx:439 🔍 [DEBUG] templates from API: undefined
-C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-templates.tsx:440 🔍 [DEBUG] templates.data: undefined
-C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-templates.tsx:446 🔍 [DEBUG] templatesList after processing: Array(0)
-C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-templates.tsx:439 🔍 [DEBUG] templates from API: Object
-C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-templates.tsx:440 🔍 [DEBUG] templates.data: Object
-C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-templates.tsx:446 🔍 [DEBUG] templatesList after processing: Array(0)
-C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-templates.tsx:439 🔍 [DEBUG] templates from API: Object
-C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-templates.tsx:440 🔍 [DEBUG] templates.data: Object
-C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-templates.tsx:446 🔍 [DEBUG] templatesList after processing: Array(0)
-C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-templates.tsx:439 🔍 [DEBUG] templates from API: Object
-C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-templates.tsx:440 🔍 [DEBUG] templates.data: Objectdata: Array(5)0: {id: 'fc495c81-f32e-4974-a562-5f7e6293aace', template_type: 'candidate_analysis_complete', subject: 'Analyse des candidats terminée - {{project_name}}', html_body: `<h2>Analyse terminée !</h2>\n<p>Bonjour {{user_name…px solid #eee;">\n<p>L'équipe {{company_name}}</p>`, text_body: null, …}1: {id: '56acebc7-23a8-4422-8a21-15f3fe9d0b9b', template_type: 'confirm_signup', subject: 'Confirmez votre inscription - {{app_name}}', html_body: "<h2>Bienvenue {{user_name}} !</h2>\n<p>Merci de vou…<p>Cordialement,<br>L'équipe {{company_name}}</p>", text_body: null, …}2: {id: '16d58267-8962-4769-ac06-e4cf5b71a7a8', template_type: 'invite_user', subject: 'Invitation à rejoindre {{company_name}} sur {{app_name}}', html_body: `<h2>Vous êtes invité(e) à rejoindre {{company_name…px solid #eee;">\n<p>L'équipe {{company_name}}</p>`, text_body: null, …}3: {id: '80e42783-2355-451e-a5c9-372bff221124', template_type: 'reset_password', subject: 'Réinitialisation de votre mot de passe - {{app_name}}', html_body: "<h2>Réinitialisation de mot de passe</h2>\n<p>Bonjo…<p>Cordialement,<br>L'équipe {{company_name}}</p>", text_body: null, …}4: {id: '1674ef88-ca29-45e0-ad86-7c1f24182d34', template_type: 'team_request_notification', subject: "Nouvelle demande d'équipe - {{company_name}}", html_body: `<h2>Nouvelle demande d'équipe</h2>\n<p>Une nouvelle…e;">\n<p>Système de notifications {{app_name}}</p>`, text_body: null, …}length: 5[[Prototype]]: Array(0)at: ƒ at()concat: ƒ concat()constructor: ƒ Array()copyWithin: ƒ copyWithin()entries: ƒ entries()every: ƒ every()fill: ƒ fill()filter: ƒ filter()find: ƒ find()findIndex: ƒ findIndex()findLast: ƒ findLast()findLastIndex: ƒ findLastIndex()flat: ƒ flat()flatMap: ƒ flatMap()forEach: ƒ forEach()includes: ƒ includes()indexOf: ƒ indexOf()join: ƒ join()keys: ƒ keys()lastIndexOf: ƒ lastIndexOf()length: 0map: ƒ map()pop: ƒ pop()push: ƒ push()reduce: ƒ reduce()reduceRight: ƒ reduceRight()reverse: ƒ reverse()shift: ƒ shift()slice: ƒ slice()some: ƒ some()sort: ƒ sort()splice: ƒ splice()toLocaleString: ƒ toLocaleString()toReversed: ƒ toReversed()toSorted: ƒ toSorted()toSpliced: ƒ toSpliced()toString: ƒ toString()unshift: ƒ unshift()values: ƒ values()with: ƒ with()Symbol(Symbol.iterator): ƒ values()Symbol(Symbol.unscopables): {at: true, copyWithin: true, entries: true, fill: true, find: true, …}[[Prototype]]: Object[[Prototype]]: Objectconstructor: ƒ Object()hasOwnProperty: ƒ hasOwnProperty()isPrototypeOf: ƒ isPrototypeOf()propertyIsEnumerable: ƒ propertyIsEnumerable()toLocaleString: ƒ toLocaleString()toString: ƒ toString()valueOf: ƒ valueOf()__defineGetter__: ƒ __defineGetter__()__defineSetter__: ƒ __defineSetter__()__lookupGetter__: ƒ __lookupGetter__()__lookupSetter__: ƒ __lookupSetter__()__proto__: (...)get __proto__: ƒ __proto__()set __proto__: ƒ __proto__()
-C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-templates.tsx:446 🔍 [DEBUG] templatesList after processing: Array(0)length: 0[[Prototype]]: Array(0)
-C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-templates.tsx:439 🔍 [DEBUG] templates from API: Objectconfig: {transitional: {…}, adapter: Array(3), transformRequest: Array(1), transformResponse: Array(1), timeout: 0, …}data: {data: Array(5)}headers: AxiosHeaders {content-length: '6110', content-type: 'application/json; charset=utf-8'}request: XMLHttpRequest {onreadystatechange: null, readyState: 4, timeout: 0, withCredentials: false, upload: XMLHttpRequestUpload, …}status: 200statusText: "OK"[[Prototype]]: Object
-C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-templates.tsx:440 🔍 [DEBUG] templates.data: Object
-C:\Users\stage.dsi.pmo\Desktop\dev\rh-next\frontend-admin\src\components\admin\settings\mail-templates.tsx:446 🔍 [DEBUG] templatesList after processing: Array(0)
+src/migrations/1700000014000-CreatePipelineTables.ts:170:65 - error TS2350: Only a void function can be called with the 'new' keyword.
+
+170     await queryRunner.createForeignKey('recruitment_pipelines', new ForeignKey({
+                                                                    ~~~~~~~~~~~~~~~~
+171       columnNames: ['projectId'],
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+... 
+174       onDelete: 'CASCADE',
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~
+175     }));
+    ~~~~~~
+
+src/migrations/1700000014000-CreatePipelineTables.ts:171:7 - error TS2353: Object literal may only specify known properties, and 'columnNames' does not exist in type '(type?: any) => ObjectType<unknown>'.
+
+171       columnNames: ['projectId'],
+          ~~~~~~~~~~~
+
+src/migrations/1700000014000-CreatePipelineTables.ts:177:59 - error TS2350: Only a void function can be called with the 'new' keyword.
+
+177     await queryRunner.createForeignKey('pipeline_stages', new ForeignKey({
+                                                              ~~~~~~~~~~~~~~~~
+178       columnNames: ['pipelineId'],
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+... 
+181       onDelete: 'CASCADE',
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~
+182     }));
+    ~~~~~~
+
+src/migrations/1700000014000-CreatePipelineTables.ts:178:7 - error TS2353: Object literal may only specify known properties, and 'columnNames' does not exist in type '(type?: any) => ObjectType<unknown>'.
+
+178       columnNames: ['pipelineId'],
+          ~~~~~~~~~~~
+
+src/migrations/1700000014000-CreatePipelineTables.ts:184:71 - error TS2350: Only a void function can be called with the 'new' keyword.
+
+184     await queryRunner.createForeignKey('candidate_pipeline_statuses', new ForeignKey({
+                                                                          ~~~~~~~~~~~~~~~~
+185       columnNames: ['candidateId'],
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+...
+188       onDelete: 'CASCADE',
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~
+189     }));
+    ~~~~~~
+
+src/migrations/1700000014000-CreatePipelineTables.ts:185:7 - error TS2353: Object literal may only specify known properties, and 'columnNames' does not exist in type '(type?: any) => ObjectType<unknown>'.
+
+185       columnNames: ['candidateId'],
+          ~~~~~~~~~~~
+
+src/migrations/1700000014000-CreatePipelineTables.ts:191:71 - error TS2350: Only a void function can be called with the 'new' keyword.
+
+191     await queryRunner.createForeignKey('candidate_pipeline_statuses', new ForeignKey({
+                                                                          ~~~~~~~~~~~~~~~~
+192       columnNames: ['pipelineId'],
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+...
+195       onDelete: 'CASCADE',
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~
+196     }));
+    ~~~~~~
+
+src/migrations/1700000014000-CreatePipelineTables.ts:192:7 - error TS2353: Object literal may only specify known properties, and 'columnNames' does not exist in type '(type?: any) => ObjectType<unknown>'.
+
+192       columnNames: ['pipelineId'],
+          ~~~~~~~~~~~
+
+src/migrations/1700000014000-CreatePipelineTables.ts:198:71 - error TS2350: Only a void function can be called with the 'new' keyword.
+
+198     await queryRunner.createForeignKey('candidate_pipeline_statuses', new ForeignKey({
+                                                                          ~~~~~~~~~~~~~~~~
+199       columnNames: ['currentStageId'],
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+...
+202       onDelete: 'CASCADE',
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~
+203     }));
+    ~~~~~~
+
+src/migrations/1700000014000-CreatePipelineTables.ts:199:7 - error TS2353: Object literal may only specify known properties, and 'columnNames' does not exist in type '(type?: any) => ObjectType<unknown>'.
+
+199       columnNames: ['currentStageId'],
+          ~~~~~~~~~~~
+
+src/migrations/1700000014000-CreatePipelineTables.ts:205:71 - error TS2350: Only a void function can be called with the 'new' keyword.
+
+205     await queryRunner.createForeignKey('candidate_pipeline_statuses', new ForeignKey({
+                                                                          ~~~~~~~~~~~~~~~~
+206       columnNames: ['previousStageId'],
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+...
+209       onDelete: 'SET NULL',
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+210     }));
+    ~~~~~~
+
+src/migrations/1700000014000-CreatePipelineTables.ts:206:7 - error TS2353: Object literal may only specify known properties, and 'columnNames' does not exist in type '(type?: any) => ObjectType<unknown>'.
+
+206       columnNames: ['previousStageId'],
+          ~~~~~~~~~~~
+
+src/migrations/1700000014000-CreatePipelineTables.ts:212:71 - error TS2350: Only a void function can be called with the 'new' keyword.
+
+212     await queryRunner.createForeignKey('candidate_pipeline_statuses', new ForeignKey({
+                                                                          ~~~~~~~~~~~~~~~~
+213       columnNames: ['movedBy'],
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+...
+216       onDelete: 'RESTRICT',
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+217     }));
+    ~~~~~~
+
+src/migrations/1700000014000-CreatePipelineTables.ts:213:7 - error TS2353: Object literal may only specify known properties, and 'columnNames' does not exist in type '(type?: any) => ObjectType<unknown>'.
+
+213       columnNames: ['movedBy'],
+          ~~~~~~~~~~~
+
+src/migrations/1700000014000-CreatePipelineTables.ts:220:60 - error TS2350: Only a void function can be called with the 'new' keyword.
+
+220     await queryRunner.createIndex('recruitment_pipelines', new Index('IDX_pipeline_project', ['projectId']));
+                                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+src/migrations/1700000014000-CreatePipelineTables.ts:221:54 - error TS2350: Only a void function can be called with the 'new' keyword.
+
+221     await queryRunner.createIndex('pipeline_stages', new Index('IDX_stage_pipeline_order', ['pipelineId', 'order']));
+                                                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+src/migrations/1700000014000-CreatePipelineTables.ts:222:66 - error TS2350: Only a void function can be called with the 'new' keyword.
+
+222     await queryRunner.createIndex('candidate_pipeline_statuses', new Index('IDX_candidate_current_stage', ['candidateId', 'currentStageId']));
+                                                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+src/migrations/1700000014000-CreatePipelineTables.ts:223:66 - error TS2350: Only a void function can be called with the 'new' keyword.
+
+223     await queryRunner.createIndex('candidate_pipeline_statuses', new Index('IDX_pipeline_stage_candidates', ['pipelineId', 'currentStageId']));
+                                                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+src/pipeline/pipeline.controller.ts:15:30 - error TS2307: Cannot find module '../auth/jwt-auth.guard' or its corresponding type declarations.
+
+15 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+                                ~~~~~~~~~~~~~~~~~~~~~~~~
+
+src/pipeline/pipeline.controller.ts:16:67 - error TS2307: Cannot find module '@nestjs/swagger' or its corresponding type declarations.
+
+16 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+                                                                     ~~~~~~~~~~~~~~~~~

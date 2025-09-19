@@ -4,3 +4,4 @@ export * from './useCandidates';
 export * from './useAnalysis';
 export * from './useApiKeys';
 export * from './useConfiguration';
+export * from './usePipeline';

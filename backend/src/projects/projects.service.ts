@@ -8,6 +8,7 @@ import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { StorageService } from '../storage/storage.service';
 import { AnalysisQueueService } from '../candidates/analysis-queue.service';
+import { PipelineService } from '../pipeline/pipeline.service';
 // ✅ Imports supprimés - automatisations gérées par AutomationSubscriber
 // import { AutomationTriggerService } from '../mail-automation/services/automation-trigger.service';
 // import { AutomationTrigger, AutomationEntityType } from '../mail-automation/entities/mail-automation.entity';
@@ -30,21 +31,45 @@ export class ProjectsService {
     private dataSource: DataSource,
     private storageService: StorageService,
     private analysisQueueService: AnalysisQueueService,
+    private pipelineService: PipelineService,
     // ✅ Service supprimé - automatisations gérées par AutomationSubscriber
     // private automationTriggerService: AutomationTriggerService,
   ) {}
 
   async create(createProjectDto: CreateProjectDto, companyId: string, userId: string): Promise<Project> {
+    this.logger.log(`🎯 Creating new project: ${createProjectDto.name} for company ${companyId}`);
+
     const project = this.projectRepository.create({
       ...createProjectDto,
       company_id: companyId,
       created_by: userId,
     });
+
     const savedProject = await this.projectRepository.save(project);
-    
+    this.logger.log(`✅ Project created successfully with ID: ${savedProject.id}`);
+
     // ✅ Automatisations désormais gérées automatiquement par AutomationSubscriber
     // Les triggers ON_CREATE sont déclenchés automatiquement lors de la sauvegarde
-    
+
+    // 🎯 Créer automatiquement le pipeline par défaut pour le projet
+    this.logger.log(`🔄 Starting pipeline creation for project ${savedProject.id}...`);
+    try {
+      const pipeline = await this.pipelineService.createDefaultPipeline(savedProject.id);
+      this.logger.log(`✅ Default recruitment pipeline created successfully:`, {
+        projectId: savedProject.id,
+        pipelineId: pipeline.id,
+        stagesCount: pipeline.stages?.length || 0
+      });
+    } catch (error) {
+      this.logger.error(`❌ Failed to create default pipeline for project ${savedProject.id}:`, {
+        error: error.message,
+        stack: error.stack,
+        projectId: savedProject.id
+      });
+      // Ne pas faire échouer la création du projet si le pipeline échoue
+    }
+
+    this.logger.log(`🎉 Project creation completed for ${savedProject.id}`);
     return savedProject;
   }
 
