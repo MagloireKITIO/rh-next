@@ -75,24 +75,13 @@ export function PipelineCandidateCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
     >
-      <Card className={cn(
-        "cursor-pointer transition-all duration-200 hover:shadow-md border-l-4",
-        candidate.status === "analyzed" && "border-l-green-500",
-        candidate.status === "pending" && "border-l-yellow-500",
-        candidate.status === "error" && "border-l-red-500",
-        !["analyzed", "pending", "error"].includes(candidate.status) && "border-l-gray-300"
-      )}>
-        <CardContent className="p-3">
-          <div className="space-y-3">
+      <Card className="cursor-pointer transition-all duration-200 hover:shadow-md">
+        <CardContent className="px-2 py-1.5">
+          <div className="space-y-1.5">
             {/* Header */}
-            <div className="flex items-start justify-between">
+            <div className="flex items-center justify-between">
               <div className="flex-1 min-w-0">
                 <h4 className="font-medium text-sm truncate">{candidate.name}</h4>
-                {candidate.email && (
-                  <p className="text-xs text-muted-foreground truncate mt-1">
-                    {candidate.email}
-                  </p>
-                )}
               </div>
 
               {candidate.status === "analyzed" && (
@@ -104,23 +93,22 @@ export function PipelineCandidateCard({
               )}
             </div>
 
-            {/* Badges */}
-            <div className="flex items-center gap-2 flex-wrap">
+            {/* Badge Status uniquement */}
+            <div className="flex items-center gap-1">
               <Badge
                 variant="outline"
-                className={cn("text-xs", getStatusColor(candidate.status))}
+                className={cn("text-xs px-1.5 py-0.5", getStatusColor(candidate.status))}
               >
                 {candidate.status}
               </Badge>
-              <CandidateSourceBadge source={candidate.source} />
+              {candidate.ranking > 0 && (
+                <Badge variant="outline" className="text-xs px-1.5 py-0.5">
+                  #{candidate.ranking}
+                </Badge>
+              )}
             </div>
 
-            {/* Summary */}
-            {candidate.summary && (
-              <p className="text-xs text-muted-foreground line-clamp-2">
-                {candidate.summary}
-              </p>
-            )}
+
 
             {/* Pipeline Info */}
             {movedAt && (
@@ -130,43 +118,35 @@ export function PipelineCandidateCard({
               </div>
             )}
 
-            {/* Actions */}
-            <div className="flex items-center justify-between pt-2 border-t">
-              <div className="flex gap-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 px-2 text-xs"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onView?.(candidate);
-                  }}
-                >
-                  <Eye className="h-3 w-3 mr-1" />
-                  Voir
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 px-2 text-xs"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const fileUrl = candidate.fileUrl.startsWith('http')
-                      ? candidate.fileUrl
-                      : `${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'}/${candidate.fileUrl}`;
-                    window.open(fileUrl, '_blank');
-                  }}
-                >
-                  <FileText className="h-3 w-3 mr-1" />
-                  CV
-                </Button>
-              </div>
-
-              {candidate.ranking > 0 && (
-                <Badge variant="outline" className="text-xs">
-                  #{candidate.ranking}
-                </Badge>
-              )}
+            {/* Actions compactes */}
+            <div className="flex gap-1 pt-2 border-t">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-1.5 text-xs flex-1 flex-col gap-1"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onView?.(candidate);
+                }}
+              >
+                <Eye className="h-3 w-3" />
+                <span>Voir</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-1.5 text-xs flex-1 flex-col gap-1"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const fileUrl = candidate.fileUrl.startsWith('http')
+                    ? candidate.fileUrl
+                    : `${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'}/${candidate.fileUrl}`;
+                  window.open(fileUrl, '_blank');
+                }}
+              >
+                <FileText className="h-3 w-3" />
+                <span>CV</span>
+              </Button>
             </div>
           </div>
         </CardContent>

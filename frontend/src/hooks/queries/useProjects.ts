@@ -5,7 +5,10 @@ export function useProjects() {
   return useQuery({
     queryKey: ['projects'],
     queryFn: () => projectsApi.getAll().then(res => res.data),
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes - cache plus long
+    gcTime: 10 * 60 * 1000, // 10 minutes en mémoire
+    refetchOnWindowFocus: false, // Empêche le re-fetch au focus
+    refetchOnMount: false, // Empêche le re-fetch au mount si données fraîches
   });
 }
 

@@ -239,10 +239,10 @@ export default function ProjectPage() {
         animate={{ opacity: 1, y: 0 }}
         className="flex items-center gap-4"
       >
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={() => router.push("/")}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => router.back()}
           className="gap-2"
         >
           <ArrowLeft className="h-4 w-4" />
