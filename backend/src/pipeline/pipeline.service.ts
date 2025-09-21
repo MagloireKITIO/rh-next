@@ -4,6 +4,7 @@ import { Repository, DataSource } from 'typeorm';
 import { RecruitmentPipeline } from './entities/recruitment-pipeline.entity';
 import { PipelineStage } from './entities/pipeline-stage.entity';
 import { CandidatePipelineStatus } from './entities/candidate-pipeline-status.entity';
+import { PipelineEvent, PipelineEventType } from './entities/pipeline-event.entity';
 import { Candidate } from '../candidates/entities/candidate.entity';
 import { Project } from '../projects/entities/project.entity';
 import { CreatePipelineDto, UpdatePipelineDto, MoveCandidateDto } from './dto';
@@ -19,6 +20,8 @@ export class PipelineService {
     private stageRepository: Repository<PipelineStage>,
     @InjectRepository(CandidatePipelineStatus)
     private candidateStatusRepository: Repository<CandidatePipelineStatus>,
+    @InjectRepository(PipelineEvent)
+    private pipelineEventRepository: Repository<PipelineEvent>,
     @InjectRepository(Candidate)
     private candidateRepository: Repository<Candidate>,
     @InjectRepository(Project)
@@ -473,5 +476,102 @@ export class PipelineService {
     });
 
     this.logger.log(`✅ Candidate ${candidateId} removed from pipeline`);
+  }
+
+  async getProjectTimeline(projectId: string, companyId: string, limit = 50, offset = 0): Promise<any> {
+    // Vérifier que le projet appartient à l'entreprise
+    const project = await this.projectRepository.findOne({
+      where: { id: projectId, company_id: companyId },
+    });
+
+    if (!project) {
+      throw new NotFoundException(`Project with ID ${projectId} not found in your company`);
+    }
+
+    // Récupérer les événements du pipeline
+    const pipelineEvents = await this.pipelineEventRepository.find({
+      where: { projectId },
+      relations: ['candidate', 'user'],
+      order: { createdAt: 'DESC' },
+      take: limit,
+      skip: offset,
+    });
+
+    // Récupérer les mouvements de candidats depuis CandidatePipelineStatus
+    const candidateMovements = await this.candidateStatusRepository.find({
+      where: {
+        candidate: { projectId }
+      },
+      relations: ['candidate', 'currentStage', 'previousStage', 'movedByUser'],
+      order: { movedAt: 'DESC' },
+      take: limit,
+      skip: offset,
+    });
+
+    // Combiner et trier tous les événements
+    const allEvents = [
+      ...pipelineEvents.map(event => ({
+        id: event.id,
+        type: 'pipeline_event',
+        eventType: event.eventType,
+        projectId: event.projectId,
+        candidateId: event.candidateId,
+        candidateName: event.candidate?.name,
+        userId: event.userId,
+        userName: event.user?.name,
+        eventData: event.eventData,
+        description: event.description,
+        createdAt: event.createdAt,
+      })),
+      ...candidateMovements.map(movement => ({
+        id: movement.id,
+        type: 'candidate_movement',
+        eventType: 'CANDIDATE_MOVED',
+        projectId,
+        candidateId: movement.candidateId,
+        candidateName: movement.candidate?.name,
+        userId: movement.movedBy,
+        userName: movement.movedByUser?.name,
+        eventData: {
+          fromStage: movement.previousStage?.name,
+          toStage: movement.currentStage?.name,
+          fromStageColor: movement.previousStage?.color,
+          toStageColor: movement.currentStage?.color,
+        },
+        description: movement.notes,
+        createdAt: movement.movedAt,
+      })),
+    ];
+
+    // Trier par date décroissante et limiter
+    const sortedEvents = allEvents
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, limit);
+
+    return {
+      events: sortedEvents,
+      total: allEvents.length,
+      hasMore: allEvents.length > limit + offset,
+    };
+  }
+
+  async createPipelineEvent(
+    eventType: PipelineEventType,
+    projectId: string,
+    userId: string,
+    candidateId?: string,
+    eventData?: any,
+    description?: string,
+  ): Promise<PipelineEvent> {
+    const event = this.pipelineEventRepository.create({
+      eventType,
+      projectId,
+      userId,
+      candidateId,
+      eventData,
+      description,
+    });
+
+    return await this.pipelineEventRepository.save(event);
   }
 }

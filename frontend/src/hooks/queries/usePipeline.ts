@@ -36,3 +36,12 @@ export function usePipelineStats(id: string) {
     staleTime: 1 * 60 * 1000, // 1 minute
   });
 }
+
+export function useProjectTimeline(projectId: string) {
+  return useQuery({
+    queryKey: ['pipelines', 'project', projectId, 'timeline'],
+    queryFn: () => pipelineApi.getProjectTimeline(projectId).then(res => res.data),
+    enabled: !!projectId,
+    staleTime: 30 * 1000, // 30 secondes - timeline avec données en temps réel
+  });
+}

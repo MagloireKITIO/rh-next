@@ -14,7 +14,7 @@ import { CVUpload } from "@/components/upload/cv-upload";
 import { CandidateRanking, RankingStats } from "@/components/ranking/candidate-ranking";
 import { ProjectSettings } from "@/components/project/project-settings";
 import { SubtleProgress } from "@/components/queue/subtle-progress";
-import { PipelineBoard } from "@/components/pipeline";
+import { PipelineBoard, ProjectTimeline } from "@/components/pipeline";
 import { useProject, useProjectStats } from "@/hooks/queries";
 import { useCandidatesByProject, useCandidatesByProjectLegacy, useRankingChanges } from "@/hooks/queries";
 import { useAnalysesByProject, usePipelinesByProject } from "@/hooks/queries";
@@ -23,11 +23,11 @@ import { useRemoveCandidateFromPipeline } from "@/hooks/mutations/useCandidateMu
 import { useWebSocketSync } from "@/hooks/useWebSocketSync";
 import { Project, Candidate, projectsApi, apiClient } from "@/lib/api-client";
 import { useQueryClient } from '@tanstack/react-query';
-import { 
-  ArrowLeft, 
-  Users, 
-  TrendingUp, 
-  FileText, 
+import {
+  ArrowLeft,
+  Users,
+  TrendingUp,
+  FileText,
   Download,
   Settings,
   RefreshCw,
@@ -36,7 +36,8 @@ import {
   X,
   Share2,
   Copy,
-  Check
+  Check,
+  Clock
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -328,7 +329,7 @@ export default function ProjectPage() {
         transition={{ delay: 0.2 }}
       >
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="overview" className="gap-2">
               <TrendingUp className="h-4 w-4" />
               Overview
@@ -344,6 +345,10 @@ export default function ProjectPage() {
                 <path d="M15 3v18"/>
               </svg>
               Pipeline
+            </TabsTrigger>
+            <TabsTrigger value="timeline" className="gap-2">
+              <Clock className="h-4 w-4" />
+              Timeline
             </TabsTrigger>
             <TabsTrigger value="upload" className="gap-2">
               <FileText className="h-4 w-4" />
@@ -483,6 +488,10 @@ export default function ProjectPage() {
                 </div>
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="timeline" className="space-y-6">
+            <ProjectTimeline projectId={projectId} />
           </TabsContent>
 
           <TabsContent value="upload" className="space-y-6">

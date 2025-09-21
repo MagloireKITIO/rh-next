@@ -122,4 +122,20 @@ export class PipelineController {
   ) {
     return this.pipelineService.removeCandidateFromPipeline(candidateId, req.user.company_id);
   }
+
+  @Get('project/:projectId/timeline')
+  async getProjectTimeline(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @Request() req,
+  ) {
+    console.log(`🔍 Getting timeline for project: ${projectId} for company ${req.user.company_id}`);
+    try {
+      const result = await this.pipelineService.getProjectTimeline(projectId, req.user.company_id);
+      console.log(`✅ Found ${result.events.length} timeline events for project ${projectId}`);
+      return result;
+    } catch (error) {
+      console.error(`❌ Error getting timeline for project ${projectId}:`, error.message);
+      throw error;
+    }
+  }
 }

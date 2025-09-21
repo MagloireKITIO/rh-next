@@ -226,6 +226,37 @@ export interface PipelineStats {
   totalCandidates: number;
 }
 
+export interface TimelineEvent {
+  id: string;
+  type: 'pipeline_event' | 'candidate_movement';
+  eventType: 'CANDIDATE_MOVED' | 'CANDIDATE_ADDED' | 'CANDIDATE_REMOVED' | 'CANDIDATE_ANALYZED' | 'EMAIL_SENT' | 'NOTE_ADDED' | 'STAGE_CREATED' | 'STAGE_UPDATED' | 'STAGE_DELETED';
+  projectId: string;
+  candidateId?: string;
+  candidateName?: string;
+  userId: string;
+  userName?: string;
+  eventData?: {
+    fromStage?: string;
+    toStage?: string;
+    fromStageColor?: string;
+    toStageColor?: string;
+    stageName?: string;
+    stageColor?: string;
+    emailSubject?: string;
+    noteContent?: string;
+    analysisScore?: number;
+    [key: string]: any;
+  };
+  description?: string;
+  createdAt: string;
+}
+
+export interface TimelineResponse {
+  events: TimelineEvent[];
+  total: number;
+  hasMore: boolean;
+}
+
 // API Functions
 export const projectsApi = {
   getAll: () => apiClient.get<Project[]>('/projects'),
@@ -425,6 +456,9 @@ export const pipelineApi = {
 
   reorderStages: (pipelineId: string, stageOrders: Array<{ stageId: string; order: number }>) =>
     apiClient.post<PipelineStage[]>(`/pipeline/${pipelineId}/stages/reorder`, stageOrders),
+
+  getProjectTimeline: (projectId: string) =>
+    apiClient.get<TimelineResponse>(`/pipeline/project/${projectId}/timeline`),
 };
 
 export const publicApi = {

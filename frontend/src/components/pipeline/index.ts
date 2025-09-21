@@ -4,3 +4,4 @@ export { PipelineCandidateCard } from './pipeline-candidate-card';
 export { AddStageDialog } from './add-stage-dialog';
 export { EditStageDialog } from './edit-stage-dialog';
 export { MoveCandidatesDialog } from './move-candidates-dialog';
+export { ProjectTimeline } from './project-timeline';
