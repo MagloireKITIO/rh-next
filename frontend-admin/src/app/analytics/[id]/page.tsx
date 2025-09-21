@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { adminApi } from '@/lib/api-client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,7 +38,19 @@ import {
 export default function ProjectReportPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const projectId = params.id as string;
+
+  const [activeTab, setActiveTab] = useState(() => {
+    return searchParams.get('tab') || 'overview';
+  });
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', tab);
+    router.replace(url.pathname + url.search, { scroll: false });
+  };
   
   const [periodFilter, setPeriodFilter] = useState('all');
   const [exportFormat, setExportFormat] = useState<'pdf' | 'excel'>('pdf');
@@ -226,7 +238,7 @@ export default function ProjectReportPage() {
           </div>
 
           {/* Detailed Analytics Tabs */}
-          <Tabs defaultValue="overview" className="space-y-6">
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
             <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="overview">Vue d&apos;ensemble</TabsTrigger>
               <TabsTrigger value="candidates">Top Candidats</TabsTrigger>

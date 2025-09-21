@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '@/lib/api-client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -52,10 +53,24 @@ interface MailConfiguration {
 }
 
 export default function MailSettings() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const [activeMailTab, setActiveMailTab] = useState(() => {
+    return searchParams.get('mail-tab') || 'configurations';
+  });
+
+  const handleMailTabChange = (tab: string) => {
+    setActiveMailTab(tab);
+    const url = new URL(window.location.href);
+    url.searchParams.set('mail-tab', tab);
+    router.replace(url.pathname + url.search, { scroll: false });
+  };
+
   const [currentView, setCurrentView] = useState<'list' | 'form' | 'automation-form'>('list');
   const [selectedConfig, setSelectedConfig] = useState<MailConfiguration | null>(null);
   const [selectedAutomation, setSelectedAutomation] = useState<any>(null);
-  
+
   const queryClient = useQueryClient();
 
   // Récupérer toutes les configurations
@@ -237,7 +252,7 @@ export default function MailSettings() {
   console.log('🔍 [DEBUG] configurations after processing:', configurations);
 
   return (
-    <Tabs defaultValue="configurations" className="w-full">
+    <Tabs value={activeMailTab} onValueChange={handleMailTabChange} className="w-full">
       <TabsList className="grid w-full grid-cols-3">
         <TabsTrigger value="configurations" className="flex items-center gap-2">
           <Settings className="w-4 h-4" />

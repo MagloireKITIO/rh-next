@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import AdminLayout from '@/components/layout/admin-layout';
 import ProtectedRoute from '@/components/layout/protected-route';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,7 +21,19 @@ import MailSettings from '@/components/admin/settings/mail-settings';
 import PrivacyPolicySettings from '@/components/admin/settings/privacy-policy-settings';
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState('system');
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const [activeTab, setActiveTab] = useState(() => {
+    return searchParams.get('tab') || 'system';
+  });
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', tab);
+    router.replace(url.pathname + url.search, { scroll: false });
+  };
 
   const settingsTabs = [
     {
@@ -138,7 +151,7 @@ export default function SettingsPage() {
                       return (
                         <button
                           key={tab.id}
-                          onClick={() => !isDisabled && setActiveTab(tab.id)}
+                          onClick={() => !isDisabled && handleTabChange(tab.id)}
                           disabled={isDisabled}
                           className={`
                             flex items-center gap-3 px-4 py-3 text-left transition-colors

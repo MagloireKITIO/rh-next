@@ -30,12 +30,30 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error) => {
+    // Distinguer les vraies erreurs 401 des erreurs réseau
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      if (typeof window !== 'undefined') {
-        window.location.href = '/auth/login';
+      // Vérifier si c'est une vraie erreur d'authentification
+      const isAuthError = error.response?.data?.message?.includes('token') ||
+                         error.response?.data?.message?.includes('auth') ||
+                         error.response?.data?.message?.includes('unauthorized') ||
+                         error.config?.url?.includes('/auth/');
+
+      if (isAuthError) {
+        console.log('🔓 [AUTH] Token invalide, déconnexion');
+        localStorage.removeItem('token');
+        if (typeof window !== 'undefined') {
+          window.location.href = '/auth/login';
+        }
+      } else {
+        console.warn('⚠️ [API] Erreur 401 non-auth, pas de déconnexion');
       }
     }
+
+    // Pour les erreurs réseau (pas de response), ne pas déconnecter
+    if (!error.response) {
+      console.warn('🌐 [NETWORK] Erreur réseau - backend indisponible');
+    }
+
     return Promise.reject(error);
   }
 );

@@ -53,9 +53,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(response.data);
           setLoading(false);
           return;
-        } catch (error) {
+        } catch (error: any) {
           console.error('Error fetching profile:', error);
-          localStorage.removeItem('token');
+
+          // Ne supprimer le token que si c'est vraiment une erreur d'auth
+          if (error.response?.status === 401 &&
+              (error.response?.data?.message?.includes('token') ||
+               error.response?.data?.message?.includes('unauthorized'))) {
+            console.log('🔓 [AUTH CONTEXT] Token invalide, suppression');
+            localStorage.removeItem('token');
+          } else {
+            console.warn('🌐 [AUTH CONTEXT] Erreur réseau, token conservé');
+          }
         }
       }
 
