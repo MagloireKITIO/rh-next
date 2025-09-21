@@ -123,15 +123,15 @@ export function ProjectSettings({
     try {
       // Fetch all candidates for this project
       const candidatesResponse = await candidatesApi.getByProject(project.id);
-      const candidates = candidatesResponse.data;
-      
+      const candidates = candidatesResponse.data.data; // PaginatedResponse has data property
+
       // Delete all candidates
       const deletePromises = candidates.map((candidate: any) =>
         candidatesApi.delete(candidate.id)
       );
 
       await Promise.all(deletePromises);
-      
+
       toast.success(`${candidates.length} candidates deleted successfully`);
       setShowClearDialog(false);
       setClearConfirmation("");
@@ -190,8 +190,8 @@ export function ProjectSettings({
     setIsLoading(true);
     try {
       const response = await projectsApi.update(project.id, {
-        offerDocumentUrl: null,
-        offerDocumentFileName: null
+        offerDocumentUrl: undefined,
+        offerDocumentFileName: undefined
       });
       onProjectUpdate(response.data);
       toast.success("Offer document removed successfully");

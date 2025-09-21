@@ -48,7 +48,7 @@ export default function AuthCallbackPage() {
                 router.push('/dashboard');
               }
             } else {
-              throw new Error(authData.message || 'Erreur d\'authentification');
+              throw new Error((response.data as any).message || 'Erreur d\'authentification');
             }
           } catch (error: any) {
             console.error('Erreur lors de l\'authentification:', error);

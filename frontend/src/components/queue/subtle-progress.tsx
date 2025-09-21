@@ -69,9 +69,9 @@ export function SubtleProgress({ projectId, className }: SubtleProgressProps) {
     on('analysisUpdate', handleAnalysisUpdate);
 
     return () => {
-      off('queue_progress', handleQueueProgress);
-      off('queue_completed', handleQueueCompleted);
-      off('analysisUpdate', handleAnalysisUpdate);
+      off('queue_progress');
+      off('queue_completed');
+      off('analysisUpdate');
     };
   }, [on, off]);
 

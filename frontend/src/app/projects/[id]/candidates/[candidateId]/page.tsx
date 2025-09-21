@@ -21,7 +21,7 @@ import {
   History
 } from "lucide-react";
 import { toast } from "sonner";
-import { candidatesApi } from "@/lib/api-client";
+import { candidatesApi, CandidateSource } from "@/lib/api-client";
 import { EmailHistoryModal } from "@/components/candidate/email-history-modal";
 import { SendEmailModal, EmailData } from "@/components/candidate/send-email-modal";
 
@@ -37,6 +37,7 @@ interface Candidate {
   score: number;
   previousScore?: number;
   status: string;
+  source: CandidateSource;
   summary?: string;
   ranking: number;
   projectId: string;

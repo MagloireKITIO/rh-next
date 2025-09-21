@@ -508,7 +508,7 @@ export default function SettingsPage() {
                     >
                       <Label className="text-sm">Configured Keys ({apiKeys.length})</Label>
                       <div className="space-y-2 max-h-60 overflow-y-auto">
-                        {apiKeys.map((apiKey, index) => (
+                        {apiKeys.map((apiKey: any, index: number) => (
                           <motion.div
                             key={apiKey.id}
                             initial={{ opacity: 0, x: -20 }}

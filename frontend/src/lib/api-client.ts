@@ -65,6 +65,11 @@ export interface Project {
   jobDescription: string;
   customPrompt?: string;
   status: string;
+  startDate?: string;
+  endDate?: string;
+  offerDescription?: string;
+  offerDocumentUrl?: string;
+  offerDocumentFileName?: string;
   candidates: Candidate[];
   createdAt: string;
   updatedAt: string;
@@ -91,6 +96,14 @@ export interface Candidate {
   summary?: string;
   ranking: number;
   projectId: string;
+  analyses?: Analysis[];
+  pipelineStatus?: {
+    id: string;
+    movedAt: string;
+    notes?: string;
+    movedBy: string;
+    currentStageId?: string;
+  };
   createdAt: string;
   updatedAt: string;
 }
@@ -204,6 +217,7 @@ export interface CandidateWithPipelineStatus extends Candidate {
     movedAt: string;
     notes?: string;
     movedBy: string;
+    currentStageId?: string;
   };
 }
 
@@ -255,6 +269,119 @@ export interface TimelineResponse {
   events: TimelineEvent[];
   total: number;
   hasMore: boolean;
+}
+
+// Interviews Types
+export interface Interview {
+  id: string;
+  title: string;
+  description?: string;
+  scheduled_at: string;
+  started_at?: string;
+  ended_at?: string;
+  duration_minutes: number;
+  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'rescheduled';
+  type: 'video_call' | 'phone' | 'in_person';
+  meeting_link?: string;
+  meeting_id?: string;
+  location?: string;
+  notes?: string;
+  agenda?: string;
+  evaluation_criteria?: Record<string, any>;
+  calendar_invites_sent: boolean;
+  reminder_sent: boolean;
+  candidate_id: string;
+  project_id: string;
+  created_by: string;
+  candidate?: Candidate;
+  project?: Project;
+  participants?: InterviewParticipant[];
+  evaluations?: InterviewEvaluation[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InterviewParticipant {
+  id: string;
+  role: 'interviewer' | 'observer' | 'coordinator';
+  status: 'invited' | 'accepted' | 'declined' | 'tentative';
+  is_required: boolean;
+  notes?: string;
+  calendar_invite_sent: boolean;
+  interview_id: string;
+  user_id: string;
+  user?: any; // User type
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InterviewEvaluation {
+  id: string;
+  criteria_scores?: Record<string, number>;
+  overall_score?: number;
+  strengths?: string;
+  weaknesses?: string;
+  comments?: string;
+  notes?: string;
+  recommendation?: 'hire' | 'strong_hire' | 'no_hire' | 'strong_no_hire' | 'neutral';
+  confidence_level?: number;
+  additional_data?: Record<string, any>;
+  is_completed: boolean;
+  interview_id: string;
+  evaluator_id: string;
+  evaluator?: any; // User type
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateInterviewData {
+  title: string;
+  description?: string;
+  scheduled_at: Date;
+  duration_minutes?: number;
+  type: 'video_call' | 'phone' | 'in_person';
+  meeting_link?: string;
+  location?: string;
+  notes?: string;
+  agenda?: string;
+  evaluation_criteria?: Record<string, any>;
+  candidate_id: string;
+  project_id: string;
+  participants?: Array<{
+    user_id: string;
+    role: 'interviewer' | 'observer' | 'coordinator';
+    is_required?: boolean;
+    notes?: string;
+  }>;
+}
+
+export interface UpdateInterviewData {
+  title?: string;
+  description?: string;
+  scheduled_at?: Date;
+  duration_minutes?: number;
+  type?: 'video_call' | 'phone' | 'in_person';
+  status?: 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'rescheduled';
+  meeting_link?: string;
+  location?: string;
+  notes?: string;
+  agenda?: string;
+  started_at?: Date;
+  ended_at?: Date;
+}
+
+export interface CreateEvaluationData {
+  interview_id: string;
+  criteria_scores?: Record<string, number>;
+  overall_score?: number;
+  strengths?: string;
+  weaknesses?: string;
+  comments?: string;
+  notes?: string;
+  recommendation?: 'hire' | 'strong_hire' | 'no_hire' | 'strong_no_hire' | 'neutral';
+  confidence_level?: number;
+  additional_data?: Record<string, any>;
+  is_completed?: boolean;
 }
 
 // API Functions
@@ -459,6 +586,69 @@ export const pipelineApi = {
 
   getProjectTimeline: (projectId: string) =>
     apiClient.get<TimelineResponse>(`/pipeline/project/${projectId}/timeline`),
+};
+
+// Interviews API Functions
+export const interviewsApi = {
+  getAll: () =>
+    apiClient.get<Interview[]>('/interviews'),
+
+  getByProject: (projectId: string) =>
+    apiClient.get<Interview[]>(`/interviews/project/${projectId}`),
+
+  getByCandidate: (candidateId: string) =>
+    apiClient.get<Interview[]>(`/interviews/candidate/${candidateId}`),
+
+  getByUser: (userId: string) =>
+    apiClient.get<Interview[]>(`/interviews/user/${userId}`),
+
+  getByDateRange: (startDate: Date, endDate: Date) =>
+    apiClient.get<Interview[]>(`/interviews/calendar?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`),
+
+  getById: (id: string) =>
+    apiClient.get<Interview>(`/interviews/${id}`),
+
+  create: (data: CreateInterviewData) =>
+    apiClient.post<Interview>('/interviews', data),
+
+  update: (id: string, data: UpdateInterviewData) =>
+    apiClient.patch<Interview>(`/interviews/${id}`, data),
+
+  updateStatus: (id: string, status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'rescheduled') =>
+    apiClient.patch<Interview>(`/interviews/${id}/status`, { status }),
+
+  delete: (id: string) =>
+    apiClient.delete(`/interviews/${id}`),
+
+  // Participants
+  addParticipant: (interviewId: string, userId: string, role: 'interviewer' | 'observer' | 'coordinator') =>
+    apiClient.post<InterviewParticipant>(`/interviews/${interviewId}/participants`, { userId, role }),
+
+  updateParticipantStatus: (participantId: string, status: 'invited' | 'accepted' | 'declined' | 'tentative') =>
+    apiClient.patch<InterviewParticipant>(`/interviews/participants/${participantId}/status`, { status }),
+
+  removeParticipant: (participantId: string) =>
+    apiClient.delete(`/interviews/participants/${participantId}`),
+
+  // Evaluations
+  createEvaluation: (data: CreateEvaluationData) =>
+    apiClient.post<InterviewEvaluation>('/interviews/evaluations', data),
+
+  getEvaluationsByInterview: (interviewId: string) =>
+    apiClient.get<InterviewEvaluation[]>(`/interviews/${interviewId}/evaluations`),
+
+  updateEvaluation: (evaluationId: string, data: Partial<CreateEvaluationData>) =>
+    apiClient.patch<InterviewEvaluation>(`/interviews/evaluations/${evaluationId}`, data),
+
+  deleteEvaluation: (evaluationId: string) =>
+    apiClient.delete(`/interviews/evaluations/${evaluationId}`),
+
+  // Utilities
+  getAvailableTimeSlots: (date: Date, userIds: string[], duration: number = 60) =>
+    apiClient.get(`/interviews/availability/${date.toISOString().split('T')[0]}?userIds=${userIds.join(',')}&duration=${duration}`),
+
+  generateMeetingLink: (interviewId: string) =>
+    apiClient.post<{ meetingLink: string }>(`/interviews/${interviewId}/meeting-link`),
 };
 
 export const publicApi = {

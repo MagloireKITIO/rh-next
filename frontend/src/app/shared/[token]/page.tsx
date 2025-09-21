@@ -23,7 +23,7 @@ interface Candidate {
   id: string;
   name: string;
   score: number;
-  summary: string;
+  summary?: string;
   status: string;
   source: 'import' | 'application';
   createdAt: string;
@@ -78,6 +78,7 @@ interface SharedProject {
 
 export default function SharedProjectPage() {
   const { token } = useParams();
+  const tokenStr = Array.isArray(token) ? token[0] : token;
   const [project, setProject] = useState<SharedProject | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -114,7 +115,7 @@ export default function SharedProjectPage() {
   useEffect(() => {
     const fetchSharedProject = async () => {
       try {
-        const response = await publicApi.getSharedProject(token);
+        const response = await publicApi.getSharedProject(tokenStr!);
         // On garde seulement les infos du projet, pas les candidats
         setProject({
           ...response.data,
@@ -128,10 +129,10 @@ export default function SharedProjectPage() {
     };
 
     fetchSharedProject();
-  }, [token]);
+  }, [tokenStr]);
 
   // Hook pour charger les candidats avec recherche et pagination
-  const candidatesQuery = useSharedProjectCandidates(token, {
+  const candidatesQuery = useSharedProjectCandidates(tokenStr!, {
     search: debouncedSearchQuery,
     statusFilter,
     scoreFilter,
@@ -140,7 +141,7 @@ export default function SharedProjectPage() {
   });
 
   // Hook séparé pour les statistiques (sans filtres, première page avec limite élevée)
-  const statsQuery = useSharedProjectCandidates(token, {
+  const statsQuery = useSharedProjectCandidates(tokenStr!, {
     search: '',
     statusFilter: 'all',
     scoreFilter: 'all', 

@@ -342,7 +342,7 @@ export function CVUpload({
           setFiles(prev => prev.map((f, idx) => {
             if (idx >= chunkStart && idx < chunkEnd) {
               const chunkIndex = idx - chunkStart;
-              const wasSuccessful = chunkIndex < (result.successful || 0);
+              const wasSuccessful = chunkIndex < ((result as any).successful || 0);
               return {
                 ...f,
                 status: wasSuccessful ? "success" as const : "error" as const,
@@ -353,8 +353,8 @@ export function CVUpload({
             return f;
           }));
           
-          successCount += result.successful || 0;
-          failureCount += result.failed || 0;
+          successCount += (result as any).successful || 0;
+          failureCount += (result as any).failed || 0;
           allResults.push(result);
           
         } catch (error: any) {
@@ -391,7 +391,7 @@ export function CVUpload({
         onUploadComplete({
           successful: successCount,
           failed: failureCount,
-          candidates: allResults.flatMap(r => r.candidates || [])
+          candidates: allResults.flatMap(r => (r as any).candidates || [])
         });
       }
 
@@ -467,11 +467,11 @@ export function CVUpload({
       <CardContent className="space-y-4">
         {/* Dropzone */}
         <motion.div
-          {...getRootProps()}
+          {...(getRootProps() as any)}
           className={cn(
             "border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors",
-            isDragActive 
-              ? "border-primary bg-primary/5" 
+            isDragActive
+              ? "border-primary bg-primary/5"
               : "border-muted-foreground/25 hover:border-primary/50",
             isUploading && "pointer-events-none opacity-50"
           )}

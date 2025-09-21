@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from 'react';
-import { io, Socket } from 'socket.io-client';
+import io from 'socket.io-client';
+import type { Socket } from 'socket.io-client';
 
 interface WebSocketEvents {
   candidateUpdate: (data: any) => void;
@@ -19,7 +20,7 @@ interface UseWebSocketProps {
 }
 
 export function useWebSocket({ projectId, enabled = true }: UseWebSocketProps) {
-  const socketRef = useRef<Socket | null>(null);
+  const socketRef = useRef<any>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const eventHandlersRef = useRef<Partial<WebSocketEvents>>({});
@@ -52,18 +53,18 @@ export function useWebSocket({ projectId, enabled = true }: UseWebSocketProps) {
         setIsConnected(false);
       });
 
-      socket.on('connect_error', (error) => {
+      socket.on('connect_error', (error: any) => {
         console.error('WebSocket connection error:', error);
         setError(`Connection error: ${error.message}`);
         setIsConnected(false);
       });
 
       // Set up event listeners
-      socket.on('candidateUpdate', (data) => {
+      socket.on('candidateUpdate', (data: any) => {
         eventHandlersRef.current.candidateUpdate?.(data);
       });
 
-      socket.on('analysisUpdate', (data) => {
+      socket.on('analysisUpdate', (data: any) => {
         eventHandlersRef.current.analysisUpdate?.(data);
         
         // Propager les événements spécifiques basés sur le type

@@ -24,6 +24,7 @@ interface PipelineStageColumnProps {
   onViewCandidate?: (candidate: CandidateWithPipelineStatus) => void;
   onDeleteCandidate?: (candidate: CandidateWithPipelineStatus) => void;
   onSendEmail?: (candidate: CandidateWithPipelineStatus) => void;
+  onScheduleInterview?: (candidate: CandidateWithPipelineStatus) => void;
   onEditStage?: (stage: PipelineStage) => void;
   onDeleteStage?: (stage: PipelineStage) => void;
 }
@@ -34,6 +35,7 @@ export function PipelineStageColumn({
   onViewCandidate,
   onDeleteCandidate,
   onSendEmail,
+  onScheduleInterview,
   onEditStage,
   onDeleteStage,
 }: PipelineStageColumnProps) {
@@ -174,6 +176,7 @@ export function PipelineStageColumn({
                   onView={onViewCandidate}
                   onDelete={onDeleteCandidate}
                   onSendEmail={onSendEmail}
+                  onScheduleInterview={onScheduleInterview}
                 />
               ))}
             </SortableContext>

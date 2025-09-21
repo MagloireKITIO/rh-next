@@ -144,5 +144,4 @@ src/pipeline/pipeline.controller.ts:15:30 - error TS2307: Cannot find module '..
 
 src/pipeline/pipeline.controller.ts:16:67 - error TS2307: Cannot find module '@nestjs/swagger' or its corresponding type declarations.
 
-16 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-                                                                     ~~~~~~~~~~~~~~~~~
+16 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger' ~~~~~~~~~~~~~~~~~

@@ -414,7 +414,7 @@ export default function ProjectReportPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
-                      {timeline.slice(-5).map((point, index) => (
+                      {timeline.slice(-5).map((point: { date: string; candidatesAdded: number; candidatesAnalyzed: number }, index: number) => (
                         <div key={index} className="flex items-center justify-between py-2 border-b last:border-0">
                           <div className="flex items-center gap-2">
                             <Calendar className="w-4 h-4 text-muted-foreground" />
@@ -440,7 +440,7 @@ export default function ProjectReportPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {topCandidates.map((candidate, index) => (
+                    {topCandidates.map((candidate: { id: string; name: string; score: number; summary: string; status: string; hrDecision?: { recommendation: 'RECRUTER' | 'ENTRETIEN' | 'REJETER'; confidence: number; priority: 'HIGH' | 'MEDIUM' | 'LOW' } }, index: number) => (
                       <div key={candidate.id} className="flex items-start gap-4 p-4 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50">
                         <div className="flex items-center justify-center w-8 h-8 bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400 rounded-full font-bold text-sm">
                           {index + 1}
@@ -675,7 +675,7 @@ export default function ProjectReportPage() {
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-3">
-                      {insights.map((insight, index) => (
+                      {insights.map((insight: string, index: number) => (
                         <li key={index} className="flex items-start gap-3">
                           <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
                           <span className="text-sm">{insight}</span>
@@ -695,7 +695,7 @@ export default function ProjectReportPage() {
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-3">
-                      {risks.map((risk, index) => (
+                      {risks.map((risk: string, index: number) => (
                         <li key={index} className="flex items-start gap-3">
                           <AlertTriangle className="w-4 h-4 text-orange-600 mt-0.5 flex-shrink-0" />
                           <span className="text-sm">{risk}</span>

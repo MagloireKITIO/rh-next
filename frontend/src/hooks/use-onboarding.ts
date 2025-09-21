@@ -92,7 +92,7 @@ export const useOnboarding = () => {
     
     setIsOnboarding(true);
     setHasStarted(true);
-    const driverInstance = driver(driverConfig);
+    const driverInstance = driver(driverConfig as any);
     driverInstance.drive();
   };
 

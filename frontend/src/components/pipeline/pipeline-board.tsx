@@ -44,6 +44,7 @@ interface PipelineBoardProps {
   pipelineId: string;
   onViewCandidate?: (candidate: CandidateWithPipelineStatus) => void;
   onDeleteCandidate?: (candidate: CandidateWithPipelineStatus) => void;
+  onScheduleInterview?: (candidate: CandidateWithPipelineStatus) => void;
   onViewStats?: () => void;
 }
 
@@ -52,6 +53,7 @@ export function PipelineBoard({
   pipelineId,
   onViewCandidate,
   onDeleteCandidate,
+  onScheduleInterview,
   onViewStats,
 }: PipelineBoardProps) {
   const [activeCandidate, setActiveCandidate] = useState<CandidateWithPipelineStatus | null>(null);
@@ -215,7 +217,7 @@ export function PipelineBoard({
         <div className="text-center">
           <p className="text-destructive">Erreur lors du chargement du pipeline</p>
           <p className="text-sm text-muted-foreground mt-1">
-            {error.response?.data?.message || error.message}
+            {(error as any).response?.data?.message || error.message}
           </p>
         </div>
       </div>
@@ -297,6 +299,7 @@ export function PipelineBoard({
                   onViewCandidate={onViewCandidate}
                   onDeleteCandidate={onDeleteCandidate}
                   onSendEmail={handleSendEmail}
+                  onScheduleInterview={onScheduleInterview}
                   onEditStage={setEditingStage}
                 />
               ))}
@@ -310,6 +313,7 @@ export function PipelineBoard({
                 candidate={activeCandidate}
                 onDelete={onDeleteCandidate}
                 onSendEmail={handleSendEmail}
+                onScheduleInterview={onScheduleInterview}
                 isDragging
               />
             )}

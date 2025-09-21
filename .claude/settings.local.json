@@ -174,7 +174,8 @@
       "Read(//c/Users/stage.dsi.pmo/Desktop/dev/ActivaHR/horilla/**)",
       "Read(//c/Users/stage.dsi.pmo/Desktop/dev/ActivaHR/**)",
       "Bash(grep:*)",
-      "Bash(npm run migration:run:*)"
+      "Bash(npm run migration:run:*)",
+      "Bash(mkdir:*)"
     ],
     "deny": [],
     "ask": []

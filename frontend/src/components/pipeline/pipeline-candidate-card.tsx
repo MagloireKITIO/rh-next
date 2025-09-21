@@ -15,7 +15,7 @@ import {
 import { ScoreIndicator } from "@/components/ui/score-indicator";
 import { CandidateSourceBadge } from "@/components/ui/candidate-source-badge";
 import { CandidateWithPipelineStatus } from "@/lib/api-client";
-import { Eye, Mail, FileText, Clock, MoreVertical, Trash2 } from "lucide-react";
+import { Eye, Mail, FileText, Clock, MoreVertical, Trash2, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -25,6 +25,7 @@ interface PipelineCandidateCardProps {
   onView?: (candidate: CandidateWithPipelineStatus) => void;
   onDelete?: (candidate: CandidateWithPipelineStatus) => void;
   onSendEmail?: (candidate: CandidateWithPipelineStatus) => void;
+  onScheduleInterview?: (candidate: CandidateWithPipelineStatus) => void;
   isDragging?: boolean;
 }
 
@@ -33,6 +34,7 @@ export function PipelineCandidateCard({
   onView,
   onDelete,
   onSendEmail,
+  onScheduleInterview,
   isDragging = false,
 }: PipelineCandidateCardProps) {
   const {
@@ -174,6 +176,16 @@ export function PipelineCandidateCard({
                   >
                     <Mail className="h-3 w-3 mr-2" />
                     Envoyer un mail
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onScheduleInterview?.(candidate);
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <Calendar className="h-3 w-3 mr-2" />
+                    Planifier entretien
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={(e) => {

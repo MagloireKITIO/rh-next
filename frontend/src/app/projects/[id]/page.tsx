@@ -15,13 +15,14 @@ import { CandidateRanking, RankingStats } from "@/components/ranking/candidate-r
 import { ProjectSettings } from "@/components/project/project-settings";
 import { SubtleProgress } from "@/components/queue/subtle-progress";
 import { PipelineBoard, ProjectTimeline } from "@/components/pipeline";
+import { InterviewsBoard, ScheduleInterviewModal, InterviewDetailsModal } from "@/components/interviews";
 import { useProject, useProjectStats } from "@/hooks/queries";
 import { useCandidatesByProject, useCandidatesByProjectLegacy, useRankingChanges } from "@/hooks/queries";
 import { useAnalysesByProject, usePipelinesByProject } from "@/hooks/queries";
 import { useUpdateProject } from "@/hooks/mutations";
 import { useRemoveCandidateFromPipeline } from "@/hooks/mutations/useCandidateMutations";
 import { useWebSocketSync } from "@/hooks/useWebSocketSync";
-import { Project, Candidate, projectsApi, apiClient } from "@/lib/api-client";
+import { Project, Candidate, projectsApi, apiClient, analysisApi } from "@/lib/api-client";
 import { useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
@@ -37,7 +38,8 @@ import {
   Share2,
   Copy,
   Check,
-  Clock
+  Clock,
+  Calendar
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -65,6 +67,12 @@ export default function ProjectPage() {
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [candidateToRemove, setCandidateToRemove] = useState<Candidate | null>(null);
   const [linkCopied, setLinkCopied] = useState(false);
+
+  // États pour les modals d'interview
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [showInterviewDetails, setShowInterviewDetails] = useState(false);
+  const [selectedInterview, setSelectedInterview] = useState<any>(null);
+  const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   
   // TanStack Query hooks
   const queryClient = useQueryClient();
@@ -84,12 +92,13 @@ export default function ProjectPage() {
   // Gestion d'erreur pour project
   useEffect(() => {
     if (projectError) {
-      if (projectError.response?.status === 404) {
+      const axiosError = projectError as any;
+      if (axiosError.response?.status === 404) {
         toast.error("Project not found");
-      } else if (projectError.response?.status === 401) {
+      } else if (axiosError.response?.status === 401) {
         toast.error("Access denied - please login again");
       } else {
-        toast.error("Error loading project: " + (projectError.response?.data?.message || projectError.message));
+        toast.error("Error loading project: " + (axiosError.response?.data?.message || projectError.message));
       }
       router.push("/");
     }
@@ -120,7 +129,7 @@ export default function ProjectPage() {
 
   const handleGenerateReport = async () => {
     try {
-      const report = await generateReport(projectId);
+      const report = await analysisApi.generateReport(projectId);
       // Download or display report
       const blob = new Blob([JSON.stringify(report, null, 2)], {
         type: 'application/json'
@@ -329,7 +338,7 @@ export default function ProjectPage() {
         transition={{ delay: 0.2 }}
       >
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="overview" className="gap-2">
               <TrendingUp className="h-4 w-4" />
               Overview
@@ -345,6 +354,10 @@ export default function ProjectPage() {
                 <path d="M15 3v18"/>
               </svg>
               Pipeline
+            </TabsTrigger>
+            <TabsTrigger value="interviews" className="gap-2">
+              <Calendar className="h-4 w-4" />
+              Entretiens
             </TabsTrigger>
             <TabsTrigger value="timeline" className="gap-2">
               <Clock className="h-4 w-4" />
@@ -463,6 +476,10 @@ export default function ProjectPage() {
                 pipelineId={mainPipeline.id}
                 onViewCandidate={handleViewCandidate}
                 onDeleteCandidate={handleRemoveCandidateFromPipeline}
+                onScheduleInterview={(candidate) => {
+                  setSelectedCandidate(candidate);
+                  setShowScheduleModal(true);
+                }}
               />
             ) : (
               <div className="flex items-center justify-center p-8">
@@ -488,6 +505,28 @@ export default function ProjectPage() {
                 </div>
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="interviews" className="space-y-6">
+            <InterviewsBoard
+              projectId={projectId}
+              onScheduleInterview={() => {
+                setShowScheduleModal(true);
+              }}
+              onViewInterview={(interview) => {
+                setSelectedInterview(interview);
+                setShowInterviewDetails(true);
+              }}
+              onEditInterview={(interview) => {
+                setSelectedInterview(interview);
+                setShowInterviewDetails(true);
+              }}
+              onDeleteInterview={(interview) => {
+                // La suppression est gérée dans le modal de détails
+                setSelectedInterview(interview);
+                setShowInterviewDetails(true);
+              }}
+            />
           </TabsContent>
 
           <TabsContent value="timeline" className="space-y-6">
@@ -758,6 +797,40 @@ export default function ProjectPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Modals d'interview */}
+      <ScheduleInterviewModal
+        candidate={selectedCandidate}
+        projectId={projectId}
+        isOpen={showScheduleModal}
+        onClose={() => {
+          setShowScheduleModal(false);
+          setSelectedCandidate(null);
+        }}
+        onScheduled={(interview) => {
+          setShowScheduleModal(false);
+          setSelectedCandidate(null);
+          toast.success("Entretien planifié avec succès");
+        }}
+      />
+
+      <InterviewDetailsModal
+        interview={selectedInterview}
+        isOpen={showInterviewDetails}
+        onClose={() => {
+          setShowInterviewDetails(false);
+          setSelectedInterview(null);
+        }}
+        onUpdated={(interview) => {
+          setSelectedInterview(interview);
+          toast.success("Entretien mis à jour");
+        }}
+        onDeleted={() => {
+          setShowInterviewDetails(false);
+          setSelectedInterview(null);
+          toast.success("Entretien supprimé");
+        }}
+      />
     </div>
   );
 }

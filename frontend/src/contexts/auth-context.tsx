@@ -206,8 +206,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await authApi.updateProfile(data);
       setUser(prev => prev ? { ...prev, ...response.data.user } : null);
-      
-      return response.data;
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to update profile');
     }
