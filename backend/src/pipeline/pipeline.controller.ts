@@ -114,4 +114,12 @@ export class PipelineController {
   ) {
     return this.pipelineService.reorderStages(pipelineId, stageOrders, req.user.company_id);
   }
+
+  @Delete('candidates/:candidateId/from-pipeline')
+  removeCandidateFromPipeline(
+    @Param('candidateId', ParseUUIDPipe) candidateId: string,
+    @Request() req,
+  ) {
+    return this.pipelineService.removeCandidateFromPipeline(candidateId, req.user.company_id);
+  }
 }

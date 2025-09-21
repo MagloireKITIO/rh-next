@@ -7,11 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { usePipelinesByProject } from "@/hooks/queries";
 import { useMoveCandidate } from "@/hooks/mutations";
 import { CandidateWithPipelineStatus } from "@/lib/api-client";
-import { MoveRight, Users } from "lucide-react";
+import { MoveRight, Users, AlertTriangle, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface MoveCandidatesDialogProps {
@@ -37,6 +38,20 @@ export function MoveCandidatesDialog({
 
   const mainPipeline = pipelines.length > 0 ? pipelines[0] : null;
   const stages = mainPipeline?.stages || [];
+
+  // Séparer les candidats selon leur statut dans le pipeline
+  const candidatesInPipeline = candidates.filter(candidate => candidate.pipelineStatus?.currentStageId);
+  const candidatesNotInPipeline = candidates.filter(candidate => !candidate.pipelineStatus?.currentStageId);
+
+  // Grouper les candidats dans le pipeline par étape
+  const candidatesByStage = candidatesInPipeline.reduce((acc, candidate) => {
+    const stageId = candidate.pipelineStatus?.currentStageId;
+    if (stageId) {
+      if (!acc[stageId]) acc[stageId] = [];
+      acc[stageId].push(candidate);
+    }
+    return acc;
+  }, {} as Record<string, CandidateWithPipelineStatus[]>);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,6 +99,46 @@ export function MoveCandidatesDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Alerte pour les candidats déjà dans le pipeline */}
+          {candidatesInPipeline.length > 0 && (
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Candidats déjà dans le pipeline</AlertTitle>
+              <AlertDescription>
+                {candidatesInPipeline.length} candidat{candidatesInPipeline.length > 1 ? 's' : ''}
+                {candidatesInPipeline.length > 1 ? ' sont déjà' : ' est déjà'} dans le pipeline et
+                {candidatesInPipeline.length > 1 ? ' seront déplacés' : ' sera déplacé'} vers la nouvelle étape.
+                <div className="mt-2 space-y-1">
+                  {Object.entries(candidatesByStage).map(([stageId, stageCandidates]) => {
+                    const stage = stages.find(s => s.id === stageId);
+                    return (
+                      <div key={stageId} className="text-xs flex items-center gap-2">
+                        <div
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: stage?.color || '#3b82f6' }}
+                        />
+                        <span className="font-medium">{stage?.name || 'Étape inconnue'}</span>
+                        <span>: {stageCandidates.length} candidat{stageCandidates.length > 1 ? 's' : ''}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Info pour les nouveaux candidats */}
+          {candidatesNotInPipeline.length > 0 && candidatesInPipeline.length > 0 && (
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertTitle>Nouveaux candidats</AlertTitle>
+              <AlertDescription>
+                {candidatesNotInPipeline.length} candidat{candidatesNotInPipeline.length > 1 ? 's' : ''}
+                {candidatesNotInPipeline.length > 1 ? ' seront ajoutés' : ' sera ajouté'} au pipeline.
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Candidats sélectionnés */}
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
@@ -91,19 +146,42 @@ export function MoveCandidatesDialog({
               Candidats sélectionnés ({candidates.length})
             </Label>
             <div className="max-h-32 overflow-y-auto space-y-1 p-2 bg-muted/30 rounded-lg">
-              {candidates.map((candidate) => (
-                <div
-                  key={candidate.id}
-                  className="flex items-center justify-between text-sm p-2 bg-background rounded border"
-                >
-                  <span className="truncate">{candidate.name}</span>
-                  {candidate.email && (
-                    <span className="text-xs text-muted-foreground ml-2 truncate">
-                      {candidate.email}
-                    </span>
-                  )}
-                </div>
-              ))}
+              {candidates.map((candidate) => {
+                const currentStage = candidate.pipelineStatus?.currentStageId
+                  ? stages.find(s => s.id === candidate.pipelineStatus?.currentStageId)
+                  : null;
+
+                return (
+                  <div
+                    key={candidate.id}
+                    className="flex items-center justify-between text-sm p-2 bg-background rounded border"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <span className="truncate font-medium">{candidate.name}</span>
+                      {candidate.email && (
+                        <div className="text-xs text-muted-foreground truncate">
+                          {candidate.email}
+                        </div>
+                      )}
+                    </div>
+                    <div className="ml-2 flex-shrink-0">
+                      {currentStage ? (
+                        <div className="flex items-center gap-1 text-xs">
+                          <div
+                            className="w-2 h-2 rounded-full"
+                            style={{ backgroundColor: currentStage.color || '#3b82f6' }}
+                          />
+                          <span className="text-muted-foreground">{currentStage.name}</span>
+                        </div>
+                      ) : (
+                        <Badge variant="outline" className="text-xs">
+                          Nouveau
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 

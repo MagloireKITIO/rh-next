@@ -296,6 +296,7 @@ export const candidatesApi = {
     });
   },
   getEmailHistory: (candidateId: string) => apiClient.get(`/candidates/${candidateId}/email-history`),
+  removeFromPipeline: (candidateId: string) => apiClient.delete(`/pipeline/candidates/${candidateId}/from-pipeline`),
   delete: (id: string) => apiClient.delete(`/candidates/${id}`),
 };
 

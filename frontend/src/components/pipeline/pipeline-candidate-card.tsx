@@ -6,10 +6,16 @@ import { CSS } from "@dnd-kit/utilities";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ScoreIndicator } from "@/components/ui/score-indicator";
 import { CandidateSourceBadge } from "@/components/ui/candidate-source-badge";
 import { CandidateWithPipelineStatus } from "@/lib/api-client";
-import { Eye, Mail, FileText, Clock } from "lucide-react";
+import { Eye, Mail, FileText, Clock, MoreVertical, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -17,12 +23,16 @@ import { fr } from "date-fns/locale";
 interface PipelineCandidateCardProps {
   candidate: CandidateWithPipelineStatus;
   onView?: (candidate: CandidateWithPipelineStatus) => void;
+  onDelete?: (candidate: CandidateWithPipelineStatus) => void;
+  onSendEmail?: (candidate: CandidateWithPipelineStatus) => void;
   isDragging?: boolean;
 }
 
 export function PipelineCandidateCard({
   candidate,
   onView,
+  onDelete,
+  onSendEmail,
   isDragging = false,
 }: PipelineCandidateCardProps) {
   const {
@@ -118,35 +128,65 @@ export function PipelineCandidateCard({
               </div>
             )}
 
-            {/* Actions compactes */}
-            <div className="flex gap-1 pt-2 border-t">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 px-1.5 text-xs flex-1 flex-col gap-1"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onView?.(candidate);
-                }}
-              >
-                <Eye className="h-3 w-3" />
-                <span>Voir</span>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 px-1.5 text-xs flex-1 flex-col gap-1"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const fileUrl = candidate.fileUrl.startsWith('http')
-                    ? candidate.fileUrl
-                    : `${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'}/${candidate.fileUrl}`;
-                  window.open(fileUrl, '_blank');
-                }}
-              >
-                <FileText className="h-3 w-3" />
-                <span>CV</span>
-              </Button>
+            {/* Menu d'actions */}
+            <div className="flex justify-end pt-2 border-t">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <MoreVertical className="h-3 w-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-40">
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onView?.(candidate);
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <Eye className="h-3 w-3 mr-2" />
+                    Voir
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const fileUrl = candidate.fileUrl.startsWith('http')
+                        ? candidate.fileUrl
+                        : `${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'}/${candidate.fileUrl}`;
+                      window.open(fileUrl, '_blank');
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <FileText className="h-3 w-3 mr-2" />
+                    CV
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSendEmail?.(candidate);
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <Mail className="h-3 w-3 mr-2" />
+                    Envoyer un mail
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete?.(candidate);
+                    }}
+                    className="cursor-pointer text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="h-3 w-3 mr-2" />
+                    Supprimer
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </CardContent>

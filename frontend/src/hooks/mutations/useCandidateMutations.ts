@@ -73,19 +73,48 @@ export function useDeleteCandidate() {
   return useMutation({
     mutationFn: (candidateId: string) =>
       candidatesApi.delete(candidateId),
-    
+
     onSuccess: (_, candidateId) => {
       queryClient.removeQueries({ queryKey: ['candidates', candidateId] });
       queryClient.invalidateQueries({ queryKey: ['candidates'] });
       queryClient.invalidateQueries({ queryKey: ['candidates', 'project'] });
-      queryClient.invalidateQueries({ queryKey: ['projects'], predicate: (query) => 
-        query.queryKey.includes('stats') 
+      queryClient.invalidateQueries({ queryKey: ['projects'], predicate: (query) =>
+        query.queryKey.includes('stats')
       });
       toast.success('Candidate deleted successfully');
     },
-    
+
     onError: (error: any) => {
       const message = error.response?.data?.message || 'Error deleting candidate';
+      toast.error(message);
+    },
+  });
+}
+
+export function useRemoveCandidateFromPipeline() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ candidateId, pipelineId }: { candidateId: string; pipelineId?: string }) =>
+      candidatesApi.removeFromPipeline(candidateId),
+
+    onSuccess: (_, { candidateId, pipelineId }) => {
+      // Invalider spécifiquement les queries du pipeline si on a l'ID
+      if (pipelineId) {
+        queryClient.invalidateQueries({ queryKey: ['pipelines', pipelineId, 'with-candidates'] });
+        queryClient.invalidateQueries({ queryKey: ['pipelines', pipelineId, 'stats'] });
+      }
+      // Invalider toutes les queries de pipeline pour être sûr
+      queryClient.invalidateQueries({ queryKey: ['pipelines'] });
+      queryClient.invalidateQueries({ queryKey: ['candidates', 'project'] });
+      queryClient.invalidateQueries({ queryKey: ['projects'], predicate: (query) =>
+        query.queryKey.includes('stats')
+      });
+      toast.success('Candidat retiré du pipeline');
+    },
+
+    onError: (error: any) => {
+      const message = error.response?.data?.message || 'Erreur lors de la suppression du candidat du pipeline';
       toast.error(message);
     },
   });

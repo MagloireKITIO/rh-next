@@ -21,21 +21,29 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { PipelineStageColumn } from "./pipeline-stage-column";
 import { PipelineCandidateCard } from "./pipeline-candidate-card";
 import { AddStageDialog } from "./add-stage-dialog";
 import { EditStageDialog } from "./edit-stage-dialog";
+import { SendEmailModal, EmailData } from "@/components/candidate/send-email-modal";
 import { usePipelineWithCandidates } from "@/hooks/queries";
 import { useMoveCandidate, useReorderPipelineStages } from "@/hooks/mutations";
-import { PipelineStage, CandidateWithPipelineStatus } from "@/lib/api-client";
+import { PipelineStage, CandidateWithPipelineStatus, candidatesApi } from "@/lib/api-client";
 import { toast } from "sonner";
-import { Plus, BarChart3, Settings, List, Grid3X3 } from "lucide-react";
+import { Plus, BarChart3, Settings, List, Grid3X3, MoreVertical, Eye, FileText, Trash2, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface PipelineBoardProps {
   projectId: string;
   pipelineId: string;
   onViewCandidate?: (candidate: CandidateWithPipelineStatus) => void;
+  onDeleteCandidate?: (candidate: CandidateWithPipelineStatus) => void;
   onViewStats?: () => void;
 }
 
@@ -43,6 +51,7 @@ export function PipelineBoard({
   projectId,
   pipelineId,
   onViewCandidate,
+  onDeleteCandidate,
   onViewStats,
 }: PipelineBoardProps) {
   const [activeCandidate, setActiveCandidate] = useState<CandidateWithPipelineStatus | null>(null);
@@ -50,6 +59,8 @@ export function PipelineBoard({
   const [showAddStage, setShowAddStage] = useState(false);
   const [editingStage, setEditingStage] = useState<PipelineStage | null>(null);
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
+  const [selectedCandidateForEmail, setSelectedCandidateForEmail] = useState<CandidateWithPipelineStatus | null>(null);
+  const [showEmailModal, setShowEmailModal] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -161,6 +172,35 @@ export function PipelineBoard({
     }
   };
 
+  const handleSendEmail = (candidate: CandidateWithPipelineStatus) => {
+    setSelectedCandidateForEmail(candidate);
+    setShowEmailModal(true);
+  };
+
+  const handleEmailSend = async (emailData: EmailData) => {
+    if (!selectedCandidateForEmail) return;
+
+    try {
+      await candidatesApi.sendEmail(selectedCandidateForEmail.id, {
+        to: emailData.to,
+        subject: emailData.subject,
+        message: emailData.message,
+        attachments: emailData.attachments
+      });
+
+      toast.success(`Email envoyé avec succès à ${emailData.to}`);
+    } catch (error) {
+      console.error('Error sending email:', error);
+      toast.error('Erreur lors de l\'envoi de l\'email');
+      throw error;
+    }
+  };
+
+  const handleEmailModalClose = () => {
+    setShowEmailModal(false);
+    setSelectedCandidateForEmail(null);
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -255,6 +295,8 @@ export function PipelineBoard({
                   stage={stage}
                   candidates={stage.candidates || []}
                   onViewCandidate={onViewCandidate}
+                  onDeleteCandidate={onDeleteCandidate}
+                  onSendEmail={handleSendEmail}
                   onEditStage={setEditingStage}
                 />
               ))}
@@ -266,6 +308,8 @@ export function PipelineBoard({
             {activeCandidate && (
               <PipelineCandidateCard
                 candidate={activeCandidate}
+                onDelete={onDeleteCandidate}
+                onSendEmail={handleSendEmail}
                 isDragging
               />
             )}
@@ -361,32 +405,64 @@ export function PipelineBoard({
                   </div>
                 </div>
 
-                <div className="col-span-2 flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 px-2 text-xs"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onViewCandidate?.(candidate);
-                    }}
-                  >
-                    Voir
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 px-2 text-xs"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const fileUrl = candidate.fileUrl.startsWith('http')
-                        ? candidate.fileUrl
-                        : `${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'}/${candidate.fileUrl}`;
-                      window.open(fileUrl, '_blank');
-                    }}
-                  >
-                    CV
-                  </Button>
+                <div className="col-span-2 flex items-center justify-end">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <MoreVertical className="h-3 w-3" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-40">
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onViewCandidate?.(candidate);
+                        }}
+                        className="cursor-pointer"
+                      >
+                        <Eye className="h-3 w-3 mr-2" />
+                        Voir
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const fileUrl = candidate.fileUrl.startsWith('http')
+                            ? candidate.fileUrl
+                            : `${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'}/${candidate.fileUrl}`;
+                          window.open(fileUrl, '_blank');
+                        }}
+                        className="cursor-pointer"
+                      >
+                        <FileText className="h-3 w-3 mr-2" />
+                        CV
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSendEmail(candidate);
+                        }}
+                        className="cursor-pointer"
+                      >
+                        <Mail className="h-3 w-3 mr-2" />
+                        Envoyer un mail
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteCandidate?.(candidate);
+                        }}
+                        className="cursor-pointer text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="h-3 w-3 mr-2" />
+                        Supprimer
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </motion.div>
             ))}
@@ -414,6 +490,14 @@ export function PipelineBoard({
           onClose={() => setEditingStage(null)}
         />
       )}
+
+      {/* Modal d'envoi d'email */}
+      <SendEmailModal
+        candidate={selectedCandidateForEmail}
+        isOpen={showEmailModal}
+        onClose={handleEmailModalClose}
+        onSend={handleEmailSend}
+      />
     </div>
   );
 }

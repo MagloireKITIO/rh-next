@@ -449,4 +449,29 @@ export class PipelineService {
       totalCandidates: stageStats.reduce((sum, stage) => sum + stage.candidatesCount, 0),
     };
   }
+
+  async removeCandidateFromPipeline(candidateId: string, companyId: string): Promise<void> {
+    this.logger.log(`🗑️ Removing candidate ${candidateId} from pipeline for company ${companyId}`);
+
+    // Vérifier que le candidat appartient à l'entreprise
+    const candidate = await this.candidateRepository.findOne({
+      where: { id: candidateId },
+      relations: ['project', 'project.company'],
+    });
+
+    if (!candidate) {
+      throw new NotFoundException('Candidat non trouvé');
+    }
+
+    if (candidate.project.company.id !== companyId) {
+      throw new BadRequestException('Candidat non autorisé pour cette entreprise');
+    }
+
+    // Supprimer le statut pipeline du candidat
+    await this.candidateStatusRepository.delete({
+      candidateId: candidateId,
+    });
+
+    this.logger.log(`✅ Candidate ${candidateId} removed from pipeline`);
+  }
 }

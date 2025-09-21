@@ -19,6 +19,7 @@ import { useProject, useProjectStats } from "@/hooks/queries";
 import { useCandidatesByProject, useCandidatesByProjectLegacy, useRankingChanges } from "@/hooks/queries";
 import { useAnalysesByProject, usePipelinesByProject } from "@/hooks/queries";
 import { useUpdateProject } from "@/hooks/mutations";
+import { useRemoveCandidateFromPipeline } from "@/hooks/mutations/useCandidateMutations";
 import { useWebSocketSync } from "@/hooks/useWebSocketSync";
 import { Project, Candidate, projectsApi, apiClient } from "@/lib/api-client";
 import { useQueryClient } from '@tanstack/react-query';
@@ -61,6 +62,7 @@ export default function ProjectPage() {
   const [showSettings, setShowSettings] = useState(false);
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [showShareDialog, setShowShareDialog] = useState(false);
+  const [candidateToRemove, setCandidateToRemove] = useState<Candidate | null>(null);
   const [linkCopied, setLinkCopied] = useState(false);
   
   // TanStack Query hooks
@@ -72,6 +74,7 @@ export default function ProjectPage() {
   const { data: analyses = [] } = useAnalysesByProject(projectId);
   const { data: pipelines = [] } = usePipelinesByProject(projectId);
   const updateProjectMutation = useUpdateProject();
+  const removeCandidateFromPipelineMutation = useRemoveCandidateFromPipeline();
   const { isConnected } = useWebSocketSync(projectId);
 
   // Récupérer le pipeline principal (normalement il n'y en a qu'un par projet)
@@ -98,6 +101,20 @@ export default function ProjectPage() {
 
   const handleViewCandidate = (candidate: Candidate) => {
     router.push(`/projects/${projectId}/candidates/${candidate.id}`);
+  };
+
+  const handleRemoveCandidateFromPipeline = (candidate: Candidate) => {
+    setCandidateToRemove(candidate);
+  };
+
+  const confirmRemoveCandidate = () => {
+    if (candidateToRemove && mainPipeline) {
+      removeCandidateFromPipelineMutation.mutate({
+        candidateId: candidateToRemove.id,
+        pipelineId: mainPipeline.id
+      });
+      setCandidateToRemove(null);
+    }
   };
 
   const handleGenerateReport = async () => {
@@ -440,6 +457,7 @@ export default function ProjectPage() {
                 projectId={projectId}
                 pipelineId={mainPipeline.id}
                 onViewCandidate={handleViewCandidate}
+                onDeleteCandidate={handleRemoveCandidateFromPipeline}
               />
             ) : (
               <div className="flex items-center justify-center p-8">
@@ -696,6 +714,38 @@ export default function ProjectPage() {
                 Révoquer le partage
               </Button>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de confirmation pour retirer un candidat du pipeline */}
+      <Dialog open={!!candidateToRemove} onOpenChange={(open) => !open && setCandidateToRemove(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Retirer du pipeline</DialogTitle>
+            <DialogDescription>
+              Êtes-vous sûr de vouloir retirer <strong>{candidateToRemove?.name}</strong> du pipeline ?
+              <br />
+              <span className="text-sm text-muted-foreground mt-2 block">
+                Le candidat sera retiré de toutes les étapes du pipeline mais restera dans le projet.
+              </span>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setCandidateToRemove(null)}
+              disabled={removeCandidateFromPipelineMutation.isPending}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmRemoveCandidate}
+              disabled={removeCandidateFromPipelineMutation.isPending}
+            >
+              {removeCandidateFromPipelineMutation.isPending ? 'Suppression...' : 'Retirer du pipeline'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
