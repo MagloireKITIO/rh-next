@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import MailSettings from '@/components/admin/settings/mail-settings';
 import PrivacyPolicySettings from '@/components/admin/settings/privacy-policy-settings';
+import ExternalIntegrationsSettings from '@/components/admin/settings/external-integrations-settings';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -54,11 +55,11 @@ export default function SettingsPage() {
     },
     {
       id: 'integrations',
-      label: 'Intégrations',
-      description: 'APIs et services externes',
+      label: 'Intégrations externes',
+      description: 'Connectez vos services Google, Microsoft, etc.',
       icon: Globe,
-      component: null, // À implémenter plus tard
-      badge: 'Bientôt',
+      component: ExternalIntegrationsSettings,
+      badge: null,
     },
     {
       id: 'database',

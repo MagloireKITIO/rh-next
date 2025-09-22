@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { google } from 'googleapis';
+import { IntegrationsService } from '../integrations/integrations.service';
 
 export interface CalendarEvent {
   summary: string;
@@ -30,52 +31,27 @@ export interface CalendarEvent {
 @Injectable()
 export class CalendarService {
   private readonly logger = new Logger(CalendarService.name);
-  private calendar: any;
 
-  constructor() {
-    this.initializeGoogleCalendar();
-  }
+  constructor(
+    private integrationsService: IntegrationsService,
+  ) {}
 
-  private async initializeGoogleCalendar() {
+  private async getGoogleCalendarClient(userId: string): Promise<any> {
     try {
-      // Configuration Google Calendar avec Service Account
-      const credentials = {
-        type: process.env.GOOGLE_SERVICE_ACCOUNT_TYPE,
-        project_id: process.env.GOOGLE_PROJECT_ID,
-        private_key_id: process.env.GOOGLE_PRIVATE_KEY_ID,
-        private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-        client_email: process.env.GOOGLE_CLIENT_EMAIL,
-        client_id: process.env.GOOGLE_CLIENT_ID,
-        auth_uri: process.env.GOOGLE_AUTH_URI,
-        token_uri: process.env.GOOGLE_TOKEN_URI,
-        auth_provider_x509_cert_url: process.env.GOOGLE_AUTH_PROVIDER_CERT_URL,
-        client_x509_cert_url: process.env.GOOGLE_CLIENT_CERT_URL,
-      };
-
-      if (!credentials.private_key || !credentials.client_email) {
-        this.logger.warn('Google Calendar credentials not configured. Calendar integration disabled.');
-        return;
-      }
-
-      const auth = new google.auth.GoogleAuth({
-        credentials,
-        scopes: ['https://www.googleapis.com/auth/calendar'],
-      });
-
-      this.calendar = google.calendar({ version: 'v3', auth });
-      this.logger.log('Google Calendar initialized successfully');
+      const oauth2Client = await this.integrationsService.createGoogleOAuthClient(userId);
+      const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+      return calendar;
     } catch (error) {
-      this.logger.error('Failed to initialize Google Calendar:', error);
+      this.logger.error(`Failed to get Google Calendar client for user ${userId}:`, error);
+      throw new Error('Google Calendar not initialized. Please check your integration configuration.');
     }
   }
 
-  async createEvent(calendarId: string, event: CalendarEvent): Promise<any> {
-    if (!this.calendar) {
-      throw new Error('Google Calendar not initialized. Please check your credentials configuration.');
-    }
+  async createEvent(userId: string, calendarId: string, event: CalendarEvent): Promise<any> {
+    const calendar = await this.getGoogleCalendarClient(userId);
 
     try {
-      const response = await this.calendar.events.insert({
+      const response = await calendar.events.insert({
         calendarId,
         resource: {
           ...event,
@@ -97,13 +73,11 @@ export class CalendarService {
     }
   }
 
-  async updateEvent(calendarId: string, eventId: string, event: Partial<CalendarEvent>): Promise<any> {
-    if (!this.calendar) {
-      throw new Error('Google Calendar not initialized. Please check your credentials configuration.');
-    }
+  async updateEvent(userId: string, calendarId: string, eventId: string, event: Partial<CalendarEvent>): Promise<any> {
+    const calendar = await this.getGoogleCalendarClient(userId);
 
     try {
-      const response = await this.calendar.events.update({
+      const response = await calendar.events.update({
         calendarId,
         eventId,
         resource: event,
@@ -117,13 +91,11 @@ export class CalendarService {
     }
   }
 
-  async deleteEvent(calendarId: string, eventId: string): Promise<void> {
-    if (!this.calendar) {
-      throw new Error('Google Calendar not initialized. Please check your credentials configuration.');
-    }
+  async deleteEvent(userId: string, calendarId: string, eventId: string): Promise<void> {
+    const calendar = await this.getGoogleCalendarClient(userId);
 
     try {
-      await this.calendar.events.delete({
+      await calendar.events.delete({
         calendarId,
         eventId,
       });
@@ -135,13 +107,11 @@ export class CalendarService {
     }
   }
 
-  async getFreeBusy(calendarId: string, timeMin: string, timeMax: string): Promise<any> {
-    if (!this.calendar) {
-      throw new Error('Google Calendar not initialized. Please check your credentials configuration.');
-    }
+  async getFreeBusy(userId: string, calendarId: string, timeMin: string, timeMax: string): Promise<any> {
+    const calendar = await this.getGoogleCalendarClient(userId);
 
     try {
-      const response = await this.calendar.freebusy.query({
+      const response = await calendar.freebusy.query({
         resource: {
           timeMin,
           timeMax,

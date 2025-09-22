@@ -12,10 +12,11 @@ import { OpenRouterModule } from '../openrouter/openrouter.module';
 import { ApiKeyModelConfig } from '../api-keys/entities/api-key-model-config.entity';
 import { ApiKeyModelConfigService } from '../api-keys/api-key-model-config.service';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { Configuration } from '../configuration/entities/configuration.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Company, User, Project, Candidate, Analysis, ApiKey, ApiKeyModelConfig]),
+    TypeOrmModule.forFeature([Company, User, Project, Candidate, Analysis, ApiKey, ApiKeyModelConfig, Configuration]),
     OpenRouterModule,
     AnalyticsModule,
   ],

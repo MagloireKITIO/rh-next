@@ -11,6 +11,7 @@ import { Analysis } from '../analysis/entities/analysis.entity';
 import { ApiKey } from '../api-keys/entities/api-key.entity';
 import { OpenRouterService } from '../openrouter/openrouter.service';
 import { ApiKeyModelConfigService, ModelConfigData } from '../api-keys/api-key-model-config.service';
+import { Configuration } from '../configuration/entities/configuration.entity';
 
 @Injectable()
 export class AdminService {
@@ -29,6 +30,8 @@ export class AdminService {
     private analysisRepository: Repository<Analysis>,
     @InjectRepository(ApiKey)
     private apiKeyRepository: Repository<ApiKey>,
+    @InjectRepository(Configuration)
+    private configurationRepository: Repository<Configuration>,
     private configService: ConfigService,
     private openRouterService: OpenRouterService,
     private apiKeyModelConfigService: ApiKeyModelConfigService,
@@ -645,21 +648,66 @@ export class AdminService {
 
   // System Settings
   async getSystemSettings() {
-    // À implémenter selon vos besoins
+    const configurations = await this.configurationRepository.find({
+      where: { isActive: true }
+    });
+
+    const configMap = configurations.reduce((acc, config) => {
+      acc[config.key] = config.value;
+      return acc;
+    }, {} as Record<string, string>);
+
     return {
-      maintenance_mode: false,
-      max_companies: null,
-      max_users_per_company: null,
+      // Configuration OAuth Google
+      google_oauth_client_id: configMap['google_oauth_client_id'] || '',
+      google_oauth_client_secret: configMap['google_oauth_client_secret'] || '',
+      google_oauth_redirect_uri: configMap['google_oauth_redirect_uri'] || '',
+
+      // Autres paramètres système
+      maintenance_mode: configMap['maintenance_mode'] === 'true',
+      max_companies: configMap['max_companies'] ? parseInt(configMap['max_companies']) : null,
+      max_users_per_company: configMap['max_users_per_company'] ? parseInt(configMap['max_users_per_company']) : null,
+
+      // Fonctionnalités
       features: {
-        ai_analysis: true,
-        team_requests: true,
-        public_jobs: true,
+        ai_analysis: configMap['feature_ai_analysis'] !== 'false',
+        team_requests: configMap['feature_team_requests'] !== 'false',
+        public_jobs: configMap['feature_public_jobs'] !== 'false',
       },
     };
   }
 
   async updateSystemSettings(settings: any) {
-    // À implémenter selon vos besoins
+    const updates = [];
+
+    // Traiter chaque paramètre
+    for (const [key, value] of Object.entries(settings)) {
+      if (value !== undefined && value !== null) {
+        // Convertir les valeurs en string pour la BD
+        const stringValue = typeof value === 'boolean' ? value.toString() : String(value);
+
+        const existingConfig = await this.configurationRepository.findOne({
+          where: { key }
+        });
+
+        if (existingConfig) {
+          existingConfig.value = stringValue;
+          existingConfig.updatedAt = new Date();
+          updates.push(this.configurationRepository.save(existingConfig));
+        } else {
+          const newConfig = this.configurationRepository.create({
+            key,
+            value: stringValue,
+            description: `Configuration ${key}`,
+            isActive: true,
+          });
+          updates.push(this.configurationRepository.save(newConfig));
+        }
+      }
+    }
+
+    await Promise.all(updates);
+
     return {
       message: 'Paramètres système mis à jour avec succès',
       settings,

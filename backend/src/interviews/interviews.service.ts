@@ -433,8 +433,11 @@ export class InterviewsService {
       // Utiliser le calendrier principal (peut être configuré via env)
       const calendarId = process.env.GOOGLE_CALENDAR_ID || 'primary';
 
+      // Utiliser l'utilisateur qui a créé l'entretien pour l'authentification Google Calendar
+      const userId = interview.created_by;
+
       // Créer l'événement dans Google Calendar
-      const createdEvent = await this.calendarService.createEvent(calendarId, eventWithMeet);
+      const createdEvent = await this.calendarService.createEvent(userId, calendarId, eventWithMeet);
 
       this.logger.log(`📅 Calendar event created: ${createdEvent.id}`);
 

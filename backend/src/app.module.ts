@@ -21,6 +21,7 @@ import { PublicModule } from './public/public.module';
 import { PipelineModule } from './pipeline/pipeline.module';
 import { InterviewsModule } from './interviews/interviews.module';
 import { CalendarModule } from './calendar/calendar.module';
+import { IntegrationsModule } from './integrations/integrations.module';
 import { StaticController } from './common/static.controller';
 
 @Module({
@@ -79,6 +80,7 @@ import { StaticController } from './common/static.controller';
     PipelineModule,
     InterviewsModule,
     CalendarModule,
+    IntegrationsModule,
   ],
   controllers: [StaticController],
 })

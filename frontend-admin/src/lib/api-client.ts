@@ -502,6 +502,7 @@ export const adminApi = {
     const response = await apiClient.get('/admin/analytics/global-stats');
     return response.data.data;
   },
+
 };
 
 // Auth API for admin

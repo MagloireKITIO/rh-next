@@ -8,7 +8,7 @@ import { NavBar } from "@/components/ui/navbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { ArrowLeft, Brain, Users, Mail, FileText, UserCheck, Info, HelpCircle } from "lucide-react";
+import { ArrowLeft, Brain, Users, Mail, FileText, UserCheck, Info, HelpCircle, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Import sections
@@ -18,8 +18,9 @@ import { TeamRequestsSection } from "@/components/settings/team-requests-section
 import { MailAutomationsSection } from "@/components/settings/mail-automations-section";
 import { SystemInfoSection } from "@/components/settings/system-info-section";
 import { HelpSection } from "@/components/settings/help-section";
+import { IntegrationsSection } from "@/components/settings/integrations-section";
 
-type TabType = "ai" | "users" | "teams" | "mail-automations" | "system" | "help";
+type TabType = "ai" | "users" | "teams" | "mail-automations" | "integrations" | "system" | "help";
 
 const tabs: Array<{ 
   id: TabType; 
@@ -32,6 +33,7 @@ const tabs: Array<{
   { id: "users", label: "Utilisateurs", icon: <Users className="h-4 w-4" />, hrAccess: true },
   { id: "teams", label: "Demandes d'équipe", icon: <UserCheck className="h-4 w-4" />, adminOnly: true },
   { id: "mail-automations", label: "Automatisations Email", icon: <Mail className="h-4 w-4" />, hrAccess: true },
+  { id: "integrations", label: "Intégrations", icon: <Calendar className="h-4 w-4" />, hrAccess: true },
   { id: "system", label: "Système", icon: <Info className="h-4 w-4" /> },
   { id: "help", label: "Aide", icon: <HelpCircle className="h-4 w-4" /> },
 ];
@@ -251,6 +253,24 @@ function SettingsContent() {
                 </CardHeader>
                 <CardContent>
                   <MailAutomationsSection />
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Integrations - HR Access */}
+            {activeTab === "integrations" && canViewUsers && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5" />
+                    Intégrations
+                  </CardTitle>
+                  <CardDescription>
+                    Connectez vos comptes externes (Google Calendar, etc.)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <IntegrationsSection />
                 </CardContent>
               </Card>
             )}
