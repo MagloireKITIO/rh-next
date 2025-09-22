@@ -212,7 +212,7 @@ Be objective and focus on job-relevant criteria.`;
     <div className="min-h-screen bg-background">
       <NavBar />
       
-      <div className="container mx-auto p-6 max-w-4xl">
+      <div className="container mx-auto p-6 pt-28 max-w-4xl">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}

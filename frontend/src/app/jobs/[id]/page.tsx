@@ -22,7 +22,8 @@ import {
   Upload,
   ExternalLink,
   Share2,
-  CheckSquare
+  CheckSquare,
+  X
 } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
@@ -55,7 +56,8 @@ export default function JobDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [showApplicationDialog, setShowApplicationDialog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+
   const [applicationData, setApplicationData] = useState({
     name: '',
     email: '',
@@ -258,12 +260,20 @@ export default function JobDetailPage() {
                   <CardTitle>Présentation de l'offre</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="aspect-square relative overflow-hidden rounded-lg">
+                  <div
+                    className="aspect-square relative overflow-hidden rounded-lg cursor-pointer group"
+                    onClick={() => setIsImageModalOpen(true)}
+                  >
                     <img
                       src={jobOffer.offerImageUrl}
                       alt={jobOffer.name}
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                     />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center">
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/90 backdrop-blur-sm rounded-lg p-2 text-sm font-medium text-gray-900">
+                        Cliquer pour agrandir
+                      </div>
+                    </div>
                   </div>
                   {jobOffer.offerImageFileName && (
                     <p className="text-xs text-muted-foreground mt-2">
@@ -513,6 +523,42 @@ export default function JobDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Image Modal */}
+      {isImageModalOpen && jobOffer.offerImageUrl && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm overflow-y-auto"
+          onClick={() => setIsImageModalOpen(false)}
+        >
+          <div className="min-h-full flex items-center justify-center p-4">
+            <div
+              className="relative max-w-5xl w-full bg-white rounded-lg shadow-2xl animate-in zoom-in-95 duration-300"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="relative">
+                <img
+                  src={jobOffer.offerImageUrl}
+                  alt={jobOffer.name}
+                  className="w-full max-h-[80vh] object-contain rounded-lg"
+                />
+                <button
+                  onClick={() => setIsImageModalOpen(false)}
+                  className="absolute top-4 right-4 bg-white/90 hover:bg-white text-gray-900 rounded-full p-2 shadow-lg transition-colors duration-200"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              {jobOffer.offerImageFileName && (
+                <div className="p-4 border-t bg-gray-50 rounded-b-lg">
+                  <p className="text-sm text-gray-600 text-center">
+                    {jobOffer.offerImageFileName}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
