@@ -13,11 +13,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useInterviewsByProject } from "@/hooks/queries";
-import { useUpdateInterviewStatus } from "@/hooks/mutations";
+import { useUpdateInterviewStatus, useGenerateMeetingLink } from "@/hooks/mutations";
 import { Interview, Candidate } from "@/lib/api-client";
 import { ScheduleInterviewModal } from "./schedule-interview-modal";
 import { InterviewDetailsModal } from "./interview-details-modal";
 import { InterviewEvaluationModal } from "./interview-evaluation-modal";
+import { InterviewsCalendar } from "./interviews-calendar";
+import { InterviewsStats } from "./interviews-stats";
 import { toast } from "sonner";
 import {
   Calendar,
@@ -31,18 +33,24 @@ import {
   Trash2,
   Eye,
   Plus,
-  Star
+  Star,
+  ExternalLink,
+  Link,
+  Chrome
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
 interface InterviewsBoardProps {
-  projectId: string;
+  projectId?: string;
+  interviews?: Interview[];
   onViewInterview?: (interview: Interview) => void;
   onEditInterview?: (interview: Interview) => void;
   onDeleteInterview?: (interview: Interview) => void;
   onScheduleInterview?: () => void;
+  showStats?: boolean;
+  viewMode?: 'kanban' | 'calendar';
 }
 
 const statusConfig = {
@@ -86,13 +94,18 @@ const typeIcons = {
 
 export function InterviewsBoard({
   projectId,
+  interviews: interviewsProp,
   onViewInterview,
   onEditInterview,
   onDeleteInterview,
   onScheduleInterview,
+  showStats = false,
+  viewMode = 'kanban',
 }: InterviewsBoardProps) {
-  const { data: interviews = [], isLoading, error } = useInterviewsByProject(projectId);
+  const { data: fetchedInterviews = [], isLoading, error } = useInterviewsByProject(projectId || '');
+  const interviews = interviewsProp || fetchedInterviews;
   const updateStatusMutation = useUpdateInterviewStatus();
+  const generateMeetingLinkMutation = useGenerateMeetingLink();
 
   // État des modales
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -161,6 +174,32 @@ export function InterviewsBoard({
     setShowEvaluationModal(true);
   };
 
+  const handleGenerateMeetingLink = async (interview: Interview) => {
+    try {
+      await generateMeetingLinkMutation.mutateAsync(interview.id);
+      toast.success("Lien de réunion généré");
+    } catch (error) {
+      console.error("Erreur lors de la génération du lien:", error);
+    }
+  };
+
+  const handleJoinMeeting = (interview: Interview) => {
+    if (interview.meeting_link) {
+      window.open(interview.meeting_link, '_blank');
+    } else {
+      handleGenerateMeetingLink(interview);
+    }
+  };
+
+  const handleOpenInGoogleCalendar = (interview: Interview) => {
+    if (interview.meeting_id) {
+      const googleCalendarUrl = `https://calendar.google.com/calendar/event?eid=${interview.meeting_id}`;
+      window.open(googleCalendarUrl, '_blank');
+    } else {
+      toast.error("Cet entretien n'est pas synchronisé avec Google Calendar");
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -184,12 +223,17 @@ export function InterviewsBoard({
 
   return (
     <div className="space-y-6">
+      {/* Stats */}
+      {showStats && (
+        <InterviewsStats interviews={interviews} />
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Entretiens</h2>
           <p className="text-muted-foreground">
-            Gérez et suivez tous les entretiens de ce projet
+            Gérez et suivez tous les entretiens{projectId ? ' de ce projet' : ''}
           </p>
         </div>
         <Button onClick={onScheduleInterview} className="gap-2">
@@ -198,8 +242,17 @@ export function InterviewsBoard({
         </Button>
       </div>
 
-      {/* Kanban Board */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 min-h-[600px]">
+      {/* Vue conditionnelle */}
+      {viewMode === 'calendar' ? (
+        <InterviewsCalendar
+          interviews={interviews}
+          onInterviewSelect={onViewInterview}
+          onSlotSelect={() => onScheduleInterview?.()}
+          onScheduleInterview={onScheduleInterview}
+        />
+      ) : (
+        /* Kanban Board */
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 min-h-[600px]">
         {Object.entries(statusConfig).map(([status, config]) => {
           const statusInterviews = groupedInterviews[status as keyof typeof groupedInterviews];
 
@@ -227,6 +280,9 @@ export function InterviewsBoard({
                       onDelete={() => handleDeleteInterview(interview)}
                       onEvaluate={() => handleOpenEvaluation(interview)}
                       onStatusChange={(newStatus) => handleStatusChange(interview, newStatus)}
+                      onJoinMeeting={() => handleJoinMeeting(interview)}
+                      onGenerateMeetingLink={() => handleGenerateMeetingLink(interview)}
+                      onOpenInGoogleCalendar={() => handleOpenInGoogleCalendar(interview)}
                     />
                   ))}
                 </AnimatePresence>
@@ -243,17 +299,17 @@ export function InterviewsBoard({
             </div>
           );
         })}
-      </div>
+        </div>
+      )}
 
       {/* Modales */}
       <ScheduleInterviewModal
-        candidate={null} // TODO: Ajouter la sélection de candidat
-        projectId={projectId}
+        candidate={null}
+        projectId={projectId || ''}
         isOpen={showScheduleModal}
         onClose={() => setShowScheduleModal(false)}
         onScheduled={(interview) => {
           console.log("Entretien planifié:", interview);
-          // Les données seront automatiquement actualisées par TanStack Query
         }}
       />
 
@@ -266,12 +322,10 @@ export function InterviewsBoard({
         }}
         onUpdated={(interview) => {
           console.log("Entretien mis à jour:", interview);
-          // Les données seront automatiquement actualisées par TanStack Query
         }}
         onDeleted={() => {
           setShowDetailsModal(false);
           setSelectedInterview(null);
-          // Les données seront automatiquement actualisées par TanStack Query
         }}
       />
 
@@ -300,6 +354,9 @@ interface InterviewCardProps {
   onDelete: () => void;
   onEvaluate: () => void;
   onStatusChange: (status: Interview['status']) => void;
+  onJoinMeeting: () => void;
+  onGenerateMeetingLink: () => void;
+  onOpenInGoogleCalendar: () => void;
 }
 
 function InterviewCard({
@@ -309,12 +366,18 @@ function InterviewCard({
   onEdit,
   onDelete,
   onEvaluate,
-  onStatusChange
+  onStatusChange,
+  onJoinMeeting,
+  onGenerateMeetingLink,
+  onOpenInGoogleCalendar
 }: InterviewCardProps) {
   const TypeIcon = typeIcons[interview.type];
   const scheduledDate = new Date(interview.scheduled_at);
   const isToday = format(scheduledDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
   const isPast = scheduledDate < new Date();
+  const hasGoogleMeet = interview.meeting_link?.includes('meet.google.com');
+  const hasMeetingLink = Boolean(interview.meeting_link);
+  const isGoogleCalendarSynced = Boolean(interview.meeting_id);
 
   return (
     <motion.div
@@ -335,9 +398,14 @@ function InterviewCard({
           {/* Header */}
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0">
-              <h4 className="font-medium text-sm truncate">
-                {interview.title}
-              </h4>
+              <div className="flex items-center gap-2 mb-1">
+                <h4 className="font-medium text-sm truncate">
+                  {interview.title}
+                </h4>
+                {isGoogleCalendarSynced && (
+                  <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0" title="Synchronisé avec Google Calendar" />
+                )}
+              </div>
               <p className="text-xs text-muted-foreground truncate">
                 {interview.candidate?.name}
               </p>
@@ -358,6 +426,26 @@ function InterviewCard({
                   <Edit className="h-4 w-4 mr-2" />
                   Modifier
                 </DropdownMenuItem>
+
+                {hasMeetingLink ? (
+                  <DropdownMenuItem onClick={onJoinMeeting}>
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Rejoindre la réunion
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem onClick={onGenerateMeetingLink}>
+                    <Link className="h-4 w-4 mr-2" />
+                    Générer le lien Meet
+                  </DropdownMenuItem>
+                )}
+
+                {isGoogleCalendarSynced && (
+                  <DropdownMenuItem onClick={onOpenInGoogleCalendar}>
+                    <Chrome className="h-4 w-4 mr-2" />
+                    Ouvrir dans Google Calendar
+                  </DropdownMenuItem>
+                )}
+
                 {interview.status === 'completed' && (
                   <DropdownMenuItem onClick={onEvaluate}>
                     <Star className="h-4 w-4 mr-2" />
@@ -401,17 +489,41 @@ function InterviewCard({
             )}
           </div>
 
-          {/* Status Badge */}
+          {/* Status and Actions */}
           <div className="flex items-center justify-between">
-            <Badge className={cn("text-xs", config.color)}>
-              {config.label}
-            </Badge>
-
-            {isToday && (
-              <Badge variant="outline" className="text-xs text-blue-600">
-                Aujourd'hui
+            <div className="flex items-center gap-2">
+              <Badge className={cn("text-xs", config.color)}>
+                {config.label}
               </Badge>
-            )}
+              {hasGoogleMeet && (
+                <Badge variant="outline" className="text-xs text-green-600 gap-1">
+                  <Video className="h-2 w-2" />
+                  Meet
+                </Badge>
+              )}
+            </div>
+
+            <div className="flex items-center gap-1">
+              {isToday && (
+                <Badge variant="outline" className="text-xs text-blue-600">
+                  Aujourd'hui
+                </Badge>
+              )}
+              {hasMeetingLink && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-5 w-5 p-0 text-green-600 hover:text-green-700"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onJoinMeeting();
+                  }}
+                  title="Rejoindre la réunion"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>

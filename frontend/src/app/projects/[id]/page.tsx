@@ -15,7 +15,7 @@ import { CandidateRanking, RankingStats } from "@/components/ranking/candidate-r
 import { ProjectSettings } from "@/components/project/project-settings";
 import { SubtleProgress } from "@/components/queue/subtle-progress";
 import { PipelineBoard, ProjectTimeline } from "@/components/pipeline";
-import { InterviewsBoard, ScheduleInterviewModal, InterviewDetailsModal } from "@/components/interviews";
+import { InterviewsBoard, InterviewsCalendar, InterviewsStats, InterviewsFilters, ScheduleInterviewModal, InterviewDetailsModal } from "@/components/interviews";
 import { useProject, useProjectStats } from "@/hooks/queries";
 import { useCandidatesByProject, useCandidatesByProjectLegacy, useRankingChanges } from "@/hooks/queries";
 import { useAnalysesByProject, usePipelinesByProject } from "@/hooks/queries";
@@ -39,7 +39,9 @@ import {
   Copy,
   Check,
   Clock,
-  Calendar
+  Calendar,
+  KanbanSquare,
+  BarChart3
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -73,6 +75,8 @@ export default function ProjectPage() {
   const [showInterviewDetails, setShowInterviewDetails] = useState(false);
   const [selectedInterview, setSelectedInterview] = useState<any>(null);
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
+  const [interviewViewMode, setInterviewViewMode] = useState<'kanban' | 'calendar'>('kanban');
+  const [interviewFilters, setInterviewFilters] = useState({});
   
   // TanStack Query hooks
   const queryClient = useQueryClient();
@@ -508,9 +512,52 @@ export default function ProjectPage() {
           </TabsContent>
 
           <TabsContent value="interviews" className="space-y-6">
+            {/* Header avec sélecteur de vue */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold">Entretiens</h3>
+                <p className="text-sm text-muted-foreground">
+                  Planifiez et gérez les entretiens avec intégration Google Calendar
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center border rounded-lg p-1">
+                  <Button
+                    variant={interviewViewMode === 'kanban' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setInterviewViewMode('kanban')}
+                    className="gap-2"
+                  >
+                    <KanbanSquare className="h-4 w-4" />
+                    Kanban
+                  </Button>
+                  <Button
+                    variant={interviewViewMode === 'calendar' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setInterviewViewMode('calendar')}
+                    className="gap-2"
+                  >
+                    <Calendar className="h-4 w-4" />
+                    Calendrier
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Filtres */}
+            <InterviewsFilters
+              filters={interviewFilters}
+              onFiltersChange={setInterviewFilters}
+              syncStatus="connected"
+            />
+
+            {/* Vue principale */}
             <InterviewsBoard
               projectId={projectId}
+              showStats={true}
+              viewMode={interviewViewMode}
               onScheduleInterview={() => {
+                setSelectedCandidate(null);
                 setShowScheduleModal(true);
               }}
               onViewInterview={(interview) => {
@@ -522,7 +569,6 @@ export default function ProjectPage() {
                 setShowInterviewDetails(true);
               }}
               onDeleteInterview={(interview) => {
-                // La suppression est gérée dans le modal de détails
                 setSelectedInterview(interview);
                 setShowInterviewDetails(true);
               }}
