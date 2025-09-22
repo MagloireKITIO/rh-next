@@ -649,6 +649,9 @@ export const interviewsApi = {
 
   generateMeetingLink: (interviewId: string) =>
     apiClient.post<{ meetingLink: string }>(`/interviews/${interviewId}/meeting-link`),
+
+  syncCalendar: () =>
+    apiClient.post<{ synced: number; errors: number }>('/interviews/sync-calendar'),
 };
 
 export const publicApi = {

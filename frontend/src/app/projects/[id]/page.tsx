@@ -19,7 +19,7 @@ import { InterviewsBoard, InterviewsCalendar, InterviewsStats, InterviewsFilters
 import { useProject, useProjectStats } from "@/hooks/queries";
 import { useCandidatesByProject, useCandidatesByProjectLegacy, useRankingChanges } from "@/hooks/queries";
 import { useAnalysesByProject, usePipelinesByProject } from "@/hooks/queries";
-import { useUpdateProject } from "@/hooks/mutations";
+import { useUpdateProject, useSyncCalendar } from "@/hooks/mutations";
 import { useRemoveCandidateFromPipeline } from "@/hooks/mutations/useCandidateMutations";
 import { useWebSocketSync } from "@/hooks/useWebSocketSync";
 import { Project, Candidate, projectsApi, apiClient, analysisApi } from "@/lib/api-client";
@@ -77,6 +77,7 @@ export default function ProjectPage() {
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [interviewViewMode, setInterviewViewMode] = useState<'kanban' | 'calendar'>('kanban');
   const [interviewFilters, setInterviewFilters] = useState({});
+  const [calendarSyncStatus, setCalendarSyncStatus] = useState<'connected' | 'disconnected' | 'syncing'>('connected');
   
   // TanStack Query hooks
   const queryClient = useQueryClient();
@@ -88,7 +89,19 @@ export default function ProjectPage() {
   const { data: pipelines = [] } = usePipelinesByProject(projectId);
   const updateProjectMutation = useUpdateProject();
   const removeCandidateFromPipelineMutation = useRemoveCandidateFromPipeline();
+  const syncCalendarMutation = useSyncCalendar();
   const { isConnected } = useWebSocketSync(projectId);
+
+  // Fonction de synchronisation Google Calendar
+  const handleSyncCalendar = async () => {
+    setCalendarSyncStatus('syncing');
+    try {
+      await syncCalendarMutation.mutateAsync();
+      setCalendarSyncStatus('connected');
+    } catch (error) {
+      setCalendarSyncStatus('disconnected');
+    }
+  };
 
   // Récupérer le pipeline principal (normalement il n'y en a qu'un par projet)
   const mainPipeline = pipelines.length > 0 ? pipelines[0] : null;
@@ -548,7 +561,8 @@ export default function ProjectPage() {
             <InterviewsFilters
               filters={interviewFilters}
               onFiltersChange={setInterviewFilters}
-              syncStatus="connected"
+              syncStatus={calendarSyncStatus}
+              onSyncCalendar={handleSyncCalendar}
             />
 
             {/* Vue principale */}

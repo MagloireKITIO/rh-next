@@ -178,4 +178,9 @@ export class InterviewsController {
   generateMeetingLink(@Param('id', ParseUUIDPipe) interviewId: string) {
     return this.interviewsService.generateMeetingLink(interviewId);
   }
+
+  @Post('sync-calendar')
+  syncCalendar(@Request() req) {
+    return this.interviewsService.syncCalendar(req.user.id);
+  }
 }

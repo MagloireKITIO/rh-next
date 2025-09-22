@@ -238,3 +238,27 @@ export function useGenerateMeetingLink() {
     },
   });
 }
+
+export function useSyncCalendar() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () =>
+      interviewsApi.syncCalendar().then(res => res.data),
+
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['interviews'] });
+
+      if (data.errors > 0) {
+        toast.success(`${data.synced} entretiens synchronisés, ${data.errors} erreurs`);
+      } else {
+        toast.success(`${data.synced} entretiens synchronisés avec Google Calendar`);
+      }
+    },
+
+    onError: (error: any) => {
+      const message = error.response?.data?.message || 'Erreur lors de la synchronisation';
+      toast.error(message);
+    },
+  });
+}

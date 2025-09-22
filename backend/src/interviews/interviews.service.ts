@@ -346,6 +346,55 @@ export class InterviewsService {
     return `https://meet.company.com/interview/${meetingId}`;
   }
 
+  async syncCalendar(userId: string): Promise<{ synced: number; errors: number }> {
+    this.logger.log(`🔄 Synchronizing calendar for user ${userId}`);
+
+    let synced = 0;
+    let errors = 0;
+
+    try {
+      // Récupérer tous les entretiens de l'utilisateur qui n'ont pas de meeting_id
+      const interviews = await this.interviewRepository.find({
+        where: {
+          created_by: userId,
+          meeting_id: null // Entretiens non synchronisés
+        },
+        relations: ['candidate', 'participants', 'participants.user']
+      });
+
+      this.logger.log(`Found ${interviews.length} interviews to sync`);
+
+      for (const interview of interviews) {
+        try {
+          const candidate = await this.candidateRepository.findOne({
+            where: { id: interview.candidate_id }
+          });
+
+          const participants = await this.participantRepository.find({
+            where: { interview_id: interview.id },
+            relations: ['user']
+          });
+
+          if (candidate) {
+            await this.createCalendarEvent(interview, candidate, participants);
+            synced++;
+            this.logger.log(`✅ Synced interview ${interview.id}`);
+          }
+        } catch (error) {
+          errors++;
+          this.logger.error(`❌ Failed to sync interview ${interview.id}: ${error.message}`);
+        }
+      }
+
+      this.logger.log(`🎉 Calendar sync complete: ${synced} synced, ${errors} errors`);
+
+      return { synced, errors };
+    } catch (error) {
+      this.logger.error(`Failed to sync calendar: ${error.message}`);
+      throw error;
+    }
+  }
+
   /**
    * Créer un événement Google Calendar avec Meet automatique
    */
