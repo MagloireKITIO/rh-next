@@ -11,6 +11,7 @@ import { User } from './entities/user.entity';
 import { Company } from '../companies/entities/company.entity';
 import { Project } from '../projects/entities/project.entity';
 import { Candidate } from '../candidates/entities/candidate.entity';
+import { SecurityModule } from '../security/security.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { Candidate } from '../candidates/entities/candidate.entity';
     MulterModule.register({
       dest: './uploads/avatars',
     }),
+    SecurityModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],

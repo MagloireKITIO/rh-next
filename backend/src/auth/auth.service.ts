@@ -8,7 +8,9 @@ import { User, UserRole } from './entities/user.entity';
 import { Company } from '../companies/entities/company.entity';
 import { Project } from '../projects/entities/project.entity';
 import { Candidate } from '../candidates/entities/candidate.entity';
+import { SecurityService } from '../security/security.service';
 import { LoginDto, GoogleAuthDto, SignUpDto, CompanySignUpDto, AcceptInvitationDto, CompleteCompanyGoogleDto, UpdateProfileDto, ChangePasswordDto, DeleteAccountDto } from './dto/login.dto';
+import { LoginStatus } from '../security/entities/login-audit.entity';
 import * as bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
 import * as fs from 'fs';
@@ -29,11 +31,56 @@ export class AuthService {
     private candidateRepository: Repository<Candidate>,
     private jwtService: JwtService,
     private configService: ConfigService,
+    private securityService: SecurityService,
   ) {
     this.supabase = createClient(
       this.configService.get('SUPABASE_URL'),
       this.configService.get('SUPABASE_ANON_KEY'),
     );
+  }
+
+  /**
+   * Enregistre une tentative de connexion dans l'audit de sécurité
+   */
+  private async logLoginAttempt(
+    email: string,
+    status: LoginStatus,
+    user?: User,
+    failureReason?: string,
+    ipAddress?: string,
+    userAgent?: string
+  ): Promise<void> {
+    try {
+      let companyId = user?.company_id;
+
+      // Si on n'a pas d'entreprise via l'utilisateur, essayer de la récupérer via l'email
+      if (!companyId) {
+        const existingUser = await this.userRepository.findOne({
+          where: { email },
+          relations: ['company']
+        });
+        companyId = existingUser?.company_id;
+      }
+
+      // Si on n'a toujours pas d'entreprise, skip l'audit
+      if (!companyId) {
+        console.log('⚠️ Audit skippé: pas d\'entreprise trouvée pour', email);
+        return;
+      }
+
+      await this.securityService.logLoginAttempt({
+        user_id: user?.id,
+        company_id: companyId,
+        email_attempt: email,
+        status,
+        failure_reason: failureReason,
+        ip_address: ipAddress || 'unknown',
+        user_agent: userAgent,
+      });
+    } catch (error) {
+      // Ne pas faire échouer la connexion à cause d'un problème d'audit
+      console.error('Erreur lors de l\'enregistrement de l\'audit de connexion:', error);
+    }
   }
 
   async signUp(signUpDto: SignUpDto) {
@@ -87,18 +134,21 @@ export class AuthService {
     };
   }
 
-  async signIn(loginDto: LoginDto) {
+  async signIn(loginDto: LoginDto, ipAddress?: string, userAgent?: string) {
     const { email, password } = loginDto;
 
-    // Sign in with Supabase
-    const { data, error } = await this.supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      // Sign in with Supabase
+      const { data, error } = await this.supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
+      if (error) {
+        // Log failed attempt
+        await this.logLoginAttempt(email, LoginStatus.FAILED, undefined, 'Invalid credentials', ipAddress, userAgent);
+        throw new UnauthorizedException('Invalid credentials');
+      }
 
     // Get user from our database
     let user = await this.userRepository.findOne({ where: { email } });
@@ -123,44 +173,61 @@ export class AuthService {
       }
     }
 
-    // Vérifier si l'email est vérifié
-    if (!user.email_verified) {
-      throw new UnauthorizedException('Please verify your email before signing in. Check your inbox for verification email.');
+      // Vérifier si l'email est vérifié
+      if (!user.email_verified) {
+        await this.logLoginAttempt(email, LoginStatus.FAILED, user, 'Email not verified', ipAddress, userAgent);
+        throw new UnauthorizedException('Please verify your email before signing in. Check your inbox for verification email.');
+      }
+
+      // Vérifier si l'utilisateur est actif
+      if (!user.is_active) {
+        await this.logLoginAttempt(email, LoginStatus.FAILED, user, 'Account not active', ipAddress, userAgent);
+        throw new UnauthorizedException('Your account is not active. Please contact support.');
+      }
+
+      // Log successful login
+      await this.logLoginAttempt(email, LoginStatus.SUCCESS, user, undefined, ipAddress, userAgent);
+
+      const payload = { sub: user.id, email: user.email };
+      const access_token = this.jwtService.sign(payload);
+
+      return {
+        access_token,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          avatar_url: user.avatar_url,
+          email_verified: user.email_verified,
+        },
+      };
+    } catch (error) {
+      // Si c'est une erreur contrôlée (UnauthorizedException), la relancer
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+
+      // Pour les autres erreurs, logger comme échec et relancer
+      await this.logLoginAttempt(email, LoginStatus.FAILED, undefined, 'System error during login', ipAddress, userAgent);
+      throw error;
     }
-
-    // Vérifier si l'utilisateur est actif
-    if (!user.is_active) {
-      throw new UnauthorizedException('Your account is not active. Please contact support.');
-    }
-
-    const payload = { sub: user.id, email: user.email };
-    const access_token = this.jwtService.sign(payload);
-
-    return {
-      access_token,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        avatar_url: user.avatar_url,
-        email_verified: user.email_verified,
-      },
-    };
   }
 
   // Méthode spéciale pour l'authentification admin (sans vérification d'email)
-  async adminSignIn(loginDto: LoginDto) {
+  async adminSignIn(loginDto: LoginDto, ipAddress?: string, userAgent?: string) {
     const { email, password } = loginDto;
 
-    // Sign in with Supabase
-    const { data, error } = await this.supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      // Sign in with Supabase
+      const { data, error } = await this.supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
+      if (error) {
+        await this.logLoginAttempt(email, LoginStatus.FAILED, undefined, 'Invalid admin credentials', ipAddress, userAgent);
+        throw new UnauthorizedException('Invalid credentials');
+      }
 
     // Get user from our database
     let user = await this.userRepository.findOne({ where: { email } });
@@ -198,24 +265,39 @@ export class AuthService {
       }
     }
 
-    const payload = { sub: user.id, email: user.email };
-    const access_token = this.jwtService.sign(payload);
+      // Log successful admin login
+      await this.logLoginAttempt(email, LoginStatus.SUCCESS, user, undefined, ipAddress, userAgent);
 
-    return {
-      access_token,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        avatar_url: user.avatar_url,
-        email_verified: user.email_verified,
-        role: user.role,
-      },
-    };
+      const payload = { sub: user.id, email: user.email };
+      const access_token = this.jwtService.sign(payload);
+
+      return {
+        access_token,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          avatar_url: user.avatar_url,
+          email_verified: user.email_verified,
+          role: user.role,
+        },
+      };
+    } catch (error) {
+      // Si c'est une erreur contrôlée (UnauthorizedException), la relancer
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+
+      // Pour les autres erreurs, logger comme échec et relancer
+      await this.logLoginAttempt(email, LoginStatus.FAILED, undefined, 'System error during admin login', ipAddress, userAgent);
+      throw error;
+    }
   }
 
-  async googleAuth(googleAuthDto: GoogleAuthDto) {
+  async googleAuth(googleAuthDto: GoogleAuthDto, ipAddress?: string, userAgent?: string) {
     const { access_token } = googleAuthDto;
+
+    let userEmail: string;
 
     try {
       
@@ -223,8 +305,11 @@ export class AuthService {
       const { data: { user: supabaseUser }, error } = await this.supabase.auth.getUser(access_token);
 
       if (error || !supabaseUser) {
+        await this.logLoginAttempt('unknown', LoginStatus.FAILED, undefined, 'Invalid Google token', ipAddress, userAgent);
         throw new UnauthorizedException('Invalid Google token');
       }
+
+      userEmail = supabaseUser.email;
 
       console.log('📧 Données Supabase user:', {
         id: supabaseUser.id,
@@ -269,6 +354,9 @@ export class AuthService {
           }
       }
 
+      // Log successful Google login
+      await this.logLoginAttempt(userEmail, LoginStatus.SUCCESS, user, undefined, ipAddress, userAgent);
+
       const payload = { sub: user.id, email: user.email };
       const jwt_token = this.jwtService.sign(payload);
 
@@ -282,6 +370,15 @@ export class AuthService {
         },
       };
     } catch (error) {
+      // Log failed Google authentication (si on a l'email)
+      if (userEmail) {
+        await this.logLoginAttempt(userEmail, LoginStatus.FAILED, undefined, 'Failed Google authentication', ipAddress, userAgent);
+      }
+
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+
       throw new UnauthorizedException('Failed to authenticate with Google');
     }
   }
@@ -395,8 +492,10 @@ export class AuthService {
     };
   }
 
-  async acceptInvitation(acceptInvitationDto: AcceptInvitationDto) {
+  async acceptInvitation(acceptInvitationDto: AcceptInvitationDto, ipAddress?: string, userAgent?: string) {
     const { invitation_token, password } = acceptInvitationDto;
+
+    let userEmail: string;
 
     try {
       // Le token reçu est déjà un JWT valide émis par Supabase
@@ -405,8 +504,11 @@ export class AuthService {
 
       if (error || !user) {
         console.error('❌ Erreur récupération utilisateur Supabase:', error);
+        await this.logLoginAttempt('unknown', LoginStatus.FAILED, undefined, 'Invalid invitation token', ipAddress, userAgent);
         throw new BadRequestException(`Token d'invitation invalide: ${error?.message || 'Utilisateur introuvable'}`);
       }
+
+      userEmail = user.email;
 
       console.log('✅ Utilisateur Supabase récupéré:', {
         id: user.id,
@@ -430,12 +532,21 @@ export class AuthService {
       // Finaliser l'invitation côté application
       const appUser = await this.finalizeInvitation(user.email, user.id);
 
+      // Récupérer l'utilisateur complet pour l'audit
+      const fullUser = await this.userRepository.findOne({
+        where: { email: user.email },
+        relations: ['company']
+      });
+
+      // Log successful invitation acceptance
+      await this.logLoginAttempt(userEmail, LoginStatus.SUCCESS, fullUser, undefined, ipAddress, userAgent);
+
       // Générer un token JWT pour connexion automatique
-      const payload = { 
-        id: appUser.user.id, 
-        email: appUser.user.email, 
+      const payload = {
+        id: appUser.user.id,
+        email: appUser.user.email,
         role: appUser.user.role,
-        companyId: appUser.user.company.id 
+        companyId: appUser.user.company.id
       };
       const access_token = this.jwtService.sign(payload);
 
@@ -446,7 +557,17 @@ export class AuthService {
       };
 
     } catch (error) {
+      // Log failed invitation acceptance (si on a l'email)
+      if (userEmail) {
+        await this.logLoginAttempt(userEmail, LoginStatus.FAILED, undefined, 'Failed invitation acceptance', ipAddress, userAgent);
+      }
+
       console.error('❌ Erreur lors de l\'acceptation d\'invitation:', error);
+
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+
       throw new BadRequestException(error.message || 'Erreur lors de l\'acceptation de l\'invitation');
     }
   }

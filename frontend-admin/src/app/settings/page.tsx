@@ -21,6 +21,7 @@ import MailSettings from '@/components/admin/settings/mail-settings';
 import PrivacyPolicySettings from '@/components/admin/settings/privacy-policy-settings';
 import ExternalIntegrationsSettings from '@/components/admin/settings/external-integrations-settings';
 import VisualIdentitySettings from '@/components/admin/settings/visual-identity-settings';
+import SecuritySettings from '@/components/admin/settings/security-settings';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -49,10 +50,10 @@ export default function SettingsPage() {
     {
       id: 'security',
       label: 'Sécurité',
-      description: 'Configuration de la sécurité',
+      description: 'Audit des connexions et monitoring de sécurité',
       icon: Shield,
-      component: null, // À implémenter plus tard
-      badge: 'Bientôt',
+      component: SecuritySettings,
+      badge: null,
     },
     {
       id: 'integrations',

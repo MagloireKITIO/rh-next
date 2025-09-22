@@ -225,6 +225,57 @@ export interface ModelConfigStats {
   popularModels: { model: string; count: number }[];
 }
 
+export interface LoginAuditRecord {
+  id: string;
+  user_id?: string;
+  company_id: string;
+  email_attempt: string;
+  status: 'success' | 'failed' | 'suspicious';
+  failure_reason?: string;
+  ip_address: string;
+  user_agent?: string;
+  device_type: 'desktop' | 'mobile' | 'tablet' | 'unknown';
+  browser?: string;
+  operating_system?: string;
+  location_country?: string;
+  location_city?: string;
+  location_region?: string;
+  location_latitude?: number;
+  location_longitude?: number;
+  session_duration_seconds?: number;
+  session_token?: string;
+  is_suspicious: boolean;
+  suspicious_reasons?: string;
+  metadata?: Record<string, any>;
+  user?: User;
+  company?: Company;
+  created_at: string;
+}
+
+export interface LoginAuditStats {
+  total_attempts: number;
+  successful_logins: number;
+  failed_attempts: number;
+  suspicious_activities: number;
+  unique_users: number;
+  unique_ips: number;
+  success_rate: number;
+}
+
+export interface LoginAuditQuery {
+  user_id?: string;
+  status?: 'success' | 'failed' | 'suspicious';
+  email_attempt?: string;
+  ip_address?: string;
+  device_type?: 'desktop' | 'mobile' | 'tablet' | 'unknown';
+  is_suspicious?: boolean;
+  date_from?: string;
+  date_to?: string;
+  page?: number;
+  limit?: number;
+  search?: string;
+}
+
 export interface MailConfiguration {
   id?: string;
   provider_type: 'smtp' | 'sendgrid' | 'mailgun' | 'aws_ses' | 'supabase' | 'gmail' | 'outlook';
@@ -516,6 +567,38 @@ export const adminApi = {
       headers: { 'Content-Type': 'multipart/form-data' }
     }),
   initializePlatformSettings: () => apiClient.post('/platform-settings/initialize'),
+
+  // Security & Login Audit
+  getLoginAuditLogs: (query?: LoginAuditQuery) => {
+    const params = new URLSearchParams();
+    if (query?.user_id) params.append('user_id', query.user_id);
+    if (query?.status) params.append('status', query.status);
+    if (query?.email_attempt) params.append('email_attempt', query.email_attempt);
+    if (query?.ip_address) params.append('ip_address', query.ip_address);
+    if (query?.device_type) params.append('device_type', query.device_type);
+    if (query?.is_suspicious !== undefined) params.append('is_suspicious', query.is_suspicious.toString());
+    if (query?.date_from) params.append('date_from', query.date_from);
+    if (query?.date_to) params.append('date_to', query.date_to);
+    if (query?.page) params.append('page', query.page.toString());
+    if (query?.limit) params.append('limit', query.limit.toString());
+    if (query?.search) params.append('search', query.search);
+
+    return apiClient.get<{
+      data: LoginAuditRecord[];
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    }>(`/admin/security/login-audit?${params.toString()}`);
+  },
+
+  getLoginAuditStats: (dateFrom?: string, dateTo?: string) => {
+    const params = new URLSearchParams();
+    if (dateFrom) params.append('date_from', dateFrom);
+    if (dateTo) params.append('date_to', dateTo);
+
+    return apiClient.get<LoginAuditStats>(`/admin/security/login-audit/stats?${params.toString()}`);
+  },
 
 };
 

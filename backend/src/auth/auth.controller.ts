@@ -17,13 +17,17 @@ export class AuthController {
   }
 
   @Post('signin')
-  async signIn(@Body() loginDto: LoginDto) {
-    return this.authService.signIn(loginDto);
+  async signIn(@Body() loginDto: LoginDto, @Request() req) {
+    const ipAddress = req.ip || req.connection?.remoteAddress || req.headers['x-forwarded-for'];
+    const userAgent = req.headers['user-agent'];
+    return this.authService.signIn(loginDto, ipAddress, userAgent);
   }
 
   @Post('google')
-  async googleAuth(@Body() googleAuthDto: GoogleAuthDto) {
-    return this.authService.googleAuth(googleAuthDto);
+  async googleAuth(@Body() googleAuthDto: GoogleAuthDto, @Request() req) {
+    const ipAddress = req.ip || req.connection?.remoteAddress || req.headers['x-forwarded-for'];
+    const userAgent = req.headers['user-agent'];
+    return this.authService.googleAuth(googleAuthDto, ipAddress, userAgent);
   }
 
   @Post('company-signup')
@@ -32,8 +36,10 @@ export class AuthController {
   }
 
   @Post('accept-invitation')
-  async acceptInvitation(@Body() acceptInvitationDto: AcceptInvitationDto) {
-    return this.authService.acceptInvitation(acceptInvitationDto);
+  async acceptInvitation(@Body() acceptInvitationDto: AcceptInvitationDto, @Request() req) {
+    const ipAddress = req.ip || req.connection?.remoteAddress || req.headers['x-forwarded-for'];
+    const userAgent = req.headers['user-agent'];
+    return this.authService.acceptInvitation(acceptInvitationDto, ipAddress, userAgent);
   }
 
   @Post('finalize-invitation')
@@ -70,15 +76,18 @@ export class AuthController {
   }
 
   @Post('admin/login')
-  async adminLogin(@Body() loginDto: LoginDto) {
-    const result = await this.authService.adminSignIn(loginDto);
-    
+  async adminLogin(@Body() loginDto: LoginDto, @Request() req) {
+    const ipAddress = req.ip || req.connection?.remoteAddress || req.headers['x-forwarded-for'];
+    const userAgent = req.headers['user-agent'];
+
+    const result = await this.authService.adminSignIn(loginDto, ipAddress, userAgent);
+
     // Vérifier que l'utilisateur est super admin
     const user = await this.authService.validateUser({ sub: result.user.id });
     if (user.role !== UserRole.SUPER_ADMIN) {
       throw new UnauthorizedException('Accès refusé : Vous devez être super administrateur');
     }
-    
+
     return result;
   }
 
