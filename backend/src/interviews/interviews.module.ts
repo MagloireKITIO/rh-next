@@ -9,6 +9,7 @@ import { Candidate } from '../candidates/entities/candidate.entity';
 import { Project } from '../projects/entities/project.entity';
 import { User } from '../auth/entities/user.entity';
 import { CalendarModule } from '../calendar/calendar.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { CalendarModule } from '../calendar/calendar.module';
       User,
     ]),
     CalendarModule,
+    NotificationsModule,
   ],
   controllers: [InterviewsController],
   providers: [InterviewsService],

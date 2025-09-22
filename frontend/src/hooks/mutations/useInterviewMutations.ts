@@ -262,3 +262,38 @@ export function useSyncCalendar() {
     },
   });
 }
+
+export function useSyncAttendeesStatus() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (interviewId: string) =>
+      interviewsApi.syncAttendeesStatus(interviewId).then(res => res.data),
+
+    onSuccess: (data, interviewId) => {
+      queryClient.invalidateQueries({ queryKey: ['interviews', interviewId] });
+      toast.success('Statuts des participants synchronisés avec Google Calendar');
+    },
+
+    onError: (error: any) => {
+      const message = error.response?.data?.message || 'Erreur lors de la synchronisation des statuts';
+      toast.error(message);
+    },
+  });
+}
+
+export function useSendInterviewReminder() {
+  return useMutation({
+    mutationFn: ({ interviewId, minutesBefore }: { interviewId: string; minutesBefore?: number }) =>
+      interviewsApi.sendReminder(interviewId, minutesBefore).then(res => res.data),
+
+    onSuccess: () => {
+      toast.success('Rappel envoyé aux participants');
+    },
+
+    onError: (error: any) => {
+      const message = error.response?.data?.message || 'Erreur lors de l\'envoi du rappel';
+      toast.error(message);
+    },
+  });
+}

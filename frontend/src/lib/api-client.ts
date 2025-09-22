@@ -652,6 +652,37 @@ export const interviewsApi = {
 
   syncCalendar: () =>
     apiClient.post<{ synced: number; errors: number }>('/interviews/sync-calendar'),
+
+  syncAttendeesStatus: (interviewId: string) =>
+    apiClient.post(`/interviews/${interviewId}/sync-attendees`),
+
+  sendReminder: (interviewId: string, minutesBefore?: number) =>
+    apiClient.post(`/interviews/${interviewId}/send-reminder`, { minutesBefore }),
+
+  getCalendarEvents: (startDate: string, endDate: string) =>
+    apiClient.get<Array<{
+      id: string;
+      summary: string;
+      start: { dateTime: string };
+      end: { dateTime: string };
+      attendees?: Array<{ email: string; displayName?: string }>;
+      location?: string;
+      isInterviewEvent: boolean;
+    }>>(`/interviews/calendar-events?startDate=${startDate}&endDate=${endDate}`),
+
+  getAvailableTimeSlots: (date: string, userIds: string[], duration: number) =>
+    apiClient.get<Array<{
+      start: Date;
+      end: Date;
+      available: boolean;
+      conflicts: string[];
+    }>>(`/interviews/availability/${date}?userIds=${userIds.join(',')}&duration=${duration}`),
+
+  checkConflicts: (userId: string, startTime: string, endTime: string) =>
+    apiClient.post<{
+      hasConflicts: boolean;
+      conflicts: Array<{ start: string; end: string; summary?: string }>;
+    }>('/interviews/check-conflicts', { userId, startTime, endTime }),
 };
 
 export const publicApi = {

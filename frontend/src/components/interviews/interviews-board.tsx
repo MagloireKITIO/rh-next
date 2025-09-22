@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useInterviewsByProject } from "@/hooks/queries";
-import { useUpdateInterviewStatus, useGenerateMeetingLink } from "@/hooks/mutations";
+import { useUpdateInterviewStatus, useGenerateMeetingLink, useSyncCalendar } from "@/hooks/mutations";
 import { Interview, Candidate } from "@/lib/api-client";
 import { ScheduleInterviewModal } from "./schedule-interview-modal";
 import { InterviewDetailsModal } from "./interview-details-modal";
@@ -36,7 +36,8 @@ import {
   Star,
   ExternalLink,
   Link,
-  Chrome
+  Chrome,
+  RefreshCw
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -106,6 +107,7 @@ export function InterviewsBoard({
   const interviews = interviewsProp || fetchedInterviews;
   const updateStatusMutation = useUpdateInterviewStatus();
   const generateMeetingLinkMutation = useGenerateMeetingLink();
+  const syncCalendarMutation = useSyncCalendar();
 
   // État des modales
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -236,10 +238,21 @@ export function InterviewsBoard({
             Gérez et suivez tous les entretiens{projectId ? ' de ce projet' : ''}
           </p>
         </div>
-        <Button onClick={onScheduleInterview} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Planifier un entretien
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => syncCalendarMutation.mutate()}
+            disabled={syncCalendarMutation.isPending}
+            className="gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${syncCalendarMutation.isPending ? 'animate-spin' : ''}`} />
+            {syncCalendarMutation.isPending ? 'Synchronisation...' : 'Synchroniser'}
+          </Button>
+          <Button onClick={onScheduleInterview} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Planifier un entretien
+          </Button>
+        </div>
       </div>
 
       {/* Vue conditionnelle */}

@@ -9,6 +9,7 @@ import { Project } from '../projects/entities/project.entity';
 import { User } from '../auth/entities/user.entity';
 import { CreateInterviewDto, UpdateInterviewDto, CreateInterviewEvaluationDto, UpdateInterviewEvaluationDto } from './dto';
 import { CalendarService } from '../calendar/calendar.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class InterviewsService {
@@ -30,10 +31,30 @@ export class InterviewsService {
     @InjectDataSource()
     private dataSource: DataSource,
     private calendarService: CalendarService,
+    private notificationsService: NotificationsService,
   ) {}
 
   async create(createInterviewDto: CreateInterviewDto, createdBy: string): Promise<Interview> {
     this.logger.log(`🔄 Creating interview for candidate ${createInterviewDto.candidate_id}`);
+
+    // Vérifier les conflits de planification pour le créateur de l'entretien
+    const endTime = new Date(createInterviewDto.scheduled_at);
+    endTime.setMinutes(endTime.getMinutes() + createInterviewDto.duration_minutes);
+
+    try {
+      const conflicts = await this.calendarService.checkConflicts(
+        createdBy,
+        new Date(createInterviewDto.scheduled_at),
+        endTime
+      );
+
+      if (conflicts.hasConflicts) {
+        this.logger.warn(`⚠️ Conflicts detected for interview at ${createInterviewDto.scheduled_at}`);
+        // Ne pas bloquer la création, mais logger l'avertissement
+      }
+    } catch (error) {
+      this.logger.warn(`⚠️ Could not check conflicts: ${error.message}`);
+    }
 
     return await this.dataSource.transaction(async manager => {
       // Vérifier que le candidat et le projet existent
@@ -285,24 +306,65 @@ export class InterviewsService {
   }
 
   // Utilitaires pour la planification
-  async getAvailableTimeSlots(userIds: string[], date: Date, duration: number): Promise<any[]> {
-    // TODO: Implémenter la logique de vérification des disponibilités
-    // Cela pourrait inclure l'intégration avec des calendriers externes
+  async getAvailableTimeSlots(userIds: string[], date: Date, duration: number): Promise<Array<{
+    start: Date;
+    end: Date;
+    available: boolean;
+    conflicts: string[];
+  }>> {
     this.logger.log(`🔍 Checking availability for ${userIds.length} users on ${date}`);
 
-    // Pour l'instant, retourner des créneaux par défaut
     const slots = [];
+
+    // Générer des créneaux de 30 minutes entre 9h et 18h
     for (let hour = 9; hour <= 17; hour++) {
-      if (hour !== 12 && hour !== 13) { // Éviter l'heure du déjeuner
+      for (let minute = 0; minute < 60; minute += 30) {
+        if (hour === 12 && minute === 0) continue; // Éviter l'heure du déjeuner 12h-13h
+        if (hour === 12 && minute === 30) continue;
+
+        const startTime = new Date(date.getFullYear(), date.getMonth(), date.getDate(), hour, minute);
+        const endTime = new Date(startTime.getTime() + duration * 60000);
+
+        // Vérifier si le créneau ne déborde pas sur les heures ouvrables
+        if (endTime.getHours() > 18) continue;
+
+        // Vérifier les conflits pour chaque utilisateur
+        const conflicts = [];
+        let hasConflicts = false;
+
+        for (const userId of userIds) {
+          try {
+            const userConflicts = await this.calendarService.checkConflicts(userId, startTime, endTime);
+            if (userConflicts.hasConflicts) {
+              hasConflicts = true;
+              const user = await this.userRepository.findOne({ where: { id: userId } });
+              conflicts.push(user?.name || 'Utilisateur inconnu');
+            }
+          } catch (error) {
+            this.logger.warn(`Could not check conflicts for user ${userId}: ${error.message}`);
+          }
+        }
+
         slots.push({
-          start: new Date(date.getFullYear(), date.getMonth(), date.getDate(), hour, 0),
-          end: new Date(date.getFullYear(), date.getMonth(), date.getDate(), hour + Math.floor(duration / 60), duration % 60),
-          available: true,
+          start: startTime,
+          end: endTime,
+          available: !hasConflicts,
+          conflicts: conflicts,
         });
       }
     }
 
-    return slots;
+    // Retourner seulement les créneaux disponibles ou les 5 premiers créneaux avec le moins de conflits
+    const availableSlots = slots.filter(slot => slot.available);
+
+    if (availableSlots.length > 0) {
+      return availableSlots.slice(0, 10); // Retourner les 10 premiers créneaux disponibles
+    } else {
+      // Si aucun créneau disponible, retourner ceux avec le moins de conflits
+      return slots
+        .sort((a, b) => a.conflicts.length - b.conflicts.length)
+        .slice(0, 5);
+    }
   }
 
   async generateMeetingLink(interviewId: string): Promise<string> {
@@ -347,51 +409,57 @@ export class InterviewsService {
   }
 
   async syncCalendar(userId: string): Promise<{ synced: number; errors: number }> {
-    this.logger.log(`🔄 Synchronizing calendar for user ${userId}`);
+    this.logger.log(`🔄 Synchronizing calendar events for user ${userId} (read-only sync)`);
 
     let synced = 0;
     let errors = 0;
 
     try {
-      // Récupérer tous les entretiens de l'utilisateur qui n'ont pas de meeting_id
-      const interviews = await this.interviewRepository.find({
-        where: {
-          created_by: userId,
-          meeting_id: null // Entretiens non synchronisés
-        },
-        relations: ['candidate', 'participants', 'participants.user']
+      // Récupérer les événements Google Calendar des 30 derniers et prochains jours
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 30);
+      const endDate = new Date();
+      endDate.setDate(endDate.getDate() + 30);
+
+      const googleEvents = await this.calendarService.syncCalendarEvents(userId, {
+        start: startDate,
+        end: endDate
       });
 
-      this.logger.log(`Found ${interviews.length} interviews to sync`);
+      this.logger.log(`Found ${googleEvents.length} Google Calendar events`);
 
-      for (const interview of interviews) {
+      // Pour chaque événement Google, vérifier s'il correspond à un entretien existant
+      for (const event of googleEvents) {
         try {
-          const candidate = await this.candidateRepository.findOne({
-            where: { id: interview.candidate_id }
+          // Chercher un entretien avec ce meeting_id
+          const existingInterview = await this.interviewRepository.findOne({
+            where: { meeting_id: event.id }
           });
 
-          const participants = await this.participantRepository.find({
-            where: { interview_id: interview.id },
-            relations: ['user']
-          });
-
-          if (candidate) {
-            await this.createCalendarEvent(interview, candidate, participants);
-            synced++;
-            this.logger.log(`✅ Synced interview ${interview.id}`);
+          if (existingInterview) {
+            // Mettre à jour l'URL Google Calendar si elle n'existe pas
+            if (!existingInterview.google_calendar_url) {
+              await this.interviewRepository.update(existingInterview.id, {
+                google_calendar_url: `https://calendar.google.com/calendar/event?eid=${event.id}`
+              });
+              synced++;
+            }
           }
+          // Note: On ne crée PAS de nouveaux entretiens à partir des événements Google
+          // La synchronisation est en lecture seule pour éviter les doublons
+
         } catch (error) {
           errors++;
-          this.logger.error(`❌ Failed to sync interview ${interview.id}: ${error.message}`);
+          this.logger.error(`❌ Failed to process Google event ${event.id}:`, error.message);
         }
       }
 
-      this.logger.log(`🎉 Calendar sync complete: ${synced} synced, ${errors} errors`);
-
+      this.logger.log(`🔄 Calendar sync completed: ${synced} entretiens mis à jour, ${errors} erreurs`);
       return { synced, errors };
     } catch (error) {
       this.logger.error(`Failed to sync calendar: ${error.message}`);
-      throw error;
+      errors++;
+      return { synced, errors };
     }
   }
 
@@ -445,6 +513,7 @@ export class InterviewsService {
       const updateData: any = {
         meeting_id: createdEvent.id,
         calendar_invites_sent: true,
+        google_calendar_url: `https://calendar.google.com/calendar/event?eid=${createdEvent.id}`,
       };
 
       // Extraire le lien Meet s'il existe
@@ -466,6 +535,99 @@ export class InterviewsService {
         return null;
       }
 
+      throw error;
+    }
+  }
+
+  async syncAttendeesStatus(interviewId: string): Promise<void> {
+    const interview = await this.findOne(interviewId);
+
+    if (!interview.meeting_id) {
+      this.logger.warn(`Interview ${interviewId} has no meeting_id, cannot sync attendees`);
+      return;
+    }
+
+    try {
+      const attendees = await this.calendarService.getEventAttendees(
+        interview.created_by,
+        interview.meeting_id
+      );
+
+      for (const participant of interview.participants) {
+        const attendee = attendees.find(a => a.email === participant.user?.email);
+        if (attendee) {
+          let newStatus: ParticipantStatus;
+          switch (attendee.responseStatus) {
+            case 'accepted':
+              newStatus = ParticipantStatus.ACCEPTED;
+              break;
+            case 'declined':
+              newStatus = ParticipantStatus.DECLINED;
+              break;
+            case 'tentative':
+              newStatus = ParticipantStatus.TENTATIVE;
+              break;
+            default:
+              newStatus = ParticipantStatus.INVITED;
+          }
+
+          if (participant.status !== newStatus) {
+            await this.updateParticipantStatus(participant.id, newStatus);
+            this.logger.log(`Updated participant ${participant.id} status to ${newStatus}`);
+          }
+        }
+      }
+    } catch (error) {
+      this.logger.error(`Failed to sync attendees status for interview ${interviewId}:`, error);
+    }
+  }
+
+  async checkUserConflicts(userId: string, startTime: Date, endTime: Date): Promise<{
+    hasConflicts: boolean;
+    conflicts: Array<{ start: string; end: string; summary?: string }>;
+  }> {
+    try {
+      return await this.calendarService.checkConflicts(userId, startTime, endTime);
+    } catch (error) {
+      this.logger.error(`Failed to check conflicts for user ${userId}:`, error);
+      return { hasConflicts: false, conflicts: [] };
+    }
+  }
+
+  async getCalendarEvents(userId: string, dateRange: { start: Date; end: Date }): Promise<Array<{
+    id: string;
+    summary: string;
+    start: { dateTime: string };
+    end: { dateTime: string };
+    attendees?: Array<{ email: string; displayName?: string }>;
+    location?: string;
+    isInterviewEvent: boolean;
+  }>> {
+    try {
+      const events = await this.calendarService.syncCalendarEvents(userId, dateRange);
+
+      // Marquer les événements qui correspondent à des entretiens existants
+      const interviews = await this.findByDateRange(dateRange.start, dateRange.end);
+      const interviewMeetingIds = new Set(interviews.map(i => i.meeting_id).filter(Boolean));
+
+      return events.map(event => ({
+        ...event,
+        isInterviewEvent: interviewMeetingIds.has(event.id)
+      }));
+    } catch (error) {
+      this.logger.error(`Failed to get calendar events for user ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  async sendInterviewReminder(interviewId: string, minutesBefore: number = 15): Promise<void> {
+    this.logger.log(`Manually sending reminder for interview ${interviewId} (${minutesBefore} minutes before)`);
+
+    try {
+      await this.notificationsService.sendCustomReminder(interviewId, minutesBefore);
+      this.logger.log(`✅ Reminder sent for interview ${interviewId}`);
+    } catch (error) {
+      this.logger.error(`Failed to send reminder for interview ${interviewId}:`, error);
       throw error;
     }
   }

@@ -63,6 +63,9 @@ export class Interview {
   meeting_id?: string;
 
   @Column('text', { nullable: true })
+  google_calendar_url?: string;
+
+  @Column('text', { nullable: true })
   location?: string;
 
   @Column('text', { nullable: true })

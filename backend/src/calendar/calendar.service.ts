@@ -126,6 +126,94 @@ export class CalendarService {
     }
   }
 
+  async getEventAttendees(userId: string, eventId: string): Promise<Array<{
+    email: string;
+    displayName?: string;
+    responseStatus: 'accepted' | 'declined' | 'tentative' | 'needsAction';
+  }>> {
+    const calendar = await this.getGoogleCalendarClient(userId);
+
+    try {
+      const response = await calendar.events.get({
+        calendarId: 'primary',
+        eventId,
+      });
+
+      const attendees = response.data.attendees || [];
+      return attendees.map(attendee => ({
+        email: attendee.email || '',
+        displayName: attendee.displayName,
+        responseStatus: (attendee.responseStatus as any) || 'needsAction',
+      }));
+    } catch (error) {
+      this.logger.error(`Failed to get event attendees for event ${eventId}:`, error);
+      throw error;
+    }
+  }
+
+  async checkConflicts(userId: string, startTime: Date, endTime: Date): Promise<{
+    hasConflicts: boolean;
+    conflicts: Array<{ start: string; end: string; summary?: string }>;
+  }> {
+    try {
+      const freeBusyData = await this.getFreeBusy(
+        userId,
+        'primary',
+        startTime.toISOString(),
+        endTime.toISOString()
+      );
+
+      const busy = freeBusyData.calendars?.primary?.busy || [];
+
+      return {
+        hasConflicts: busy.length > 0,
+        conflicts: busy.map((busyPeriod: any) => ({
+          start: busyPeriod.start,
+          end: busyPeriod.end,
+          summary: 'Événement existant'
+        }))
+      };
+    } catch (error) {
+      this.logger.error('Failed to check conflicts:', error);
+      return { hasConflicts: false, conflicts: [] };
+    }
+  }
+
+  async syncCalendarEvents(userId: string, dateRange: { start: Date; end: Date }): Promise<Array<{
+    id: string;
+    summary: string;
+    start: { dateTime: string };
+    end: { dateTime: string };
+    attendees?: Array<{ email: string; displayName?: string }>;
+    location?: string;
+  }>> {
+    const calendar = await this.getGoogleCalendarClient(userId);
+
+    try {
+      const response = await calendar.events.list({
+        calendarId: 'primary',
+        timeMin: dateRange.start.toISOString(),
+        timeMax: dateRange.end.toISOString(),
+        singleEvents: true,
+        orderBy: 'startTime',
+      });
+
+      const events = response.data.items || [];
+
+      return events.map((event: any) => ({
+        id: event.id,
+        summary: event.summary || 'Événement sans titre',
+        start: event.start,
+        end: event.end,
+        attendees: event.attendees,
+        location: event.location,
+      }));
+    } catch (error) {
+      this.logger.error('Failed to sync calendar events:', error);
+      throw error;
+    }
+  }
+
   // Générer un lien Google Meet automatiquement
   generateMeetEvent(event: CalendarEvent): CalendarEvent {
     return {

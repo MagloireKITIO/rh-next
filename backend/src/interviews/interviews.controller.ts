@@ -183,4 +183,53 @@ export class InterviewsController {
   syncCalendar(@Request() req) {
     return this.interviewsService.syncCalendar(req.user.id);
   }
+
+  @Post(':id/sync-attendees')
+  syncAttendeesStatus(@Param('id', ParseUUIDPipe) interviewId: string) {
+    return this.interviewsService.syncAttendeesStatus(interviewId);
+  }
+
+  @Post('check-conflicts')
+  async checkConflicts(
+    @Body('userId') userId: string,
+    @Body('startTime') startTime: string,
+    @Body('endTime') endTime: string,
+    @Request() req
+  ) {
+    // Utiliser l'utilisateur connecté si userId n'est pas fourni
+    const userIdToCheck = userId || req.user.id;
+    return this.interviewsService.checkUserConflicts(
+      userIdToCheck,
+      new Date(startTime),
+      new Date(endTime)
+    );
+  }
+
+  @Get('calendar-events')
+  async getCalendarEvents(
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @Request() req
+  ) {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    console.log(`🔍 Getting calendar events from ${start} to ${end} for user ${req.user.id}`);
+    try {
+      const result = await this.interviewsService.getCalendarEvents(req.user.id, { start, end });
+      console.log(`✅ Found ${result.length} calendar event(s)`);
+      return result;
+    } catch (error) {
+      console.error(`❌ Error getting calendar events:`, error.message);
+      throw error;
+    }
+  }
+
+  @Post(':id/send-reminder')
+  async sendReminder(
+    @Param('id', ParseUUIDPipe) interviewId: string,
+    @Body('minutesBefore') minutesBefore: number = 15
+  ) {
+    return this.interviewsService.sendInterviewReminder(interviewId, minutesBefore);
+  }
 }

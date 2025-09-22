@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { useUpdateInterview, useUpdateInterviewStatus, useDeleteInterview } from "@/hooks/mutations";
+import { useUpdateInterview, useUpdateInterviewStatus, useDeleteInterview, useSyncAttendeesStatus, useSendInterviewReminder } from "@/hooks/mutations";
 import { useInterviewEvaluations } from "@/hooks/queries";
 import { Interview, UpdateInterviewData } from "@/lib/api-client";
 import {
@@ -32,7 +32,8 @@ import {
   AlertCircle,
   CheckCircle,
   Play,
-  Pause
+  Pause,
+  RefreshCw
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -99,6 +100,8 @@ export function InterviewDetailsModal({
   const updateInterviewMutation = useUpdateInterview();
   const updateStatusMutation = useUpdateInterviewStatus();
   const deleteInterviewMutation = useDeleteInterview();
+  const syncAttendeesMutation = useSyncAttendeesStatus();
+  const sendReminderMutation = useSendInterviewReminder();
 
   const { data: evaluations = [] } = useInterviewEvaluations(interview?.id || "");
 
@@ -294,6 +297,31 @@ export function InterviewDetailsModal({
                     </Button>
                   )}
 
+                  {interview.google_calendar_url && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(interview.google_calendar_url, '_blank')}
+                      className="w-full gap-2"
+                    >
+                      <Calendar className="h-4 w-4" />
+                      Voir dans Google Calendar
+                    </Button>
+                  )}
+
+                  {interview.status === 'scheduled' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => sendReminderMutation.mutate({ interviewId: interview.id, minutesBefore: 15 })}
+                      disabled={sendReminderMutation.isPending}
+                      className="w-full gap-2"
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                      {sendReminderMutation.isPending ? 'Envoi...' : 'Envoyer un rappel'}
+                    </Button>
+                  )}
+
                   <Button
                     variant="outline"
                     size="sm"
@@ -440,9 +468,23 @@ export function InterviewDetailsModal({
           <TabsContent value="participants" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  Participants à l'entretien
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    Participants à l'entretien
+                  </div>
+                  {interview.meeting_id && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => syncAttendeesMutation.mutate(interview.id)}
+                      disabled={syncAttendeesMutation.isPending}
+                      className="gap-2"
+                    >
+                      <RefreshCw className={`h-4 w-4 ${syncAttendeesMutation.isPending ? 'animate-spin' : ''}`} />
+                      {syncAttendeesMutation.isPending ? 'Synchronisation...' : 'Synchroniser les statuts'}
+                    </Button>
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -465,12 +507,24 @@ export function InterviewDetailsModal({
                             </div>
                           </div>
                         </div>
-                        <Badge variant={participant.status === 'accepted' ? 'default' : 'outline'}>
-                          {participant.status === 'invited' && 'Invité'}
-                          {participant.status === 'accepted' && 'Accepté'}
-                          {participant.status === 'declined' && 'Décliné'}
-                          {participant.status === 'tentative' && 'Incertain'}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant={participant.status === 'accepted' ? 'default' :
+                                   participant.status === 'declined' ? 'destructive' :
+                                   participant.status === 'tentative' ? 'secondary' : 'outline'}
+                            className={
+                              participant.status === 'accepted' ? 'bg-green-100 text-green-800' :
+                              participant.status === 'declined' ? 'bg-red-100 text-red-800' :
+                              participant.status === 'tentative' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-gray-100 text-gray-800'
+                            }
+                          >
+                            {participant.status === 'invited' && 'Invité'}
+                            {participant.status === 'accepted' && 'Accepté'}
+                            {participant.status === 'declined' && 'Décliné'}
+                            {participant.status === 'tentative' && 'Incertain'}
+                          </Badge>
+                        </div>
                       </div>
                     ))}
                   </div>

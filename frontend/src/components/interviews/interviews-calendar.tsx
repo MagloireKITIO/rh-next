@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Interview } from "@/lib/api-client";
 import { useGenerateMeetingLink } from "@/hooks/mutations";
+import { useCalendarEvents } from "@/hooks/queries";
 import { toast } from "sonner";
 import {
   Calendar,
@@ -52,11 +53,18 @@ export function InterviewsCalendar({
   onScheduleInterview
 }: InterviewsCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [showGoogleEvents, setShowGoogleEvents] = useState(true);
   const generateMeetingLinkMutation = useGenerateMeetingLink();
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
   const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
+
+  // Récupérer les événements Google Calendar pour le mois
+  const { data: googleEvents = [] } = useCalendarEvents(
+    monthStart.toISOString(),
+    monthEnd.toISOString()
+  );
 
   const interviewsByDate = useMemo(() => {
     return interviews.reduce((acc, interview) => {
@@ -66,6 +74,15 @@ export function InterviewsCalendar({
       return acc;
     }, {} as Record<string, Interview[]>);
   }, [interviews]);
+
+  const googleEventsByDate = useMemo(() => {
+    return googleEvents.reduce((acc, event) => {
+      const date = format(new Date(event.start.dateTime), 'yyyy-MM-dd');
+      if (!acc[date]) acc[date] = [];
+      acc[date].push(event);
+      return acc;
+    }, {} as Record<string, any[]>);
+  }, [googleEvents]);
 
   const handlePrevMonth = () => {
     setCurrentMonth(subMonths(currentMonth, 1));
@@ -101,6 +118,15 @@ export function InterviewsCalendar({
             {format(currentMonth, 'MMMM yyyy', { locale: fr })}
           </CardTitle>
           <div className="flex items-center gap-2">
+            <Button
+              variant={showGoogleEvents ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowGoogleEvents(!showGoogleEvents)}
+              className="gap-2"
+            >
+              <Calendar className="h-4 w-4" />
+              Événements Google
+            </Button>
             <Button variant="outline" size="sm" onClick={handlePrevMonth}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -126,6 +152,7 @@ export function InterviewsCalendar({
           {monthDays.map((day) => {
             const dateKey = format(day, 'yyyy-MM-dd');
             const dayInterviews = interviewsByDate[dateKey] || [];
+            const dayGoogleEvents = showGoogleEvents ? (googleEventsByDate[dateKey] || []) : [];
             const isCurrentDay = isToday(day);
 
             return (
@@ -148,7 +175,8 @@ export function InterviewsCalendar({
                 </div>
 
                 <div className="space-y-1">
-                  {dayInterviews.slice(0, 3).map((interview) => (
+                  {/* Entretiens du système */}
+                  {dayInterviews.slice(0, 2).map((interview) => (
                     <CalendarInterviewCard
                       key={interview.id}
                       interview={interview}
@@ -162,9 +190,21 @@ export function InterviewsCalendar({
                       }}
                     />
                   ))}
-                  {dayInterviews.length > 3 && (
+
+                  {/* Événements Google Calendar */}
+                  {dayGoogleEvents.slice(0, 2).map((event) => (
+                    <CalendarGoogleEventCard
+                      key={event.id}
+                      event={event}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                      }}
+                    />
+                  ))}
+
+                  {(dayInterviews.length > 2 || dayGoogleEvents.length > 2) && (
                     <div className="text-xs text-muted-foreground text-center py-1">
-                      +{dayInterviews.length - 3} autres
+                      +{Math.max(0, dayInterviews.length - 2) + Math.max(0, dayGoogleEvents.length - 2)} autres
                     </div>
                   )}
                 </div>
@@ -174,6 +214,42 @@ export function InterviewsCalendar({
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+interface CalendarGoogleEventCardProps {
+  event: any;
+  onClick: (e: React.MouseEvent) => void;
+}
+
+function CalendarGoogleEventCard({ event, onClick }: CalendarGoogleEventCardProps) {
+  const startTime = new Date(event.start.dateTime);
+
+  return (
+    <motion.div
+      whileHover={{ scale: 1.02 }}
+      className="bg-green-50 border border-green-200 rounded p-2 cursor-pointer hover:bg-green-100 transition-colors"
+      onClick={onClick}
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1 mb-1">
+            <Calendar className="h-3 w-3 text-green-600" />
+            <span className="text-xs font-medium text-green-800 truncate">
+              {event.summary}
+            </span>
+          </div>
+          <div className="text-xs text-green-600">
+            {format(startTime, 'HH:mm')}
+          </div>
+        </div>
+        {!event.isInterviewEvent && (
+          <Badge variant="outline" className="text-xs bg-green-100 text-green-700 border-green-200">
+            Google
+          </Badge>
+        )}
+      </div>
+    </motion.div>
   );
 }
 

@@ -13,8 +13,9 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useCreateInterview } from "@/hooks/mutations";
 import { useCompanyUsers } from "@/hooks/queries";
-import { Candidate, CreateInterviewData } from "@/lib/api-client";
-import { Calendar, Clock, Video, Phone, MapPin, Users, Plus, X } from "lucide-react";
+import { Candidate, CreateInterviewData, interviewsApi } from "@/lib/api-client";
+import { TimeSlotSuggestions } from "./time-slot-suggestions";
+import { Calendar, Clock, Video, Phone, MapPin, Users, Plus, X, AlertTriangle, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -75,6 +76,11 @@ export function ScheduleInterviewModal({
   const [selectedParticipants, setSelectedParticipants] = useState<string[]>([]);
   const [dateInput, setDateInput] = useState("");
   const [timeInput, setTimeInput] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [availableSlots, setAvailableSlots] = useState<any[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [conflicts, setConflicts] = useState<any>({ hasConflicts: false, conflicts: [] });
+  const [checkingConflicts, setCheckingConflicts] = useState(false);
 
   const createInterviewMutation = useCreateInterview();
 
@@ -148,6 +154,56 @@ export function ScheduleInterviewModal({
       return updated;
     });
   };
+
+  const fetchAvailableSlots = async () => {
+    if (!dateInput || selectedParticipants.length === 0) return;
+
+    setLoadingSlots(true);
+    try {
+      const response = await interviewsApi.getAvailableTimeSlots(dateInput, selectedParticipants, formData.duration_minutes);
+      setAvailableSlots(response.data);
+      setShowSuggestions(true);
+    } catch (error) {
+      console.error('Erreur lors de la récupération des créneaux:', error);
+      toast.error('Impossible de récupérer les créneaux disponibles');
+    } finally {
+      setLoadingSlots(false);
+    }
+  };
+
+  const handleSlotSelect = (slot: any) => {
+    const selectedDateTime = new Date(slot.start);
+    setFormData(prev => ({ ...prev, scheduled_at: selectedDateTime }));
+    setTimeInput(format(selectedDateTime, 'HH:mm'));
+    setShowSuggestions(false);
+  };
+
+  const checkConflictsForCurrentUser = async () => {
+    if (!formData.scheduled_at || !formData.duration_minutes) return;
+
+    setCheckingConflicts(true);
+    try {
+      const startTime = formData.scheduled_at.toISOString();
+      const endTime = new Date(formData.scheduled_at.getTime() + formData.duration_minutes * 60000).toISOString();
+
+      const response = await interviewsApi.checkConflicts('', startTime, endTime);
+      setConflicts(response.data);
+    } catch (error) {
+      console.error('Erreur lors de la vérification des conflits:', error);
+      // En cas d'erreur, on suppose qu'il n'y a pas de conflits pour ne pas bloquer
+      setConflicts({ hasConflicts: false, conflicts: [] });
+    } finally {
+      setCheckingConflicts(false);
+    }
+  };
+
+  // Vérifier les conflits quand la date/heure change
+  useEffect(() => {
+    if (formData.scheduled_at && formData.duration_minutes) {
+      const timeoutId = setTimeout(checkConflictsForCurrentUser, 500);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [formData.scheduled_at, formData.duration_minutes]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -272,6 +328,76 @@ export function ScheduleInterviewModal({
               </Select>
             </div>
           </div>
+
+          {/* Validation des conflits */}
+          {formData.scheduled_at && (
+            <div className={`p-3 rounded-lg border ${
+              conflicts.hasConflicts ? 'border-orange-200 bg-orange-50' : 'border-green-200 bg-green-50'
+            }`}>
+              <div className="flex items-center gap-2 mb-2">
+                {checkingConflicts ? (
+                  <>
+                    <Clock className="h-4 w-4 text-blue-600 animate-spin" />
+                    <span className="text-sm text-blue-700">Vérification des conflits...</span>
+                  </>
+                ) : conflicts.hasConflicts ? (
+                  <>
+                    <AlertTriangle className="h-4 w-4 text-orange-600" />
+                    <span className="text-sm font-medium text-orange-700">
+                      Conflit détecté dans votre agenda
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span className="text-sm font-medium text-green-700">
+                      Aucun conflit détecté
+                    </span>
+                  </>
+                )}
+              </div>
+
+              {conflicts.hasConflicts && conflicts.conflicts.length > 0 && (
+                <div className="mt-2">
+                  <div className="text-xs text-orange-600 mb-1">Événements en conflit :</div>
+                  {conflicts.conflicts.map((conflict: any, index: number) => (
+                    <div key={index} className="text-xs text-orange-700 bg-orange-100 px-2 py-1 rounded mb-1">
+                      {format(new Date(conflict.start), 'HH:mm')} - {format(new Date(conflict.end), 'HH:mm')}
+                      {conflict.summary && `: ${conflict.summary}`}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Bouton pour suggestions de créneaux */}
+          {dateInput && selectedParticipants.length > 0 && (
+            <div className="flex justify-center">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={fetchAvailableSlots}
+                disabled={loadingSlots}
+                className="gap-2"
+              >
+                <Clock className="h-4 w-4" />
+                {loadingSlots ? 'Recherche...' : 'Suggérer des créneaux libres'}
+              </Button>
+            </div>
+          )}
+
+          {/* Suggestions de créneaux */}
+          {showSuggestions && (
+            <TimeSlotSuggestions
+              slots={availableSlots}
+              isLoading={loadingSlots}
+              onSlotSelect={handleSlotSelect}
+              selectedSlot={availableSlots.find(slot =>
+                new Date(slot.start).getTime() === formData.scheduled_at.getTime()
+              )}
+            />
+          )}
 
           {/* Type d'entretien */}
           <div>
