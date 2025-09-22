@@ -46,6 +46,12 @@ export class Project {
   @Column({ nullable: true })
   offerDocumentFileName?: string;
 
+  @Column({ nullable: true })
+  offerImageUrl?: string;
+
+  @Column({ nullable: true })
+  offerImageFileName?: string;
+
   @ManyToOne(() => Company, company => company.projects)
   @JoinColumn({ name: 'company_id' })
   company: Company;

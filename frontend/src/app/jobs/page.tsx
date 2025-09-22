@@ -22,6 +22,8 @@ interface JobOffer {
   name: string;
   jobDescription: string;
   offerDescription?: string;
+  offerImageUrl?: string;
+  offerImageFileName?: string;
   startDate?: string;
   endDate?: string;
   createdAt: string;

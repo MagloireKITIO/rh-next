@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useCreateProject } from "@/hooks/mutations";
 import { projectsApi } from "@/lib/api-client";
-import { ArrowLeft, Briefcase, Save, Upload, Calendar, FileText } from "lucide-react";
+import { ArrowLeft, Briefcase, Save, Upload, Calendar, FileText, X, Download } from "lucide-react";
 import { toast } from "sonner";
 
 export default function NewProjectPage() {
@@ -37,7 +37,12 @@ export default function NewProjectPage() {
     offerDescription: ""
   });
   
-  const [offerDocument, setOfferDocument] = useState<File | null>(null);
+  const [uploadingDocument, setUploadingDocument] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  // States pour les URLs locales (prévisualisation)
+  const [currentDocumentUrl, setCurrentDocumentUrl] = useState('');
+  const [currentImageUrl, setCurrentImageUrl] = useState('');
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -64,19 +69,57 @@ export default function NewProjectPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.type !== 'application/pdf') {
-        toast.error('Seuls les fichiers PDF sont acceptés');
-        return;
-      }
-      if (file.size > 10 * 1024 * 1024) { // 10MB
-        toast.error('Le fichier ne doit pas dépasser 10MB');
-        return;
-      }
-      setOfferDocument(file);
+  const handleOfferDocumentUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== 'application/pdf') {
+      toast.error("Please select a PDF file");
+      return;
     }
+
+    if (file.size > 10 * 1024 * 1024) { // 10MB limit
+      toast.error("File size must be less than 10MB");
+      return;
+    }
+
+    // Créer une URL locale pour la prévisualisation
+    const localUrl = URL.createObjectURL(file);
+    setCurrentDocumentUrl(localUrl);
+
+    // Reset the file input
+    event.target.value = '';
+  };
+
+  const handleOfferImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Please select a JPEG, PNG or WebP image");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      toast.error("Image size must be less than 5MB");
+      return;
+    }
+
+    // Créer une URL locale pour la prévisualisation
+    const localUrl = URL.createObjectURL(file);
+    setCurrentImageUrl(localUrl);
+
+    // Reset the file input
+    event.target.value = '';
+  };
+
+  const handleRemoveOfferDocument = () => {
+    setCurrentDocumentUrl('');
+  };
+
+  const handleRemoveOfferImage = () => {
+    setCurrentImageUrl('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -106,15 +149,29 @@ export default function NewProjectPage() {
         });
       });
 
-      // Si un document PDF est fourni, l'uploader
-      if (offerDocument && project.id) {
+      // Upload des fichiers après création du projet (si présents)
+      const uploadPromises = [];
+
+      if (currentDocumentUrl && project.id) {
+        const documentBlob = await fetch(currentDocumentUrl).then(r => r.blob());
+        const documentFormData = new FormData();
+        documentFormData.append('document', documentBlob, 'offer-document.pdf');
+        uploadPromises.push(projectsApi.uploadOfferDocument(project.id, documentFormData));
+      }
+
+      if (currentImageUrl && project.id) {
+        const imageBlob = await fetch(currentImageUrl).then(r => r.blob());
+        const imageFormData = new FormData();
+        imageFormData.append('image', imageBlob, 'offer-image.jpg');
+        uploadPromises.push(projectsApi.uploadOfferImage(project.id, imageFormData));
+      }
+
+      // Attendre que tous les uploads se terminent
+      if (uploadPromises.length > 0) {
         try {
-          const formData = new FormData();
-          formData.append('document', offerDocument);
-          
-          await projectsApi.uploadOfferDocument(project.id, formData);
+          await Promise.all(uploadPromises);
         } catch (error) {
-          console.warn('Erreur lors de l\'upload du document, mais projet créé avec succès');
+          console.warn('Erreur lors de l\'upload des fichiers, mais projet créé avec succès');
         }
       }
 
@@ -255,31 +312,130 @@ Be objective and focus on job-relevant criteria.`;
                 </p>
               </div>
 
+              {/* Offer Image */}
+              <div className="space-y-2">
+                <Label>Image de présentation de l'offre</Label>
+                <div className="space-y-3">
+                  {currentImageUrl ? (
+                    <div className="relative group">
+                      <div className="flex items-center justify-between p-3 border rounded-lg bg-green-50 border-green-200">
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-4 w-4 text-green-600" />
+                          <span className="text-sm font-medium text-green-800">Image sélectionnée</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(currentImageUrl, '_blank')}
+                            className="border-green-300 text-green-700 hover:bg-green-100"
+                          >
+                            <Download className="h-4 w-4" />
+                            Voir
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleRemoveOfferImage}
+                            className="gap-2"
+                          >
+                            <X className="h-4 w-4" />
+                            Supprimer
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Prévisualisation au hover */}
+                      <div className="absolute bottom-full left-0 w-full z-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                        <div className="mb-2 p-2 bg-white border rounded-lg shadow-lg">
+                          <img
+                            src={currentImageUrl}
+                            alt="Preview"
+                            className="w-full h-48 object-contain rounded"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                      <div className="text-center">
+                        <Upload className="w-8 h-8 mx-auto text-gray-400 mb-2" />
+                        <div className="text-sm text-gray-600 mb-2">
+                          Sélectionnez une image (JPEG, PNG, WebP - max 5MB)
+                        </div>
+                        <Input
+                          type="file"
+                          accept="image/jpeg,image/jpg,image/png,image/webp"
+                          onChange={handleOfferImageUpload}
+                          disabled={uploadingImage}
+                          className="max-w-xs mx-auto cursor-pointer"
+                        />
+                        {uploadingImage && (
+                          <div className="mt-2">
+                            <LoadingSpinner size="sm" />
+                            <span className="ml-2 text-sm">Upload en cours...</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Offer Document */}
               <div className="space-y-2">
-                <Label htmlFor="offerDocument">Document descriptif de l'offre (PDF)</Label>
-                <div className="border-2 border-dashed border-border rounded-lg p-4">
-                  <input
-                    id="offerDocument"
-                    type="file"
-                    accept=".pdf"
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
-                  <Label htmlFor="offerDocument" className="cursor-pointer">
-                    <div className="flex flex-col items-center gap-2">
-                      <Upload className="w-8 h-8 text-muted-foreground" />
-                      <p className="text-sm text-center">
-                        {offerDocument ? 
-                          `Fichier sélectionné: ${offerDocument.name}` : 
-                          'Cliquez pour télécharger le PDF descriptif de l\'offre'
-                        }
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        PDF uniquement, max 10MB. Ce document sera consultable par les candidats.
-                      </p>
+                <Label>Document descriptif de l'offre (PDF)</Label>
+                <div className="space-y-3">
+                  {currentDocumentUrl ? (
+                    <div className="flex items-center justify-between p-3 border rounded-lg bg-green-50 border-green-200">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-green-600" />
+                        <span className="text-sm font-medium text-green-800">Document PDF sélectionné</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(currentDocumentUrl, '_blank')}
+                          className="border-green-300 text-green-700 hover:bg-green-100"
+                        >
+                          <Download className="h-4 w-4" />
+                          Voir
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleRemoveOfferDocument}
+                          className="gap-2"
+                        >
+                          <X className="h-4 w-4" />
+                          Supprimer
+                        </Button>
+                      </div>
                     </div>
-                  </Label>
+                  ) : (
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                      <div className="text-center">
+                        <Upload className="w-8 h-8 mx-auto text-gray-400 mb-2" />
+                        <div className="text-sm text-gray-600 mb-2">
+                          Sélectionnez un document PDF (max 10MB)
+                        </div>
+                        <Input
+                          type="file"
+                          accept=".pdf"
+                          onChange={handleOfferDocumentUpload}
+                          disabled={uploadingDocument}
+                          className="max-w-xs mx-auto cursor-pointer"
+                        />
+                        {uploadingDocument && (
+                          <div className="mt-2">
+                            <LoadingSpinner size="sm" />
+                            <span className="ml-2 text-sm">Upload en cours...</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

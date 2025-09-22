@@ -28,7 +28,7 @@ export class StorageService {
       .replace(/^_|_$/g, '');
   }
 
-  async uploadFile(file: Buffer, fileName: string, mimeType: string, fileType: 'cv' | 'offer' = 'cv'): Promise<string> {
+  async uploadFile(file: Buffer, fileName: string, mimeType: string, fileType: 'cv' | 'offer' | 'offer-image' = 'cv'): Promise<string> {
     // Prioriser Azure Storage si configuré
     if (this.azureStorageService.isAzureStorageConfigured()) {
       return this.azureStorageService.uploadFile(file, fileName, mimeType, fileType);
@@ -41,7 +41,12 @@ export class StorageService {
 
     try {
       const sanitizedFileName = this.sanitizeFileName(fileName);
-      const folder = fileType === 'cv' ? 'cvs' : 'offer-documents';
+      let folder = 'cvs';
+      if (fileType === 'offer') {
+        folder = 'offer-documents';
+      } else if (fileType === 'offer-image') {
+        folder = 'offer-images';
+      }
       const filePath = `${folder}/${Date.now()}-${sanitizedFileName}`;
       
       const { data, error } = await this.supabase.storage
@@ -70,6 +75,28 @@ export class StorageService {
 
   async uploadOfferDocument(file: Buffer, fileName: string): Promise<string> {
     return this.uploadFile(file, fileName, 'application/pdf', 'offer');
+  }
+
+  async uploadOfferImage(file: Buffer, fileName: string): Promise<string> {
+    // Déterminer le type MIME basé sur l'extension
+    const extension = fileName.toLowerCase().split('.').pop();
+    let mimeType = 'image/jpeg'; // par défaut
+
+    switch (extension) {
+      case 'png':
+        mimeType = 'image/png';
+        break;
+      case 'webp':
+        mimeType = 'image/webp';
+        break;
+      case 'jpg':
+      case 'jpeg':
+      default:
+        mimeType = 'image/jpeg';
+        break;
+    }
+
+    return this.uploadFile(file, fileName, mimeType, 'offer-image');
   }
 
   async deleteFile(filePath: string): Promise<void> {

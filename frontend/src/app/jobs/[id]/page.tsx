@@ -36,6 +36,8 @@ interface JobOffer {
   offerDescription?: string;
   offerDocumentUrl?: string;
   offerDocumentFileName?: string;
+  offerImageUrl?: string;
+  offerImageFileName?: string;
   startDate?: string;
   endDate?: string;
   createdAt: string;
@@ -209,7 +211,7 @@ export default function JobDetailPage() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="bg-primary text-primary-foreground py-8">
-        <div className="max-w-4xl mx-auto px-4">
+        <div className="max-w-7xl mx-auto px-4">
           <Link href="/jobs" className="inline-flex items-center gap-2 text-primary-foreground/80 hover:text-primary-foreground mb-4">
             <ArrowLeft className="w-4 h-4" />
             Retour aux offres
@@ -243,11 +245,38 @@ export default function JobDetailPage() {
         </div>
       </div>
 
+
       {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-8 gap-8">
+          {/* Left Sidebar - Image */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Offer Image */}
+            {jobOffer.offerImageUrl && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Présentation de l'offre</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="aspect-square relative overflow-hidden rounded-lg">
+                    <img
+                      src={jobOffer.offerImageUrl}
+                      alt={jobOffer.name}
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                  {jobOffer.offerImageFileName && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Image: {jobOffer.offerImageFileName}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Main Content */}
+          <div className="lg:col-span-4 space-y-6">
             {/* Job Info */}
             <Card>
               <CardHeader>
@@ -314,8 +343,8 @@ export default function JobDetailPage() {
             </Card>
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
+          {/* Right Sidebar */}
+          <div className="lg:col-span-2 space-y-6">
             {/* Application */}
             <Card>
               <CardHeader>

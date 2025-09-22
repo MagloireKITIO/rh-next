@@ -403,6 +403,8 @@ export class ProjectsService {
         offerDescription: true,
         offerDocumentUrl: true,
         offerDocumentFileName: true,
+        offerImageUrl: true,
+        offerImageFileName: true,
         startDate: true,
         endDate: true,
         createdAt: true,
@@ -597,6 +599,39 @@ export class ProjectsService {
     } catch (error) {
       this.logger.error('Error uploading offer document:', error);
       throw new NotFoundException('Erreur lors de l\'upload du document');
+    }
+  }
+
+  async uploadOfferImage(id: string, companyId: string, file: Express.Multer.File): Promise<Project> {
+    const project = await this.findOne(id, companyId); // Pas de relations nécessaires
+
+    if (!file) {
+      throw new NotFoundException('Aucun fichier fourni');
+    }
+
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.mimetype)) {
+      throw new NotFoundException('Seuls les fichiers JPEG, PNG et WebP sont autorisés');
+    }
+
+    try {
+      // Upload de l'image vers Azure Storage
+      const imageUrl = await this.storageService.uploadOfferImage(
+        file.buffer,
+        file.originalname
+      );
+
+      // Mise à jour du projet avec l'URL de l'image
+      await this.projectRepository.update(id, {
+        offerImageUrl: imageUrl,
+        offerImageFileName: file.originalname,
+      });
+
+      this.logger.log(`Offer image uploaded successfully for project ${id}`);
+      return this.findOne(id, companyId); // Pas de relations nécessaires
+    } catch (error) {
+      this.logger.error('Error uploading offer image:', error);
+      throw new NotFoundException('Erreur lors de l\'upload de l\'image');
     }
   }
 }

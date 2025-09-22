@@ -36,4 +36,12 @@ export class CreateProjectDto {
   @IsString()
   @IsOptional()
   offerDocumentFileName?: string;
+
+  @IsString()
+  @IsOptional()
+  offerImageUrl?: string;
+
+  @IsString()
+  @IsOptional()
+  offerImageFileName?: string;
 }

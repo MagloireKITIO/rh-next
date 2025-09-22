@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,13 +13,13 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Project, projectsApi, candidatesApi, apiClient } from "@/lib/api-client";
-import { 
-  Save, 
-  Trash2, 
-  Archive, 
-  Copy, 
-  Download, 
-  RefreshCw, 
+import {
+  Save,
+  Trash2,
+  Archive,
+  Copy,
+  Download,
+  RefreshCw,
   AlertTriangle,
   Users,
   Settings as SettingsIcon,
@@ -28,6 +28,7 @@ import {
   X
 } from "lucide-react";
 import { toast } from "sonner";
+
 
 interface ProjectSettingsProps {
   project: Project;
@@ -53,7 +54,12 @@ export function ProjectSettings({
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [clearConfirmation, setClearConfirmation] = useState("");
   const [uploadingDocument, setUploadingDocument] = useState(false);
-  
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  // States locaux pour l'affichage immédiat
+  const [currentDocumentUrl, setCurrentDocumentUrl] = useState(project.offerDocumentUrl || '');
+  const [currentImageUrl, setCurrentImageUrl] = useState(project.offerImageUrl || '');
+
   // Form states
   const [formData, setFormData] = useState({
     name: project.name,
@@ -62,8 +68,38 @@ export function ProjectSettings({
     status: project.status,
     startDate: project.startDate ? new Date(project.startDate).toISOString().slice(0, 16) : "",
     endDate: project.endDate ? new Date(project.endDate).toISOString().slice(0, 16) : "",
-    offerDescription: project.offerDescription || ""
+    offerDescription: project.offerDescription || "",
+    offerImageUrl: project.offerImageUrl || "",
+    offerImageFileName: project.offerImageFileName || ""
   });
+
+  // Synchroniser formData et states locaux avec le projet mis à jour
+  useEffect(() => {
+    console.log('🔄 Project data loaded:', {
+      offerDocumentUrl: project.offerDocumentUrl,
+      offerImageUrl: project.offerImageUrl,
+      offerImageFileName: project.offerImageFileName
+    });
+
+    setFormData({
+      name: project.name,
+      jobDescription: project.jobDescription,
+      customPrompt: project.customPrompt || "",
+      status: project.status,
+      startDate: project.startDate ? new Date(project.startDate).toISOString().slice(0, 16) : "",
+      endDate: project.endDate ? new Date(project.endDate).toISOString().slice(0, 16) : "",
+      offerDescription: project.offerDescription || "",
+      offerImageUrl: project.offerImageUrl || "",
+      offerImageFileName: project.offerImageFileName || ""
+    });
+    setCurrentDocumentUrl(project.offerDocumentUrl || '');
+    setCurrentImageUrl(project.offerImageUrl || '');
+
+    console.log('✅ States updated:', {
+      currentDocumentUrl: project.offerDocumentUrl || '',
+      currentImageUrl: project.offerImageUrl || ''
+    });
+  }, [project]);
 
   const handleSaveGeneral = async () => {
     setIsLoading(true);
@@ -173,9 +209,10 @@ export function ProjectSettings({
         },
       });
 
+      setCurrentDocumentUrl(response.data.offerDocumentUrl);
       onProjectUpdate(response.data);
       toast.success("Offer document uploaded successfully");
-      
+
       // Reset the file input
       event.target.value = '';
     } catch (error) {
@@ -190,14 +227,78 @@ export function ProjectSettings({
     setIsLoading(true);
     try {
       const response = await projectsApi.update(project.id, {
-        offerDocumentUrl: undefined,
-        offerDocumentFileName: undefined
+        offerDocumentUrl: null,
+        offerDocumentFileName: null
       });
+      setCurrentDocumentUrl('');
       onProjectUpdate(response.data);
       toast.success("Offer document removed successfully");
     } catch (error) {
       console.error("Error removing offer document:", error);
       toast.error("Error removing offer document");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleOfferImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Please select a JPEG, PNG or WebP image");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      toast.error("Image size must be less than 5MB");
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const response = await apiClient.post(`/projects/${project.id}/offer-image`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      console.log('📸 Image upload response:', response.data);
+      console.log('🔗 New image URL:', response.data.offerImageUrl);
+
+      setCurrentImageUrl(response.data.offerImageUrl);
+      setFormData(prev => ({ ...prev, offerImageUrl: response.data.offerImageUrl, offerImageFileName: response.data.offerImageFileName }));
+      onProjectUpdate(response.data);
+      toast.success("Offer image uploaded successfully");
+
+      // Reset the file input
+      event.target.value = '';
+    } catch (error) {
+      console.error("Error uploading offer image:", error);
+      toast.error("Error uploading offer image");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleRemoveOfferImage = async () => {
+    setIsLoading(true);
+    try {
+      const response = await projectsApi.update(project.id, {
+        offerImageUrl: null,
+        offerImageFileName: null
+      });
+      setCurrentImageUrl('');
+      setFormData(prev => ({ ...prev, offerImageUrl: '', offerImageFileName: '' }));
+      onProjectUpdate(response.data);
+      toast.success("Offer image removed successfully");
+    } catch (error) {
+      console.error("Error removing offer image:", error);
+      toast.error("Error removing offer image");
     } finally {
       setIsLoading(false);
     }
@@ -351,53 +452,125 @@ export function ProjectSettings({
                     <div>
                       <Label>Offer Document</Label>
                       <div className="space-y-3">
-                        {project.offerDocumentUrl ? (
-                          <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/50">
+                        {currentDocumentUrl ? (
+                          <div className="flex items-center justify-between p-3 border rounded-lg bg-green-50 border-green-200">
                             <div className="flex items-center gap-2">
-                              <FileText className="h-4 w-4 text-blue-600" />
-                              <span className="text-sm font-medium">
-                                {project.offerDocumentFileName || "Offer Document"}
-                              </span>
+                              <FileText className="h-4 w-4 text-green-600" />
+                              <span className="text-sm font-medium text-green-800">Document PDF uploadé</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => window.open(project.offerDocumentUrl, '_blank')}
+                                onClick={() => window.open(currentDocumentUrl, '_blank')}
+                                className="border-green-300 text-green-700 hover:bg-green-100"
                               >
                                 <Download className="h-4 w-4" />
-                                View
+                                Voir
                               </Button>
                               <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={handleRemoveOfferDocument}
                                 disabled={isLoading}
+                                className="gap-2"
                               >
                                 <X className="h-4 w-4" />
-                                Remove
+                                Supprimer
                               </Button>
                             </div>
                           </div>
                         ) : (
-                          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                            <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
-                            <div className="text-sm text-gray-600 mb-2">
-                              Upload offer document (PDF only, max 10MB)
-                            </div>
-                            <Input
-                              type="file"
-                              accept=".pdf"
-                              onChange={handleOfferDocumentUpload}
-                              disabled={uploadingDocument}
-                              className="max-w-xs mx-auto"
-                            />
-                            {uploadingDocument && (
-                              <div className="mt-2">
-                                <LoadingSpinner size="sm" />
-                                <span className="ml-2 text-sm">Uploading...</span>
+                          <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                            <div className="text-center">
+                              <Upload className="w-8 h-8 mx-auto text-gray-400 mb-2" />
+                              <div className="text-sm text-gray-600 mb-2">
+                                Sélectionnez un document PDF (max 10MB)
                               </div>
-                            )}
+                              <Input
+                                type="file"
+                                accept=".pdf"
+                                onChange={handleOfferDocumentUpload}
+                                disabled={uploadingDocument}
+                                className="max-w-xs mx-auto cursor-pointer"
+                              />
+                              {uploadingDocument && (
+                                <div className="mt-2">
+                                  <LoadingSpinner size="sm" />
+                                  <span className="ml-2 text-sm">Upload en cours...</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label>Offer Image</Label>
+                      <div className="space-y-3">
+                        {currentImageUrl ? (
+                          <div className="relative group">
+                            <div className="flex items-center justify-between p-3 border rounded-lg bg-green-50 border-green-200">
+                              <div className="flex items-center gap-2">
+                                <FileText className="h-4 w-4 text-green-600" />
+                                <span className="text-sm font-medium text-green-800">Image uploadée</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => window.open(currentImageUrl, '_blank')}
+                                  className="border-green-300 text-green-700 hover:bg-green-100"
+                                >
+                                  <Download className="h-4 w-4" />
+                                  Voir
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={handleRemoveOfferImage}
+                                  disabled={isLoading}
+                                  className="gap-2"
+                                >
+                                  <X className="h-4 w-4" />
+                                  Supprimer
+                                </Button>
+                              </div>
+                            </div>
+
+                            {/* Prévisualisation au hover */}
+                            <div className="absolute bottom-full left-0 w-full z-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                              <div className="mb-2 p-2 bg-white border rounded-lg shadow-lg">
+                                <img
+                                  src={currentImageUrl}
+                                  alt="Preview"
+                                  className="w-full h-48 object-contain rounded"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                            <div className="text-center">
+                              <Upload className="w-8 h-8 mx-auto text-gray-400 mb-2" />
+                              <div className="text-sm text-gray-600 mb-2">
+                                Sélectionnez une image (JPEG, PNG, WebP - max 5MB)
+                              </div>
+                              <Input
+                                type="file"
+                                accept="image/jpeg,image/jpg,image/png,image/webp"
+                                onChange={handleOfferImageUpload}
+                                disabled={uploadingImage}
+                                className="max-w-xs mx-auto cursor-pointer"
+                              />
+                              {uploadingImage && (
+                                <div className="mt-2">
+                                  <LoadingSpinner size="sm" />
+                                  <span className="ml-2 text-sm">Upload en cours...</span>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>

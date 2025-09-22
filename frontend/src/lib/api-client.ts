@@ -398,6 +398,10 @@ export const projectsApi = {
     apiClient.post(`/projects/${id}/offer-document`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     }),
+  uploadOfferImage: (id: string, formData: FormData) =>
+    apiClient.post(`/projects/${id}/offer-image`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }),
 };
 
 export const candidatesApi = {

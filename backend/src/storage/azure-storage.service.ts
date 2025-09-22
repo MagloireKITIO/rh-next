@@ -45,14 +45,19 @@ export class AzureStorageService {
       .replace(/^_|_$/g, '');
   }
 
-  async uploadFile(file: Buffer, fileName: string, mimeType: string, fileType: 'cv' | 'offer' = 'cv'): Promise<string> {
+  async uploadFile(file: Buffer, fileName: string, mimeType: string, fileType: 'cv' | 'offer' | 'offer-image' = 'cv'): Promise<string> {
     if (!this.containerClient) {
       throw new Error('Azure Storage not configured');
     }
 
     try {
       const sanitizedFileName = this.sanitizeFileName(fileName);
-      const folder = fileType === 'cv' ? 'cvs' : 'offer-documents';
+      let folder = 'cvs';
+      if (fileType === 'offer') {
+        folder = 'offer-documents';
+      } else if (fileType === 'offer-image') {
+        folder = 'offer-images';
+      }
       const blobName = `${folder}/${Date.now()}-${sanitizedFileName}`;
       
       const blockBlobClient = this.containerClient.getBlockBlobClient(blobName);

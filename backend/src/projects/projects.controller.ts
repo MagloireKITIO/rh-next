@@ -88,6 +88,18 @@ export class ProjectsController {
   ) {
     return this.projectsService.uploadOfferDocument(id, companyId, file);
   }
+
+  @Post(':id/offer-image')
+  @Roles(UserRole.ADMIN, UserRole.HR)
+  @UseGuards(RolesGuard)
+  @UseInterceptors(FileInterceptor('image'))
+  async uploadOfferImage(
+    @Param('id') id: string,
+    @CurrentCompany() companyId: string,
+    @UploadedFile() file: Express.Multer.File
+  ) {
+    return this.projectsService.uploadOfferImage(id, companyId, file);
+  }
 }
 
 // Contrôleur séparé pour l'accès public
