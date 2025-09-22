@@ -503,6 +503,20 @@ export const adminApi = {
     return response.data.data;
   },
 
+  // Platform Settings & Visual Identity
+  getVisualIdentitySettings: () => apiClient.get('/platform-settings/visual-identity'),
+  updateVisualIdentitySection: (section: string, settings: Record<string, any>) =>
+    apiClient.post(`/platform-settings/visual-identity/${section}`, settings),
+  uploadLogo: (formData: FormData) =>
+    apiClient.post('/platform-settings/branding/upload-logo', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }),
+  uploadFavicon: (formData: FormData) =>
+    apiClient.post('/platform-settings/branding/upload-favicon', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }),
+  initializePlatformSettings: () => apiClient.post('/platform-settings/initialize'),
+
 };
 
 // Auth API for admin

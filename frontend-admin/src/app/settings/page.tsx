@@ -20,6 +20,7 @@ import {
 import MailSettings from '@/components/admin/settings/mail-settings';
 import PrivacyPolicySettings from '@/components/admin/settings/privacy-policy-settings';
 import ExternalIntegrationsSettings from '@/components/admin/settings/external-integrations-settings';
+import VisualIdentitySettings from '@/components/admin/settings/visual-identity-settings';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -79,11 +80,11 @@ export default function SettingsPage() {
     },
     {
       id: 'appearance',
-      label: 'Apparence',
-      description: 'Thèmes et personnalisation',
+      label: 'Identité Visuelle',
+      description: 'Personnalisez l\'apparence de votre plateforme',
       icon: Palette,
-      component: null, // À implémenter plus tard
-      badge: 'Bientôt',
+      component: VisualIdentitySettings,
+      badge: null,
     },
     {
       id: 'mail',

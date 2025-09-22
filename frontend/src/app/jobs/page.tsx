@@ -14,6 +14,8 @@ import Link from 'next/link';
 import { ShareButton } from '@/components/ui/share-button';
 import { publicApi } from '@/lib/api-client';
 import { cn } from '@/lib/utils';
+import { DynamicHeader } from '@/components/platform/dynamic-header';
+import { DynamicFooter } from '@/components/platform/dynamic-footer';
 
 interface JobOffer {
   id: string;
@@ -220,7 +222,11 @@ export default function JobsPage() {
   const hasActiveFilters = filters.searchKeyword || filters.companies.length > 0 || filters.dateRange !== 'all' || filters.status.length > 0;
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Dynamic Header */}
+      <DynamicHeader pageName="jobs" className="w-full" />
+
+      <div className="flex flex-1">
       {/* Filter Sidebar */}
       <div className={cn(
         "fixed left-0 top-0 z-30 h-full bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-all duration-300 overflow-y-auto",
@@ -520,6 +526,10 @@ export default function JobsPage() {
         </div>
       </div>
       </div>
+      </div>
+
+      {/* Dynamic Footer */}
+      <DynamicFooter pageName="jobs" className="w-full" />
     </div>
   );
 }
