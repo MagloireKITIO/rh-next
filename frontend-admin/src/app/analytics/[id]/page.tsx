@@ -34,6 +34,20 @@ import {
   Filter
 } from 'lucide-react';
 
+interface TimelinePoint {
+  date: string;
+  candidatesAdded: number;
+  candidatesAnalyzed: number;
+}
+
+interface TopCandidate {
+  id: string;
+  name: string;
+  score: number;
+  hrDecision?: {
+    recommendation: 'RECRUTER' | 'ENTRETIEN' | 'REJETER';
+  };
+}
 
 export default function ProjectReportPage() {
   const params = useParams();
@@ -163,7 +177,7 @@ export default function ProjectReportPage() {
 
                   <div className="flex items-center gap-2 ml-auto">
                     <span className="text-sm font-medium">Export:</span>
-                    <Select value={exportFormat} onValueChange={setExportFormat}>
+                    <Select value={exportFormat} onValueChange={(value) => setExportFormat(value as 'pdf' | 'excel')}>
                       <SelectTrigger className="w-24">
                         <SelectValue />
                       </SelectTrigger>
