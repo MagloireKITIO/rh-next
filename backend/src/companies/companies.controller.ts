@@ -34,9 +34,9 @@ export class CompaniesController {
     @Query('page') page?: string,
     @Query('limit') limit?: string
   ) {
-    const pageNumber = page ? parseInt(page, 10) : 1;
-    const pageLimit = limit ? parseInt(limit, 10) : 50;
-    
+    const pageNumber = page ? (parseInt(page, 10) || 1) : 1;
+    const pageLimit = limit ? (parseInt(limit, 10) || 50) : 50;
+
     return this.companiesService.getUsers(companyId, pageNumber, pageLimit);
   }
 

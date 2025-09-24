@@ -194,14 +194,18 @@ export class TransactionService {
    * Détermine s'il faut retry selon le type d'erreur
    */
   private shouldRetry(error: any): boolean {
+    if (!error || typeof error !== 'object') {
+      return false;
+    }
+
     const retryableErrors = [
-      'connection', 
+      'connection',
       'timeout',
       'deadlock',
       'serialization_failure',
       'connection_failure'
     ];
-    
+
     const errorMessage = error.message?.toLowerCase() || '';
     return retryableErrors.some(keyword => errorMessage.includes(keyword));
   }

@@ -30,13 +30,13 @@ export class PipelineController {
 
   @Get('project/:projectId')
   async findByProject(@Param('projectId', ParseUUIDPipe) projectId: string, @Request() req) {
-    console.log(`🔍 Getting pipelines for project: ${projectId} for company ${req.user.company_id}`);
     try {
+      console.log(`Getting pipelines for project: ${projectId}`);
       const result = await this.pipelineService.findByProject(projectId, req.user.company_id);
-      console.log(`✅ Found ${result.length} pipeline(s) for project ${projectId}`);
+      console.log(`Found ${result.length} pipeline(s) for project ${projectId}`);
       return result;
     } catch (error) {
-      console.error(`❌ Error getting pipelines for project ${projectId}:`, error.message);
+      console.error(`Error getting pipelines for project ${projectId}:`, error.message);
       throw error;
     }
   }
@@ -48,13 +48,13 @@ export class PipelineController {
 
   @Get(':id/with-candidates')
   async getPipelineWithCandidates(@Param('id', ParseUUIDPipe) id: string, @Request() req) {
-    console.log(`🔍 Getting pipeline with candidates: ${id} for company ${req.user.company_id}`);
     try {
+      console.log(`Getting pipeline with candidates: ${id}`);
       const result = await this.pipelineService.getPipelineWithCandidates(id, req.user.company_id);
-      console.log(`✅ Pipeline found with ${result.stages?.length || 0} stages`);
+      console.log(`Pipeline found with ${result.stages?.length || 0} stages`);
       return result;
     } catch (error) {
-      console.error(`❌ Error getting pipeline ${id}:`, error.message);
+      console.error(`Error getting pipeline ${id}:`, error.message);
       throw error;
     }
   }
@@ -128,13 +128,10 @@ export class PipelineController {
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Request() req,
   ) {
-    console.log(`🔍 Getting timeline for project: ${projectId} for company ${req.user.company_id}`);
     try {
       const result = await this.pipelineService.getProjectTimeline(projectId, req.user.company_id);
-      console.log(`✅ Found ${result.events.length} timeline events for project ${projectId}`);
       return result;
     } catch (error) {
-      console.error(`❌ Error getting timeline for project ${projectId}:`, error.message);
       throw error;
     }
   }

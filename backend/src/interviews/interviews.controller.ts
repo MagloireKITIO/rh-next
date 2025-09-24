@@ -34,39 +34,30 @@ export class InterviewsController {
 
   @Get('project/:projectId')
   async findByProject(@Param('projectId', ParseUUIDPipe) projectId: string, @Request() req) {
-    console.log(`🔍 Getting interviews for project: ${projectId} for company ${req.user.company_id}`);
     try {
       const result = await this.interviewsService.findByProject(projectId);
-      console.log(`✅ Found ${result.length} interview(s) for project ${projectId}`);
       return result;
     } catch (error) {
-      console.error(`❌ Error getting interviews for project ${projectId}:`, error.message);
       throw error;
     }
   }
 
   @Get('candidate/:candidateId')
   async findByCandidate(@Param('candidateId', ParseUUIDPipe) candidateId: string) {
-    console.log(`🔍 Getting interviews for candidate: ${candidateId}`);
     try {
       const result = await this.interviewsService.findByCandidate(candidateId);
-      console.log(`✅ Found ${result.length} interview(s) for candidate ${candidateId}`);
       return result;
     } catch (error) {
-      console.error(`❌ Error getting interviews for candidate ${candidateId}:`, error.message);
       throw error;
     }
   }
 
   @Get('user/:userId')
   async findByUser(@Param('userId', ParseUUIDPipe) userId: string) {
-    console.log(`🔍 Getting interviews for user: ${userId}`);
     try {
       const result = await this.interviewsService.findByUser(userId);
-      console.log(`✅ Found ${result.length} interview(s) for user ${userId}`);
       return result;
     } catch (error) {
-      console.error(`❌ Error getting interviews for user ${userId}:`, error.message);
       throw error;
     }
   }
@@ -79,13 +70,10 @@ export class InterviewsController {
     const start = new Date(startDate);
     const end = new Date(endDate);
 
-    console.log(`🔍 Getting interviews from ${start} to ${end}`);
     try {
       const result = await this.interviewsService.findByDateRange(start, end);
-      console.log(`✅ Found ${result.length} interview(s) in date range`);
       return result;
     } catch (error) {
-      console.error(`❌ Error getting interviews for date range:`, error.message);
       throw error;
     }
   }
@@ -214,13 +202,10 @@ export class InterviewsController {
     const start = new Date(startDate);
     const end = new Date(endDate);
 
-    console.log(`🔍 Getting calendar events from ${start} to ${end} for user ${req.user.id}`);
     try {
       const result = await this.interviewsService.getCalendarEvents(req.user.id, { start, end });
-      console.log(`✅ Found ${result.length} calendar event(s)`);
       return result;
     } catch (error) {
-      console.error(`❌ Error getting calendar events:`, error.message);
       throw error;
     }
   }

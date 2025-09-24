@@ -25,7 +25,8 @@ export class StorageService {
       .replace(/[\u0300-\u036f]/g, '')
       .replace(/[^a-zA-Z0-9\-_.]/g, '_')
       .replace(/_+/g, '_')
-      .replace(/^_|_$/g, '');
+      .replace(/^_+|_+$/g, '')
+      .replace(/_+\./g, '.');
   }
 
   async uploadFile(file: Buffer, fileName: string, mimeType: string, fileType: 'cv' | 'offer' | 'offer-image' = 'cv'): Promise<string> {

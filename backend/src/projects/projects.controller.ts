@@ -121,8 +121,8 @@ export class PublicProjectsController {
     @Query('status') status?: string,
     @Query('scoreFilter') scoreFilter?: string,
   ) {
-    const pageNumber = page ? parseInt(page, 10) : 1;
-    const pageLimit = limit ? parseInt(limit, 10) : 20;
+    const pageNumber = page && !isNaN(parseInt(page, 10)) ? parseInt(page, 10) : 1;
+    const pageLimit = limit && !isNaN(parseInt(limit, 10)) ? parseInt(limit, 10) : 20;
     
     const filters = {
       search,

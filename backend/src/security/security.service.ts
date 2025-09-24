@@ -56,8 +56,6 @@ export class SecurityService {
    */
   async getLoginAuditLogs(companyId: string, query: LoginAuditQueryDto) {
     try {
-      console.log('🔍 [SECURITY SERVICE] getLoginAuditLogs called with companyId:', companyId);
-      console.log('🔍 [SECURITY SERVICE] Query:', query);
 
       const {
         page = 1,
@@ -75,7 +73,6 @@ export class SecurityService {
 
       // First, let's check how many records exist total
       const totalRecords = await this.loginAuditRepository.count();
-      console.log('🔍 [SECURITY SERVICE] Total records in login_audit table:', totalRecords);
 
       // Check records for this company
       let companyRecords;
@@ -86,7 +83,6 @@ export class SecurityService {
           where: { company_id: companyId }
         });
       }
-      console.log('🔍 [SECURITY SERVICE] Records for company', companyId, ':', companyRecords);
 
       const queryBuilder = this.loginAuditRepository
         .createQueryBuilder('audit')
@@ -96,7 +92,6 @@ export class SecurityService {
       // Gérer le cas où companyId est null (super admin)
       if (companyId === null || companyId === undefined) {
         // Pour un super admin, on veut voir TOUS les logs de toutes les entreprises
-        console.log('🔍 [SECURITY SERVICE] Super admin detected - showing ALL logs');
         // Pas de filtre par company_id pour les super admins
       } else {
         queryBuilder.where('audit.company_id = :companyId', { companyId });
@@ -153,15 +148,6 @@ export class SecurityService {
 
       const [logs, total] = await queryBuilder.getManyAndCount();
 
-      console.log('🔍 [SECURITY SERVICE] Query result - total:', total, 'logs length:', logs.length);
-      console.log('🔍 [SECURITY SERVICE] First log sample:', logs[0] ? {
-        id: logs[0].id,
-        email_attempt: logs[0].email_attempt,
-        status: logs[0].status,
-        ip_address: logs[0].ip_address,
-        company_id: logs[0].company_id,
-        created_at: logs[0].created_at
-      } : 'No logs');
 
       return {
         data: logs,
@@ -181,14 +167,12 @@ export class SecurityService {
    */
   async getLoginAuditStats(companyId: string, dateFrom?: Date, dateTo?: Date): Promise<LoginAuditStatsDto> {
     try {
-      console.log('🔍 [SECURITY SERVICE] getLoginAuditStats called with companyId:', companyId);
 
       const queryBuilder = this.loginAuditRepository
         .createQueryBuilder('audit');
 
       // Gérer le cas où companyId est null (super admin)
       if (companyId === null || companyId === undefined) {
-        console.log('🔍 [SECURITY SERVICE] Super admin stats - showing ALL stats');
         // Pas de filtre par company_id pour les super admins
       } else {
         queryBuilder.where('audit.company_id = :companyId', { companyId });
@@ -217,14 +201,6 @@ export class SecurityService {
         queryBuilder.clone().select('COUNT(DISTINCT audit.ip_address)').getRawOne().then(r => parseInt(r.count))
       ]);
 
-      console.log('🔍 [SECURITY SERVICE] Stats breakdown:', {
-        totalAttempts,
-        successfulLogins,
-        failedAttempts,
-        suspiciousActivities,
-        uniqueUsers,
-        uniqueIps
-      });
 
       const successRate = totalAttempts > 0 ? (successfulLogins / totalAttempts) * 100 : 0;
 
@@ -293,16 +269,17 @@ export class SecurityService {
     }
 
     // Détection du système d'exploitation
-    if (ua.includes('windows')) {
+    // Check mobile OS first as they might contain desktop OS names
+    if (ua.includes('android')) {
+      os = 'Android';
+    } else if (ua.includes('ios') || ua.includes('iphone') || ua.includes('ipad')) {
+      os = 'iOS';
+    } else if (ua.includes('windows')) {
       os = 'Windows';
     } else if (ua.includes('mac os') || ua.includes('macos')) {
       os = 'macOS';
     } else if (ua.includes('linux')) {
       os = 'Linux';
-    } else if (ua.includes('android')) {
-      os = 'Android';
-    } else if (ua.includes('ios') || ua.includes('iphone') || ua.includes('ipad')) {
-      os = 'iOS';
     }
 
     return { deviceType, browser, os };

@@ -42,8 +42,8 @@ export class CandidatesController {
     @Query('status') status?: string,
     @Query('scoreFilter') scoreFilter?: string,
   ) {
-    const pageNumber = page ? parseInt(page, 10) : 1;
-    const pageLimit = limit ? parseInt(limit, 10) : 50;
+    const pageNumber = page ? parseInt(page, 10) || 1 : 1;
+    const pageLimit = limit ? parseInt(limit, 10) || 50 : 50;
     
     const filters = {
       search,
