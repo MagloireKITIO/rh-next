@@ -176,7 +176,9 @@
       "Bash(grep:*)",
       "Bash(npm run migration:run:*)",
       "Bash(mkdir:*)",
-      "Bash(npm run dev:*)"
+      "Bash(npm run dev:*)",
+      "Bash(npm test:*)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []
